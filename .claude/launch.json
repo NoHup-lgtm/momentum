@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "momentum-lp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "/Users/araujo/Documents/Github/momentum/lp"
+    },
+    {
+      "name": "momentum-desktop",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 1420,
+      "cwd": "/Users/araujo/Documents/Github/momentum/desktop"
+    }
+  ]
+}
