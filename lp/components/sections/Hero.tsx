@@ -148,7 +148,7 @@ export default function Hero() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px',
         }}>
           <a
-            href="https://github.com/arthurguiaraujo/momentum"
+            href="https://github.com/NoHup-lgtm/momentum"
             target="_blank"
             rel="noopener noreferrer"
             style={{
