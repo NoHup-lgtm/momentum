@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Lora } from 'next/font/google'
 import './globals.css'
-import Providers from './providers'
 
 const lora = Lora({
   subsets: ['latin'],
@@ -13,8 +12,7 @@ const lora = Lora({
 
 export const metadata: Metadata = {
   title: 'momentum — Feito de dias imperfeitos.',
-  description:
-    'Co-piloto de projetos com IA para devs e estudantes que não conseguem terminar o que começaram.',
+  description: 'O app desktop que mantém seus projetos de software vivos quando a motivação some. Agentes de IA que entendem o seu ritmo.',
   openGraph: {
     title: 'momentum',
     description: 'Feito de dias imperfeitos.',
@@ -25,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={lora.variable}>
-      <body><Providers>{children}</Providers></body>
+      <body>{children}</body>
     </html>
   )
 }

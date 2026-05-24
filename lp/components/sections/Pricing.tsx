@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { useState } from 'react'
 import FadeIn from '../FadeIn'
 
 const PLANS = [
@@ -11,13 +11,12 @@ const PLANS = [
     desc: 'Para começar e entender o valor antes de qualquer compromisso.',
     features: [
       '1 projeto ativo',
-      '1 repositório GitHub conectado',
+      '1 repositório conectado',
       'Agente Arquiteto',
       'Agente Accountability',
       '20 check-ins por mês',
-      '1 squad (até 4 pessoas)',
     ],
-    cta: 'Começar grátis',
+    cta: 'Entrar na lista de espera',
     primary: false,
   },
   {
@@ -27,20 +26,33 @@ const PLANS = [
     desc: 'Para quem leva projetos a sério e quer terminar o que começou.',
     features: [
       'Projetos ilimitados',
-      'Todos os repositórios GitHub',
+      'Todos os repositórios',
       'Todos os 4 agentes',
       'Check-ins ilimitados',
-      'Agente Re-onboarding',
-      'Agente Desbloqueador',
-      'Squads ilimitados',
+      'Integração MCP com AI IDEs',
       'Analytics de produtividade',
     ],
-    cta: 'Começar 14 dias grátis',
+    cta: 'Entrar na lista de espera',
     primary: true,
   },
 ]
 
 export default function PricingSection() {
+  const [submitted, setSubmitted] = useState(false)
+  const [email, setEmail] = useState('')
+  const [active, setActive] = useState<number | null>(null)
+
+  const submit = async (i: number) => {
+    setActive(i)
+    if (!email.includes('@')) return
+    await fetch('/api/waitlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    setSubmitted(true)
+  }
+
   return (
     <section id="precos" style={{
       background: 'var(--bg)',
@@ -50,7 +62,7 @@ export default function PricingSection() {
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         <FadeIn>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: '500',
+            fontFamily: 'var(--font-mono)', fontSize: '10px',
             letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--accent)', display: 'block', marginBottom: '14px', opacity: 0.85,
           }}>preços</span>
@@ -58,13 +70,11 @@ export default function PricingSection() {
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
-            color: 'var(--text)', margin: '0 0 10px',
-            letterSpacing: '-0.01em',
+            color: 'var(--text)', margin: '0 0 10px', letterSpacing: '-0.01em',
           }}>Simples e transparente.</h2>
-          <p style={{
-            fontSize: '16px', color: 'var(--text-2)',
-            lineHeight: '1.65', margin: 0, maxWidth: '480px',
-          }}>Comece grátis. Upgrade só quando você sentir o valor.</p>
+          <p style={{ fontSize: '16px', color: 'var(--text-2)', lineHeight: '1.65', margin: 0, maxWidth: '480px' }}>
+            Comece grátis. Upgrade só quando sentir o valor.
+          </p>
         </FadeIn>
 
         <div style={{
@@ -102,61 +112,46 @@ export default function PricingSection() {
                 <div style={{ marginBottom: '10px' }}>
                   {plan.price ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                      <span style={{
-                        fontFamily: 'var(--font-serif)', fontSize: '42px',
-                        fontWeight: '400', color: 'var(--text)', lineHeight: 1,
-                      }}>R${plan.price}</span>
-                      <span style={{
-                        fontFamily: 'var(--font-mono)', fontSize: '11px',
-                        color: 'var(--text-3)',
-                      }}>/mês</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>R${plan.price}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-3)' }}>/mês</span>
                     </div>
                   ) : (
-                    <span style={{
-                      fontFamily: 'var(--font-serif)', fontSize: '42px',
-                      fontWeight: '400', color: 'var(--text)', lineHeight: 1,
-                    }}>Grátis</span>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>Grátis</span>
                   )}
                 </div>
 
-                <p style={{
-                  fontSize: '13.5px', color: 'var(--text-2)',
-                  lineHeight: '1.65', margin: '0 0 28px',
-                }}>{plan.desc}</p>
+                <p style={{ fontSize: '13.5px', color: 'var(--text-2)', lineHeight: '1.65', margin: '0 0 28px' }}>{plan.desc}</p>
 
-                <ul style={{
-                  listStyle: 'none', padding: 0, margin: '0 0 32px',
-                  display: 'flex', flexDirection: 'column', gap: '9px',
-                  flex: 1,
-                }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'flex', flexDirection: 'column', gap: '9px', flex: 1 }}>
                   {plan.features.map((f, j) => (
-                    <li key={j} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '9px',
-                      fontSize: '13.5px', color: 'var(--text-2)', lineHeight: '1.5',
-                    }}>
-                      <span style={{
-                        color: 'var(--accent)', opacity: 0.7, flexShrink: 0,
-                        fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '2px',
-                      }}>·</span>
+                    <li key={j} style={{ display: 'flex', alignItems: 'flex-start', gap: '9px', fontSize: '13.5px', color: 'var(--text-2)', lineHeight: '1.5' }}>
+                      <span style={{ color: 'var(--accent)', opacity: 0.7, flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '2px' }}>·</span>
                       {f}
                     </li>
                   ))}
                 </ul>
 
-                <button
-                  onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
-                  style={{
-                    width: '100%', padding: '12px 20px', borderRadius: '5px',
-                    fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',
-                    cursor: 'pointer', letterSpacing: '0.01em',
-                    border: plan.primary ? 'none' : '1px solid var(--text-3)',
-                    background: plan.primary ? 'var(--accent)' : 'transparent',
-                    color: plan.primary ? '#f2e4cf' : 'var(--text)',
-                    transition: 'opacity 0.18s ease',
-                  }}
-                >
-                  {plan.cta}
-                </button>
+                {submitted && active === i ? (
+                  <div style={{
+                    width: '100%', padding: '12px 20px', borderRadius: '5px', boxSizing: 'border-box',
+                    background: 'rgba(90,122,80,0.1)', border: '1px solid rgba(90,122,80,0.25)',
+                    textAlign: 'center', fontSize: '13px', color: 'var(--success)',
+                    fontFamily: 'var(--font-mono)',
+                  }}>✓ Na lista de espera</div>
+                ) : (
+                  <button
+                    onClick={() => submit(i)}
+                    style={{
+                      width: '100%', padding: '12px 20px', borderRadius: '5px',
+                      fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',
+                      cursor: 'pointer', letterSpacing: '0.01em',
+                      border: plan.primary ? 'none' : '1px solid var(--text-3)',
+                      background: plan.primary ? 'var(--accent)' : 'transparent',
+                      color: plan.primary ? '#f2e4cf' : 'var(--text)',
+                      transition: 'opacity 0.18s ease',
+                    }}
+                  >{plan.cta}</button>
+                )}
               </div>
             </FadeIn>
           ))}
@@ -165,11 +160,10 @@ export default function PricingSection() {
         <FadeIn delay={220}>
           <p style={{
             fontFamily: 'var(--font-mono)', fontSize: '11px',
-            color: 'var(--text-3)', marginTop: '28px',
-            lineHeight: '1.7',
+            color: 'var(--text-3)', marginTop: '28px', lineHeight: '1.7',
           }}>
-            Sem cartão de crédito para começar. Pro pode ser cancelado a qualquer momento.
-            <br />Estudantes e projetos open-source: <span style={{ color: 'var(--text-2)' }}>50% de desconto</span> — entre em contato.
+            Preços estimados — podem mudar antes do lançamento.
+            <br />Estudantes e open-source: <span style={{ color: 'var(--text-2)' }}>50% de desconto</span> — entre em contato.
           </p>
         </FadeIn>
       </div>

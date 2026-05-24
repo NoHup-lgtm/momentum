@@ -1,10 +1,12 @@
 import Header from '@/components/Header'
 import Hero from '@/components/sections/Hero'
 import Problem from '@/components/sections/Problem'
+import HowItWorks from '@/components/sections/HowItWorks'
 import Demo from '@/components/sections/Demo'
 import Agents from '@/components/sections/Agents'
-import Squads from '@/components/sections/Squads'
+import Setup from '@/components/sections/Setup'
 import Pricing from '@/components/sections/Pricing'
+import FAQ from '@/components/sections/FAQ'
 import FinalCTA from '@/components/sections/FinalCTA'
 
 export default function HomePage() {
@@ -14,10 +16,12 @@ export default function HomePage() {
       <main>
         <Hero />
         <Problem />
+        <HowItWorks />
         <Demo />
         <Agents />
-        <Squads />
+        <Setup />
         <Pricing />
+        <FAQ />
         <FinalCTA />
       </main>
     </>
