@@ -1,0 +1,15 @@
+# Node
+node_modules/
+mcp/node_modules/
+mcp/dist/
+
+# Next.js
+lp/.next/
+lp/out/
+
+# Env
+.env*.local
+
+# Misc
+.DS_Store
+*.pem
