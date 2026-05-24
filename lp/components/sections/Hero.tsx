@@ -160,7 +160,7 @@ export default function Hero() {
             onMouseEnter={e => ((e.target as HTMLAnchorElement).style.color = 'var(--text-2)')}
             onMouseLeave={e => ((e.target as HTMLAnchorElement).style.color = 'var(--text-3)')}
           >
-            <GitHubIcon size={13} /> Star no GitHub
+            <GitHubIcon size={13} /> Star no GitHub.
           </a>
           <span style={{ color: 'var(--surface-2)', fontSize: '12px' }}>·</span>
           <span style={{ fontSize: '13px', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
