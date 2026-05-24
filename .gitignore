@@ -1,0 +1,9 @@
+node_modules/
+desktop/node_modules/
+desktop/dist/
+desktop/src-tauri/target/
+desktop/.env
+desktop/.env.local
+.DS_Store
+*.pem
+.vercel

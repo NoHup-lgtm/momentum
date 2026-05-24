@@ -1,0 +1,82 @@
+/* ── momentum design tokens ── */
+:root {
+  --bg:         #140e08;
+  --surface:    #1c1410;
+  --surface-2:  #2a1f17;
+  --surface-3:  #362820;
+  --accent:     #d4673a;
+  --accent-dim: rgba(212, 103, 58, 0.15);
+  --text:       #f2e4cf;
+  --text-2:     #b8a898;
+  --text-3:     #7a6a5a;
+  --success:    #5a7a50;
+  --danger:     #a04040;
+
+  --font-sans:  'Inter', system-ui, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', monospace;
+  --font-serif: 'Lora', Georgia, serif;
+
+  --radius:    8px;
+  --radius-sm: 4px;
+  --sidebar-w: 220px;
+}
+
+/* ── reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { cursor: pointer; font-family: inherit; }
+input, textarea { font-family: inherit; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ── layout ── */
+.app {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--surface-2);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* ── utility ── */
+.mono  { font-family: var(--font-mono); }
+.serif { font-family: var(--font-serif); }
+.accent { color: var(--accent); }
+.muted  { color: var(--text-3); }
