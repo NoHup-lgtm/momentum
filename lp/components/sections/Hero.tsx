@@ -1,6 +1,9 @@
+'use client'
+
+import { signIn } from 'next-auth/react'
 import SpiralIcon from '../SpiralIcon'
 
-export default function Hero({ onCTA }: { onCTA: () => void }) {
+export default function Hero() {
   return (
     <section style={{
       minHeight: '100vh',
@@ -54,16 +57,24 @@ export default function Hero({ onCTA }: { onCTA: () => void }) {
           display: 'flex', gap: '10px',
           justifyContent: 'center', flexWrap: 'wrap',
         }}>
-          <HeroBtn onClick={onCTA} variant="primary">
-            Criar meu primeiro projeto
-          </HeroBtn>
-          <HeroBtn variant="outline" onClick={onCTA}>
+          <HeroBtn onClick={() => signIn('github', { callbackUrl: '/dashboard' })}>
             <GitHubIcon /> Entrar com GitHub
           </HeroBtn>
+          <HeroBtn variant="outline" onClick={() => signIn('github', { callbackUrl: '/dashboard' })}>
+            Começar grátis
+          </HeroBtn>
         </div>
+
+        <p style={{
+          marginTop: '18px',
+          fontFamily: 'var(--font-mono)', fontSize: '11px',
+          color: 'var(--text-3)', letterSpacing: '0.03em',
+        }}>
+          Sem cartão de crédito · Plano grátis disponível
+        </p>
       </div>
 
-      {/* Scroll indicator — line + dot */}
+      {/* Scroll indicator */}
       <div style={{
         position: 'absolute', bottom: '36px', left: '50%',
         transform: 'translateX(-50%)',

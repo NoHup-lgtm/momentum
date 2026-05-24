@@ -1,3 +1,6 @@
+'use client'
+
+import { signIn } from 'next-auth/react'
 import FadeIn from '../FadeIn'
 
 const PLANS = [
@@ -8,6 +11,7 @@ const PLANS = [
     desc: 'Para começar e entender o valor antes de qualquer compromisso.',
     features: [
       '1 projeto ativo',
+      '1 repositório GitHub conectado',
       'Agente Arquiteto',
       'Agente Accountability',
       '20 check-ins por mês',
@@ -23,20 +27,20 @@ const PLANS = [
     desc: 'Para quem leva projetos a sério e quer terminar o que começou.',
     features: [
       'Projetos ilimitados',
+      'Todos os repositórios GitHub',
       'Todos os 4 agentes',
       'Check-ins ilimitados',
       'Agente Re-onboarding',
       'Agente Desbloqueador',
       'Squads ilimitados',
-      'Padrões pessoais — analytics de produtividade',
-      'Integração GitHub',
+      'Analytics de produtividade',
     ],
     cta: 'Começar 14 dias grátis',
     primary: true,
   },
 ]
 
-export default function PricingSection({ onCTA }: { onCTA: () => void }) {
+export default function PricingSection() {
   return (
     <section id="precos" style={{
       background: 'var(--bg)',
@@ -88,7 +92,6 @@ export default function PricingSection({ onCTA }: { onCTA: () => void }) {
                   }}>{plan.badge}</div>
                 )}
 
-                {/* Plan name */}
                 <div style={{
                   fontFamily: 'var(--font-mono)', fontSize: '11px',
                   letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -96,7 +99,6 @@ export default function PricingSection({ onCTA }: { onCTA: () => void }) {
                   marginBottom: '14px',
                 }}>{plan.name}</div>
 
-                {/* Price */}
                 <div style={{ marginBottom: '10px' }}>
                   {plan.price ? (
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -117,13 +119,11 @@ export default function PricingSection({ onCTA }: { onCTA: () => void }) {
                   )}
                 </div>
 
-                {/* Desc */}
                 <p style={{
                   fontSize: '13.5px', color: 'var(--text-2)',
                   lineHeight: '1.65', margin: '0 0 28px',
                 }}>{plan.desc}</p>
 
-                {/* Features */}
                 <ul style={{
                   listStyle: 'none', padding: 0, margin: '0 0 32px',
                   display: 'flex', flexDirection: 'column', gap: '9px',
@@ -143,9 +143,8 @@ export default function PricingSection({ onCTA }: { onCTA: () => void }) {
                   ))}
                 </ul>
 
-                {/* CTA */}
                 <button
-                  onClick={onCTA}
+                  onClick={() => signIn('github', { callbackUrl: '/dashboard' })}
                   style={{
                     width: '100%', padding: '12px 20px', borderRadius: '5px',
                     fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',
@@ -163,7 +162,6 @@ export default function PricingSection({ onCTA }: { onCTA: () => void }) {
           ))}
         </div>
 
-        {/* Fine print */}
         <FadeIn delay={220}>
           <p style={{
             fontFamily: 'var(--font-mono)', fontSize: '11px',
