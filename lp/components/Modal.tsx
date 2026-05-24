@@ -50,18 +50,26 @@ export default function ProjectModal({ isOpen, onClose }: { isOpen: boolean; onC
     setError(null)
     setStep('loading')
     try {
+      const apiKey = localStorage.getItem('momentum_api_key') ?? ''
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (apiKey) headers['x-api-key'] = apiKey
+
       const res = await fetch('/api/arquiteto', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ description: desc.trim() }),
       })
-      if (!res.ok) throw new Error('API error')
       const data = await res.json()
-      if (data.error) throw new Error(data.error)
+      if (!res.ok) throw new Error(data.error ?? 'API error')
       setPlan(data)
       setStep('result')
-    } catch {
-      setError('Não foi possível gerar o plano. Tente novamente.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      if (msg.includes('Chave de API')) {
+        setError(msg)
+      } else {
+        setError('Não foi possível gerar o plano. Tente novamente.')
+      }
       setStep('input')
     }
   }
@@ -156,6 +164,8 @@ function InputStep({ desc, setDesc, error, onGenerate, textRef }: {
   onGenerate: () => void
   textRef: React.RefObject<HTMLTextAreaElement>
 }) {
+  const hasKey = typeof window !== 'undefined' && !!localStorage.getItem('momentum_api_key')
+
   return (
     <div>
       <h3 style={{
@@ -168,6 +178,19 @@ function InputStep({ desc, setDesc, error, onGenerate, textRef }: {
       }}>
         Em linguagem natural. O Arquiteto vai estruturar em milestones concretos.
       </p>
+
+      {!hasKey && (
+        <div style={{
+          marginBottom: '16px', padding: '10px 14px', borderRadius: '6px',
+          background: 'rgba(212,103,58,0.08)', border: '1px solid rgba(212,103,58,0.2)',
+          fontSize: '12.5px', color: 'var(--text-2)', lineHeight: '1.6',
+        }}>
+          Você ainda não configurou uma chave de API.{' '}
+          <a href="/dashboard" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+            Configure no dashboard →
+          </a>
+        </div>
+      )}
       <textarea
         ref={textRef}
         value={desc}

@@ -43,8 +43,11 @@ export default function DashboardPage() {
   const [reposLoading, setReposLoading] = useState(false)
   const [connectedRepo, setConnectedRepo] = useState<string | null>(null)
   const [showRepoModal, setShowRepoModal] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [apiKeyInput, setApiKeyInput] = useState('')
 
-  // Load project from localStorage
+  // Load project and API key from localStorage
   useEffect(() => {
     const raw = localStorage.getItem('momentum_draft_project')
     if (!raw && status !== 'loading') { router.push('/'); return }
@@ -55,6 +58,9 @@ export default function DashboardPage() {
       const saved = p._taskState as boolean[][] | undefined
       setTaskState(saved ?? p.milestones.map(m => m.tasks.map(() => false)))
     }
+    const savedKey = localStorage.getItem('momentum_api_key') ?? ''
+    setApiKey(savedKey)
+    setApiKeyInput(savedKey)
   }, [status])
 
   // Fetch GitHub repos when authenticated
@@ -127,35 +133,54 @@ export default function DashboardPage() {
           {!isAuthenticated && <GuestBadge />}
         </div>
 
-        {isAuthenticated ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
-              {session.user?.name}
-            </span>
-            {session.user?.image && (
-              <img
-                src={session.user.image}
-                alt={session.user.name ?? ''}
-                onClick={() => signOut({ callbackUrl: '/' })}
-                title="Sair"
-                style={{
-                  width: '30px', height: '30px', borderRadius: '50%',
-                  cursor: 'pointer', border: '1px solid var(--surface-2)',
-                }}
-              />
-            )}
-          </div>
-        ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* API key indicator */}
           <button
-            onClick={() => setShowSignup(true)}
+            onClick={() => setShowSettings(true)}
+            title={apiKey ? 'Chave de API configurada' : 'Configurar chave de API'}
             style={{
-              fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: '450',
-              color: '#f2e4cf', background: 'var(--accent)',
-              border: 'none', borderRadius: '5px',
-              padding: '7px 16px', cursor: 'pointer',
+              background: 'none', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              padding: '5px 8px', borderRadius: '4px',
+              color: apiKey ? 'var(--success)' : 'var(--text-3)',
+              fontFamily: 'var(--font-mono)', fontSize: '10px',
+              letterSpacing: '0.05em', transition: 'opacity 0.15s',
             }}
-          >Criar conta</button>
-        )}
+          >
+            <KeyIcon size={13} />
+            {apiKey ? 'API' : 'sem chave'}
+          </button>
+
+          {isAuthenticated ? (
+            <>
+              <span style={{ fontSize: '13px', color: 'var(--text-3)', fontFamily: 'var(--font-mono)' }}>
+                {session.user?.name}
+              </span>
+              {session.user?.image && (
+                <img
+                  src={session.user.image}
+                  alt={session.user.name ?? ''}
+                  onClick={() => signOut({ callbackUrl: '/' })}
+                  title="Sair"
+                  style={{
+                    width: '30px', height: '30px', borderRadius: '50%',
+                    cursor: 'pointer', border: '1px solid var(--surface-2)',
+                  }}
+                />
+              )}
+            </>
+          ) : (
+            <button
+              onClick={() => setShowSignup(true)}
+              style={{
+                fontFamily: 'var(--font-sans)', fontSize: '13px', fontWeight: '450',
+                color: '#f2e4cf', background: 'var(--accent)',
+                border: 'none', borderRadius: '5px',
+                padding: '7px 16px', cursor: 'pointer',
+              }}
+            >Criar conta</button>
+          )}
+        </div>
       </nav>
 
       {/* ── Body ── */}
@@ -447,6 +472,125 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ── Settings modal ── */}
+      {showSettings && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowSettings(false) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '24px', background: 'rgba(8,5,2,0.88)',
+            backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+          }}
+        >
+          <div style={{
+            background: 'var(--surface)', border: '1px solid var(--surface-2)',
+            borderRadius: '12px', width: '100%', maxWidth: '440px',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.55)',
+          }}>
+            <div style={{
+              padding: '18px 22px', borderBottom: '1px solid var(--surface-2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+                <KeyIcon size={15} />
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: '14px', color: 'var(--text)' }}>
+                  Configurações
+                </span>
+              </div>
+              <button onClick={() => setShowSettings(false)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--text-3)', fontSize: '20px', lineHeight: 1,
+                padding: '4px 8px', fontFamily: 'var(--font-sans)',
+              }}>×</button>
+            </div>
+
+            <div style={{ padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+              {/* API key section */}
+              <div>
+                <div style={{
+                  fontFamily: 'var(--font-mono)', fontSize: '9px',
+                  letterSpacing: '0.12em', textTransform: 'uppercase',
+                  color: 'var(--text-3)', marginBottom: '10px',
+                }}>Chave de API</div>
+                <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: '1.6', margin: '0 0 14px' }}>
+                  Os agentes rodam com a sua chave. Ela fica salva só no seu navegador e nunca é enviada ao nosso servidor — apenas à API que você escolher.
+                </p>
+
+                <div style={{ display: 'flex', gap: '7px' }}>
+                  <input
+                    type="password"
+                    value={apiKeyInput}
+                    onChange={e => setApiKeyInput(e.target.value)}
+                    placeholder="sk-ant-... ou sk-... ou AIza..."
+                    style={{
+                      flex: 1, background: 'var(--surface-2)',
+                      border: '1px solid transparent', borderRadius: '5px',
+                      padding: '9px 12px', color: 'var(--text)',
+                      fontFamily: 'var(--font-mono)', fontSize: '12px',
+                      outline: 'none', transition: 'border-color 0.2s',
+                    }}
+                    onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
+                    onBlur={e => (e.target.style.borderColor = 'transparent')}
+                  />
+                  <button
+                    onClick={() => {
+                      const trimmed = apiKeyInput.trim()
+                      localStorage.setItem('momentum_api_key', trimmed)
+                      setApiKey(trimmed)
+                      setShowSettings(false)
+                    }}
+                    style={{
+                      padding: '9px 16px', borderRadius: '5px', border: 'none',
+                      background: 'var(--accent)', color: '#f2e4cf',
+                      fontFamily: 'var(--font-sans)', fontSize: '13px',
+                      fontWeight: '450', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >Salvar</button>
+                </div>
+
+                {apiKey && (
+                  <div style={{
+                    marginTop: '10px', display: 'flex', alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}>
+                    <span style={{
+                      fontFamily: 'var(--font-mono)', fontSize: '11px',
+                      color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '5px',
+                    }}>
+                      <span style={{ fontSize: '8px' }}>●</span>
+                      Chave configurada ({apiKey.slice(0, 8)}…)
+                    </span>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('momentum_api_key')
+                        setApiKey('')
+                        setApiKeyInput('')
+                      }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontFamily: 'var(--font-mono)', fontSize: '10px',
+                        color: 'var(--text-3)', padding: 0,
+                      }}
+                    >remover</button>
+                  </div>
+                )}
+
+                <p style={{
+                  marginTop: '12px', fontFamily: 'var(--font-mono)', fontSize: '10px',
+                  color: 'var(--text-3)', lineHeight: '1.6',
+                }}>
+                  Anthropic: console.anthropic.com/settings/keys
+                  <br />OpenAI: platform.openai.com/api-keys
+                  <br />Google: aistudio.google.com/apikey
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Repo selection modal ── */}
       {showRepoModal && (
         <div
@@ -591,6 +735,16 @@ function GitHubIcon({ size = 16, color = 'currentColor' }: { size?: number; colo
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ flexShrink: 0 }}>
       <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  )
+}
+
+function KeyIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <circle cx="7.5" cy="15.5" r="5.5"/>
+      <path d="M21 2l-9.6 9.6"/>
+      <path d="M15.5 7.5l3 3L22 7l-3-3"/>
     </svg>
   )
 }

@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
-if (!process.env.ANTHROPIC_API_KEY) {
-  console.error('ANTHROPIC_API_KEY is not set')
-}
-
-const client = new Anthropic()
-
 const SYSTEM_PROMPT = `Você é o Agente Arquiteto do Momentum — um especialista em estruturar projetos de software em planos de execução concretos e motivadores.
 
 Dado a descrição de um projeto, você retorna um plano estruturado em JSON com milestones claros, realistas e ordenados.
@@ -36,38 +30,39 @@ Formato de resposta:
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'Serviço não configurado.' }, { status: 503 })
+    const apiKey = req.headers.get('x-api-key') ?? process.env.ANTHROPIC_API_KEY
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'Chave de API não encontrada. Configure sua chave nas configurações.' },
+        { status: 401 }
+      )
     }
 
     const { description } = await req.json()
-
     if (!description || typeof description !== 'string' || description.trim().length < 20) {
       return NextResponse.json({ error: 'Descrição muito curta.' }, { status: 400 })
     }
 
+    const client = new Anthropic({ apiKey })
     const message = await client.messages.create({
       model: 'claude-opus-4-7',
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: `Descrição do projeto: ${description.trim()}`,
-        },
-      ],
+      messages: [{ role: 'user', content: `Descrição do projeto: ${description.trim()}` }],
     })
 
     const text = message.content[0].type === 'text' ? message.content[0].text : ''
-
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       return NextResponse.json({ error: 'Resposta inválida do modelo.' }, { status: 500 })
     }
 
-    const plan = JSON.parse(jsonMatch[0])
-    return NextResponse.json(plan)
-  } catch (err) {
+    return NextResponse.json(JSON.parse(jsonMatch[0]))
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status
+    if (status === 401) {
+      return NextResponse.json({ error: 'Chave de API inválida ou expirada.' }, { status: 401 })
+    }
     console.error('Arquiteto API error:', err)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }
