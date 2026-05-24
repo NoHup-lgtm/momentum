@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import SpiralIcon from './SpiralIcon'
 
 interface Milestone {
@@ -16,7 +17,8 @@ interface Plan {
 }
 
 export default function ProjectModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [step, setStep] = useState<'input' | 'loading' | 'result' | 'signup'>('input')
+  const router = useRouter()
+  const [step, setStep] = useState<'input' | 'loading' | 'result'>('input')
   const [desc, setDesc] = useState('')
   const [plan, setPlan] = useState<Plan | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -107,7 +109,7 @@ export default function ProjectModal({ isOpen, onClose }: { isOpen: boolean; onC
                 fontFamily: 'var(--font-mono)', fontSize: '9px',
                 color: 'var(--text-3)', letterSpacing: '0.1em', textTransform: 'uppercase',
               }}>
-                {step === 'loading' ? '· processando' : step === 'result' ? '· plano gerado' : '· salvar plano'}
+                {step === 'loading' ? '· processando' : '· plano gerado'}
               </span>
             )}
           </div>
@@ -126,8 +128,20 @@ export default function ProjectModal({ isOpen, onClose }: { isOpen: boolean; onC
         <div style={{ padding: '26px 22px' }}>
           {step === 'input'   && <InputStep desc={desc} setDesc={setDesc} error={error} onGenerate={generate} textRef={textRef} />}
           {step === 'loading' && <LoadingStep />}
-          {step === 'result'  && plan && <ResultStep plan={plan} onContinue={() => setStep('signup')} onBack={() => setStep('input')} />}
-          {step === 'signup'  && <SignupStep name={plan?.project_name} onClose={handleClose} />}
+          {step === 'result'  && plan && (
+            <ResultStep
+              plan={plan}
+              onContinue={() => {
+                localStorage.setItem('momentum_draft_project', JSON.stringify({
+                  ...plan,
+                  created_at: Date.now(),
+                  guest: true,
+                }))
+                router.push('/dashboard')
+              }}
+              onBack={() => setStep('input')}
+            />
+          )}
         </div>
       </div>
     </div>
