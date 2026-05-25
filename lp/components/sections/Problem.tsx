@@ -2,20 +2,20 @@ import FadeIn from '../FadeIn'
 
 const PROBLEMS = [
   {
-    title: 'O contexto foi embora',
-    text: 'Depois de alguns dias longe, voltar parece recomeçar do zero. Não é falta de vontade — é custo de re-entrada.',
+    title: 'O projeto esfriou',
+    text: 'Você estava animado. Sumiu por uns dias. Quando voltou, o contexto foi embora junto. Recomeçar do zero toda vez drena mais do que o próprio trabalho.',
   },
   {
-    title: 'O projeto ficou grande demais',
-    text: 'Começa pequeno, cresce sem estrutura. Sem milestones claros, a sensação é de que nunca se termina nada.',
+    title: 'Sem pressão externa, sem avanço',
+    text: 'No trabalho tem prazo, tem time, tem cobrança. No projeto pessoal só tem você. E sem estrutura, a empolgação não dura mais do que duas semanas.',
   },
   {
-    title: 'Travou num detalhe',
-    text: 'Um bug, uma decisão de arquitetura. Você adia um dia, depois outro. O projeto esfria. O momentum vai embora.',
+    title: 'Comprometimento sem testemunhas',
+    text: 'É fácil desistir quando ninguém sabe. Difícil é parar quando sua squad inteira vai ver que você quebrou a ofensiva de 47 dias.',
   },
   {
-    title: 'A motivação foi. O projeto ficou.',
-    text: 'A empolgação inicial passa para todos. O que separa quem termina é ter estrutura quando a motivação não está.',
+    title: 'Progresso invisível',
+    text: 'Você trabalha, mas não vê crescer. Sem marcos, sem feedback visual, sem senso de conquista — parece que não sai do lugar.',
   },
 ]
 
@@ -42,7 +42,7 @@ export default function ProblemSection() {
           <p style={{
             fontSize: '16px', color: 'var(--text-2)',
             lineHeight: '1.65', margin: 0, maxWidth: '520px',
-          }}>Parar faz parte. O que muda é o custo de voltar.</p>
+          }}>O problema é não ter nada em jogo quando você para.</p>
         </FadeIn>
 
         <div style={{
@@ -54,19 +54,13 @@ export default function ProblemSection() {
         }}>
           {PROBLEMS.map((c, i) => (
             <FadeIn key={i} delay={i * 70}>
-              <div style={{
-                padding: '28px 24px',
-                background: 'var(--surface)',
-                height: '100%',
-              }}>
+              <div style={{ padding: '28px 24px', background: 'var(--surface)', height: '100%' }}>
                 <h3 style={{
                   fontFamily: 'var(--font-serif)', fontSize: '17px',
-                  fontWeight: '400', color: 'var(--text)',
-                  margin: '0 0 10px', lineHeight: '1.3',
+                  fontWeight: '400', color: 'var(--text)', margin: '0 0 10px', lineHeight: '1.3',
                 }}>{c.title}</h3>
                 <p style={{
-                  fontSize: '13.5px', color: 'var(--text-2)',
-                  lineHeight: '1.7', margin: 0,
+                  fontSize: '13.5px', color: 'var(--text-2)', lineHeight: '1.7', margin: 0,
                 }}>{c.text}</p>
               </div>
             </FadeIn>

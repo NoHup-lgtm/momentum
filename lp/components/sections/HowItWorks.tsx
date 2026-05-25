@@ -3,28 +3,28 @@ import FadeIn from '../FadeIn'
 const STEPS = [
   {
     n: '01',
-    title: 'Instala o app',
-    body: 'Um app desktop nativo para macOS, Windows e Linux. Nada de extensão de browser ou terminal aberto o tempo todo.',
+    title: 'Conecta o GitHub',
+    body: 'Login com sua conta GitHub. O app passa a monitorar sua atividade — commits em qualquer repositório, público ou privado. Sem acesso de escrita, sem segredo.',
   },
   {
     n: '02',
-    title: 'Adiciona sua chave de API',
-    body: 'Anthropic, OpenAI ou Google — você escolhe e traz a sua própria chave. Custo zero pra você, privacidade máxima: nenhum dado passa pelo nosso servidor.',
+    title: 'Commita. Normalmente.',
+    body: 'Você trabalha como sempre. Quando o GitHub registra um commit seu, o momentum detecta automaticamente. Não tem botão pra apertar, não tem checklist manual.',
   },
   {
     n: '03',
-    title: 'Conecta o repositório',
-    body: 'Aponta pro seu repo local ou GitHub. O Arquiteto lê o contexto do projeto e estrutura um plano em milestones concretos.',
+    title: 'Sua ofensiva cresce',
+    body: 'Cada dia com pelo menos 1 commit aumenta sua streak. Às 20h, se você ainda não commitou, chega uma notificação. Meia-noite sem commit — a ofensiva quebra.',
   },
   {
     n: '04',
-    title: 'Trabalha normalmente',
-    body: 'Os agentes rodam em segundo plano. Check-in diário no system tray, notificação quando você para por muitos dias, briefing quando você volta.',
+    title: 'XP vira rank',
+    body: 'Commits geram XP. XP acumulado na semana determina sua posição no ranking da squad. Domingo à noite: resultado. Top 3 sobem de rank. Nova semana começa na segunda.',
   },
   {
     n: '05',
-    title: 'Mantém o momentum',
-    body: 'O Re-onboarding zera o custo de voltar. O Desbloqueador te ajuda quando você trava. A cada sessão, o projeto avança.',
+    title: 'Personaliza, conquista, repete',
+    body: 'Coins ganhas jogando desbloqueiam cosméticos. Streaks longas desbloqueiam itens lendários. Cada semana é uma nova rodada — nunca é tarde pra recuperar.',
   },
 ]
 
@@ -46,16 +46,14 @@ export default function HowItWorksSection() {
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
-            color: 'var(--text)', margin: '0 0 10px',
-            letterSpacing: '-0.01em',
-          }}>Simples de usar.<br />Difícil de ignorar.</h2>
+            color: 'var(--text)', margin: '0 0 10px', letterSpacing: '-0.01em',
+          }}>Trabalha. O jogo<br />acontece sozinho.</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-2)', lineHeight: '1.65', margin: '0 0 60px', maxWidth: '500px' }}>
-            Do zero ao primeiro milestone em menos de cinco minutos.
+            Não tem nada pra preencher. Só commitar.
           </p>
         </FadeIn>
 
         <div style={{ position: 'relative' }}>
-          {/* Vertical line */}
           <div style={{
             position: 'absolute', left: '19px', top: '12px',
             width: '1px', bottom: '12px',
@@ -71,7 +69,6 @@ export default function HowItWorksSection() {
                   padding: '24px 0',
                   borderBottom: i < STEPS.length - 1 ? '1px solid var(--surface-2)' : 'none',
                 }}>
-                  {/* Step number bubble */}
                   <div style={{
                     width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
                     background: i === 0 ? 'var(--accent)' : 'var(--surface)',

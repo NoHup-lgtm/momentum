@@ -38,7 +38,7 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         {[
           { label: 'Como funciona', id: 'como-funciona' },
-          { label: 'Agentes', id: 'agentes' },
+          { label: 'Squad', id: 'squad' },
           { label: 'Preços', id: 'precos' },
         ].map(item => (
           <button

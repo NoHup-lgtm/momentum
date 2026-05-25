@@ -8,29 +8,30 @@ const PLANS = [
     name: 'Grátis',
     price: null,
     badge: null,
-    desc: 'Para começar e entender o valor antes de qualquer compromisso.',
+    desc: 'Para começar, sentir o jogo e manter a ofensiva antes de qualquer compromisso.',
     features: [
-      '1 projeto ativo',
-      '1 repositório conectado',
-      'Agente Arquiteto',
-      'Agente Accountability',
-      '20 check-ins por mês',
+      'Streak verificada pelo GitHub',
+      'XP e ranking semanal',
+      'Squad com até 5 pessoas',
+      '1 streak freeze por mês',
+      'Avatar com cosméticos básicos',
+      'Anúncios discretos (só na tela de resultado)',
     ],
     cta: 'Entrar na lista de espera',
     primary: false,
   },
   {
     name: 'Pro',
-    price: 39,
+    price: 19,
     badge: '14 dias grátis',
-    desc: 'Para quem leva projetos a sério e quer terminar o que começou.',
+    desc: 'Para quem leva a sério e não quer nada no caminho.',
     features: [
-      'Projetos ilimitados',
-      'Todos os repositórios',
-      'Todos os 4 agentes',
-      'Check-ins ilimitados',
-      'Integração MCP com AI IDEs',
-      'Analytics de produtividade',
+      'Tudo do plano grátis',
+      'Sem anúncios',
+      '3 streak freezes por mês',
+      'Squad ilimitada',
+      'Stats avançados e histórico completo',
+      'Acesso antecipado a cosméticos',
     ],
     cta: 'Entrar na lista de espera',
     primary: true,
@@ -163,7 +164,7 @@ export default function PricingSection() {
             color: 'var(--text-3)', marginTop: '28px', lineHeight: '1.7',
           }}>
             Preços estimados — podem mudar antes do lançamento.
-            <br />Estudantes e open-source: <span style={{ color: 'var(--text-2)' }}>50% de desconto</span> — entre em contato.
+            <br />Cosméticos extras disponíveis via compra avulsa dentro do app.
           </p>
         </FadeIn>
       </div>

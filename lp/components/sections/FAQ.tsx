@@ -5,36 +5,36 @@ import FadeIn from '../FadeIn'
 
 const ITEMS = [
   {
-    q: 'Preciso criar uma conta?',
-    a: 'Não. O momentum é um app desktop que roda localmente. Sem conta, sem servidor nosso, sem cadastro. Você só precisa de uma chave de API do provedor de IA que você já usa.',
+    q: 'Como a ofensiva é verificada?',
+    a: 'O app conecta com sua conta GitHub via OAuth e monitora seus eventos de push. Quando você faz um commit em qualquer repositório — público ou privado — o momentum detecta automaticamente. Não tem como fingir: o commit precisa existir no GitHub.',
   },
   {
-    q: 'Qual modelo de IA é usado?',
-    a: 'O que você escolher. O app suporta Anthropic (Claude), OpenAI (GPT-4o) e Google (Gemini). Você traz a sua própria chave — custo zero pra nós, você paga só o que usar no provedor.',
+    q: 'Qualquer commit conta?',
+    a: 'Sim, em qualquer repositório em que você seja o autor do commit. Merge de PR alheio não conta. Commits feitos até 1h da manhã ainda valem para o dia anterior — dev noturno é uma realidade.',
   },
   {
-    q: 'Funciona com qualquer linguagem ou framework?',
-    a: 'Sim. O momentum trabalha com o projeto como um todo, não com o código linha a linha. Se tem um repositório Git, funciona — Next.js, Django, Flutter, Rust, o que for.',
+    q: 'O que é streak freeze?',
+    a: 'Um salva-vidas para dias sem commit — viagem, doença, imprevisto. Ativa antes da meia-noite e sua ofensiva é preservada. Plano grátis tem 1 por mês. Pro tem 3.',
   },
   {
-    q: 'O que é o Agente Re-onboarding?',
-    a: 'O agente mais importante. Quando você fica 3 ou mais dias sem abrir o projeto, o Re-onboarding gera um briefing personalizado: onde você parou, o que estava fazendo, qual é o próximo passo concreto. Zera o custo de voltar.',
+    q: 'Como funciona o sistema de ranks?',
+    a: 'A semana começa na segunda e termina no domingo. Seu XP acumulado na semana determina sua posição no ranking da squad. No domingo à noite, os top 3 sobem de rank. Há seis ranks: Init → Build → Deploy → Senior → Architect → Legend.',
   },
   {
-    q: 'É open source?',
-    a: 'Sim. O código está no GitHub. Você pode verificar o que o app faz, contribuir, ou rodar por conta própria sem depender de nós.',
+    q: 'O que é squad?',
+    a: 'Um grupo de amigos ou colegas devs dentro do app. Vocês competem no mesmo leaderboard semanal. Você vê os commits, XP e rank de cada membro em tempo real. Plano grátis suporta squads de até 5 pessoas. Pro é ilimitado.',
+  },
+  {
+    q: 'Como funcionam os cosméticos?',
+    a: 'Seu avatar de dev pixel art é personalizável. Itens comuns e raros são comprados com Coins — moeda ganha jogando (streak, top 3, desafios). Itens lendários só desbloqueiam por conquistas reais, não são compráveis. Itens premium usam Gems, compradas com dinheiro real.',
+  },
+  {
+    q: 'Tem anúncios?',
+    a: 'No plano grátis, sim — mas só na tela de resultado semanal (domingo à noite). Nunca durante o uso normal do app. O plano Pro remove todos os anúncios.',
   },
   {
     q: 'Quando vai lançar?',
-    a: 'Estamos construindo agora. Entre na lista de espera e avisaremos quando a primeira versão estiver disponível para download. Sem spam — uma mensagem só.',
-  },
-  {
-    q: 'Funciona sem internet?',
-    a: 'A maioria das funcionalidades sim. O estado do projeto fica local (arquivo .momentum.json no seu repositório). A IA precisa de conexão quando gera planos ou briefings, mas o dashboard e as tarefas funcionam offline.',
-  },
-  {
-    q: 'O que é o servidor MCP?',
-    a: 'MCP (Model Context Protocol) é um padrão aberto para conectar ferramentas à IA do editor. O momentum inclui um servidor MCP que expõe o estado do seu projeto para o Claude Code, Cursor e Windsurf — assim a IA sabe em qual milestone você está sem você precisar explicar.',
+    a: 'Estamos construindo agora. Entre na lista de espera e você será avisado quando a primeira versão estiver disponível para iOS e Android. Sem spam — uma mensagem só.',
   },
 ]
 
