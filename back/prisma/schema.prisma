@@ -11,3 +11,229 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum AuthProvider {
+  GITHUB
+}
+
+// Rank focado na jornada individual do Dev
+enum UserRank {
+  INIT
+  BUILD
+  DEPLOY
+  SENIOR
+  ARCHITECT
+  LEGEND
+}
+
+// Rank focado no desempenho coletivo do Grupo
+enum SquadRank {
+  GARAGE
+  BOOTSTRAPPED
+  STARTUP
+  UNICORN
+  BIG_TECH
+  SILICON_VALLEY
+}
+
+enum CosmeticCategory {
+  HAT
+  SHIRT
+  GLASSES
+  ACCESSORY
+  BACKGROUND
+}
+
+enum CosmeticRarity {
+  COMMON
+  RARE
+  PREMIUM
+  LEGENDARY
+}
+
+// Categorias para organizar as conquistas
+enum AchievementCategory {
+  STREAK       // Relacionado à ofensiva (dias seguidos)
+  COMMIT       // Relacionado ao volume de código/commits
+  PR           // Relacionado a pull requests e colaboração
+  SOCIAL       // Relacionado à interação e posição na Squad
+  COLLECTION   // Relacionado a itens comprados/ganhos
+  HIDDEN       // Conquistas secretas (easter eggs)
+}
+
+// Níveis de raridade das conquistas
+enum AchievementRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+// Tipos de métricas rastreadas para Desafios e Conquistas
+enum MetricType {
+  DAILY_COMMITS     // Valida commits em um único dia
+  DAILY_PRS         // Valida Pull Requests em um único dia
+  OPEN_SOURCE_CONTRIBUTIONS // Valida contribuições para projetos open source
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id             String       @id @default(uuid())
+  username       String       @unique
+  authProvider   AuthProvider
+  rank           UserRank     @default(INIT)
+  level          Int          @default(1)
+  totalXp        Int          @default(0)
+  coins          Int          @default(0)
+  gems           Int          @default(0)
+  currentStreak  Int          @default(0)
+  maxStreak      Int          @default(0)
+  streakFreezes  Int          @default(1)
+  isPro          Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relacionamentos
+  activities     Activity[]
+  squads         SquadMember[]
+  cosmetics      UserCosmetic[]
+  achievements   UserAchievement[]
+  dailyProgress  UserDailyChallenge[] 
+
+  @@map("users")
+}
+
+model Activity {
+  id        String   @id @default(uuid())
+  userId    String
+  timestamp DateTime @default(now())
+  isPrivate Boolean  @default(false)
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("activities")
+}
+
+model Squad {
+  id         String    @id @default(uuid())
+  name       String    
+  inviteCode String    @unique
+  rank       SquadRank @default(GARAGE) 
+  createdAt  DateTime  @default(now())
+
+  // Relacionamentos
+  members    SquadMember[]
+
+  @@map("squads")
+}
+
+model SquadMember {
+  userId        String
+  squadId       String
+  weeklyXp      Int      @default(0)
+  weeklyCommits Int      @default(0)
+  joinedAt      DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  squad         Squad    @relation(fields: [squadId], references: [id], onDelete: Cascade)
+
+  @@id([userId, squadId])
+  @@map("squad_members")
+}
+
+model Cosmetic {
+  id         String           @id @default(uuid())
+  name       String
+  category   CosmeticCategory
+  rarity     CosmeticRarity
+  priceCoins Int              @default(0)
+  priceGems  Int              @default(0)
+
+  // Relacionamentos
+  owners     UserCosmetic[]
+  rewardedBy Achievement[]    
+
+  @@map("cosmetics")
+}
+
+model UserCosmetic {
+  userId     String
+  cosmeticId String
+  isEquipped Boolean  @default(false)
+  obtainedAt DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cosmetic   Cosmetic @relation(fields: [cosmeticId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cosmeticId])
+  @@map("user_cosmetics")
+}
+
+model Achievement {
+  id               String              @id @default(uuid())
+  title            String
+  description      String
+  category         AchievementCategory 
+  rarity           AchievementRarity   @default(COMMON) 
+  metricType       String              
+  targetValue      Int                 
+  
+  rewardCosmeticId String?             
+  rewardCosmetic   Cosmetic?           @relation(fields: [rewardCosmeticId], references: [id])
+
+  // Relacionamentos
+  winners          UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@map("user_achievements")
+}
+
+model DailyChallenge {
+  id          String   @id @default(uuid())
+  title       String               
+  description String              
+  metricType  MetricType 
+  targetValue Int                  
+  rewardCoins Int      @default(0) 
+  rewardXp    Int      @default(0) 
+  isActive    Boolean  @default(false) // Apenas um (ou alguns) ficam como "true" a cada dia
+
+  // Relacionamentos
+  participants UserDailyChallenge[]
+
+  @@map("daily_challenges")
+}
+
+model UserDailyChallenge {
+  userId        String
+  challengeId   String
+  date          DateTime  @db.Date        // A data em que o usuário progrediu no desafio
+  currentValue  Int       @default(0)     
+  isCompleted   Boolean   @default(false) 
+  completedAt   DateTime?                 
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge     DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  // Chave primária composta: Um usuário não pode fazer o mesmo desafio duas vezes no MESMO dia
+  @@id([userId, challengeId, date])
+  @@map("user_daily_challenges")
+}
