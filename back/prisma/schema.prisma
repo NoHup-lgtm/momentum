@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// momentum · schema.prisma
+// stack: NestJS + Prisma 7 + Neon (PostgreSQL)
 
 generator client {
   provider = "prisma-client"
@@ -10,17 +8,18 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // URL definida via prisma.config.ts → process.env.DATABASE_URL
 }
 
-// ==========================================
+// ══════════════════════════════════════════════════════════════════════════════
 // ENUMS
-// ==========================================
+// ══════════════════════════════════════════════════════════════════════════════
 
 enum AuthProvider {
   GITHUB
 }
 
-// Rank focado na jornada individual do Dev
+// ── Progressão individual ─────────────────────────────────────────────────────
 enum UserRank {
   INIT
   BUILD
@@ -30,7 +29,7 @@ enum UserRank {
   LEGEND
 }
 
-// Rank focado no desempenho coletivo do Grupo
+// ── Progressão coletiva da squad ──────────────────────────────────────────────
 enum SquadRank {
   GARAGE
   BOOTSTRAPPED
@@ -40,6 +39,12 @@ enum SquadRank {
   SILICON_VALLEY
 }
 
+enum SquadRole {
+  OWNER
+  MEMBER
+}
+
+// ── Cosméticos ────────────────────────────────────────────────────────────────
 enum CosmeticCategory {
   HAT
   SHIRT
@@ -55,17 +60,24 @@ enum CosmeticRarity {
   LEGENDARY
 }
 
-// Categorias para organizar as conquistas
-enum AchievementCategory {
-  STREAK       // Relacionado à ofensiva (dias seguidos)
-  COMMIT       // Relacionado ao volume de código/commits
-  PR           // Relacionado a pull requests e colaboração
-  SOCIAL       // Relacionado à interação e posição na Squad
-  COLLECTION   // Relacionado a itens comprados/ganhos
-  HIDDEN       // Conquistas secretas (easter eggs)
+enum CosmeticObtainedSource {
+  PURCHASED_COINS
+  PURCHASED_GEMS
+  ACHIEVEMENT_REWARD
+  EVENT_REWARD
 }
 
-// Níveis de raridade das conquistas
+// ── Conquistas ────────────────────────────────────────────────────────────────
+enum AchievementCategory {
+  STREAK       // Ofensiva (dias consecutivos)
+  COMMIT       // Volume de commits
+  PR           // Pull Requests e colaboração
+  RANK         // Atingir determinado rank
+  SOCIAL       // Posição e interação na squad
+  COLLECTION   // Itens comprados ou ganhos
+  HIDDEN       // Easter eggs — invisíveis até serem desbloqueados
+}
+
 enum AchievementRarity {
   COMMON
   RARE
@@ -73,167 +85,495 @@ enum AchievementRarity {
   LEGENDARY
 }
 
-// Tipos de métricas rastreadas para Desafios e Conquistas
+// ── Métricas — usadas em desafios e conquistas ────────────────────────────────
 enum MetricType {
-  DAILY_COMMITS     // Valida commits em um único dia
-  DAILY_PRS         // Valida Pull Requests em um único dia
-  OPEN_SOURCE_CONTRIBUTIONS // Valida contribuições para projetos open source
+  DAILY_COMMITS              // Commits em um único dia
+  DAILY_PRS                  // Pull Requests em um único dia
+  STREAK_DAYS                // Dias consecutivos com commit
+  MAX_STREAK                 // Maior streak atingida (all-time)
+  WEEKLY_COMMITS             // Commits na semana corrente
+  TOTAL_XP                   // XP acumulado total (conquistas de longo prazo)
+  OPEN_SOURCE_CONTRIBUTIONS  // Contribuições para repos de terceiros
 }
 
-// ==========================================
-// MODELS
-// ==========================================
+// ── Fontes de XP ──────────────────────────────────────────────────────────────
+enum XpSource {
+  DAILY_COMMIT        // +15 XP por commit do dia
+  STREAK_MILESTONE    // Bônus por marco de streak (7d, 30d, 100d…)
+  DAILY_CHALLENGE     // Desafio diário concluído
+  ACHIEVEMENT         // Conquista desbloqueada
+  RANK_UP_BONUS       // Bônus ao subir de rank
+  SQUAD_BONUS         // Bônus por posição no ranking semanal
+  CHECKIN             // XP de check-in manual (qualidade do dia)
+}
 
+// ── Fontes de Coins ───────────────────────────────────────────────────────────
+enum CoinSource {
+  DAILY_COMMIT        // Coins por commit do dia
+  DAILY_CHALLENGE     // Desafio diário
+  ACHIEVEMENT         // Conquista
+  STREAK_MILESTONE    // Marco de streak
+  SQUAD_TOP3          // Top 3 no ranking semanal
+  PURCHASE_ITEM       // Compra de item na loja (valor negativo)
+}
+
+// ── Status do streak freeze ───────────────────────────────────────────────────
+enum FreezeStatus {
+  ACTIVE    // Freeze ativo — ainda protegendo o dia
+  CONSUMED  // Dia passou, freeze foi consumido com sucesso
+}
+
+// ── Status da assinatura Pro ──────────────────────────────────────────────────
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE   // Pagamento falhou mas ainda no período de graça
+  CANCELED
+  EXPIRED
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MODELS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Waitlist da landing page ──────────────────────────────────────────────────
+model Waitlist {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  source    String?  // "hero" | "finalcta" — de qual seção da LP veio
+  createdAt DateTime @default(now())
+
+  @@map("waitlist")
+}
+
+// ── Usuário ───────────────────────────────────────────────────────────────────
 model User {
-  id             String       @id @default(uuid())
-  username       String       @unique
-  authProvider   AuthProvider
-  rank           UserRank     @default(INIT)
-  level          Int          @default(1)
-  totalXp        Int          @default(0)
-  coins          Int          @default(0)
-  gems           Int          @default(0)
-  currentStreak  Int          @default(0)
-  maxStreak      Int          @default(0)
-  streakFreezes  Int          @default(1)
-  isPro          Boolean      @default(false)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id           String       @id @default(uuid())
+
+  // GitHub OAuth
+  githubId     String       @unique  // ID numérico imutável da conta GitHub
+  githubLogin  String       @unique  // username GitHub (ex: "dev_marcos")
+  accessToken  String                // OAuth token — criptografar antes de persistir
+  avatarUrl    String?               // Foto de perfil do GitHub
+  email        String?      @unique  // Email público do GitHub
+
+  // Exibição no app
+  displayName  String?               // Nome customizável dentro do app
+  avatarVariant Int         @default(0)   // Índice do pixel avatar (0–5)
+  timezone     String       @default("America/Sao_Paulo")
+
+  // Auth
+  authProvider AuthProvider @default(GITHUB)
+
+  // Progressão
+  rank         UserRank     @default(INIT)
+  level        Int          @default(1)   // Nível numérico baseado em totalXp
+  totalXp      Int          @default(0)
+
+  // Moedas
+  coins        Int          @default(0)
+  gems         Int          @default(0)
+
+  // Ofensiva
+  currentStreak  Int        @default(0)
+  maxStreak      Int        @default(0)
+  lastCommitDate DateTime?  @db.Date  // Última data com commit válido para streak
+  streakFreezes  Int        @default(1)
+
+  // Plano
+  isPro            Boolean  @default(false)
+  stripeCustomerId String?  @unique  // Para billing Pro via Stripe
+
+  // Preferências de notificação
+  notifyStreakReminder Boolean @default(true)   // Aviso antes de meia-noite
+  notifySquadActivity  Boolean @default(true)   // Membro da squad commitou
+  notifyRankUp         Boolean @default(false)  // Alguém subiu de rank na squad
+  notifyWeeklyRecap    Boolean @default(true)   // Resumo semanal no domingo
+
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   // Relacionamentos
-  activities     Activity[]
-  squads         SquadMember[]
-  cosmetics      UserCosmetic[]
-  achievements   UserAchievement[]
-  dailyProgress  UserDailyChallenge[] 
+  commits             Commit[]
+  streakFreezeUsages  StreakFreezeUsage[]
+  xpTransactions      XpTransaction[]
+  coinTransactions    CoinTransaction[]
+  gemPurchases        GemPurchase[]
+  subscription        Subscription?
+  squadMemberships    SquadMember[]
+  squadsOwned         Squad[]
+  squadInvitesCreated SquadInvite[]
+  devices             UserDevice[]
+  cosmetics           UserCosmetic[]
+  equippedCosmetics   UserEquippedCosmetic[]
+  rankHistory         RankHistory[]
+  achievements        UserAchievement[]
+  achievementProgress AchievementProgress[]
+  dailyChallenges     UserDailyChallenge[]
 
   @@map("users")
 }
 
-model Activity {
-  id        String   @id @default(uuid())
-  userId    String
-  timestamp DateTime @default(now())
-  isPrivate Boolean  @default(false)
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+// ── Dispositivos do usuário (push notifications) ──────────────────────────────
+model UserDevice {
+  id         String   @id @default(uuid())
+  userId     String
+  pushToken  String   @unique  // Token Expo / FCM / APNS
+  platform   String            // "ios" | "android"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
 
-  @@map("activities")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_devices")
 }
 
+// ── Commit verificado via GitHub API ──────────────────────────────────────────
+// Um registro por PushEvent processado. O primeiro commit do dia (dentro da
+// janela válida, considerando timezone + grace period até 1h da manhã) ativa
+// a ofensiva. Os demais acumulam XP mas não contam para streak.
+model Commit {
+  id            String   @id @default(uuid())
+  userId        String
+
+  // Dados do GitHub
+  commitSha     String            // SHA do commit
+  repoName      String            // "momentum"
+  repoFullName  String            // "dev_marcos/momentum"
+  branch        String?           // "main" | "feat/login"
+  commitMessage String?
+  committedAt   DateTime          // Timestamp UTC do commit no GitHub
+  isPrivateRepo Boolean  @default(false)
+
+  // Processamento interno
+  xpGained         Int     @default(15)
+  coinsGained      Int     @default(5)
+  countedForStreak Boolean @default(false)  // true apenas no 1º commit válido do dia
+  processedAt      DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, commitSha])        // Mesmo SHA nunca entra duas vezes
+  @@index([userId, committedAt])       // Query: "usuário commitou hoje?"
+  @@index([userId, countedForStreak])  // Filtrar commits que ativaram streak
+  @@map("commits")
+}
+
+// ── Uso de streak freeze ──────────────────────────────────────────────────────
+model StreakFreezeUsage {
+  id            String       @id @default(uuid())
+  userId        String
+  protectedDate DateTime     @db.Date     // Qual dia o freeze salvou
+  status        FreezeStatus @default(ACTIVE)
+  activatedAt   DateTime     @default(now())
+
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, protectedDate])  // Máximo 1 freeze por dia por usuário
+  @@index([userId])
+  @@map("streak_freeze_usages")
+}
+
+// ── Histórico de rank ─────────────────────────────────────────────────────────
+// Cada linha = uma mudança de rank. Dispara a animação de rank-up no app.
+// Permite mostrar no perfil: "virou Senior em 15 mai".
+model RankHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  fromRank  UserRank
+  toRank    UserRank
+  changedAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, changedAt])
+  @@map("rank_history")
+}
+
+// ── Histórico de XP ───────────────────────────────────────────────────────────
+// Append-only. Nunca deletar. Fonte da verdade para auditoria de progressão.
+model XpTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  amount      Int               // Positivo = ganhou | Negativo = perdeu
+  source      XpSource
+  description String?           // "Ofensiva de 30 dias!" | "Top 1 na squad"
+  referenceId String?           // ID do commit, achievement, etc. que gerou o XP
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("xp_transactions")
+}
+
+// ── Histórico de Coins ────────────────────────────────────────────────────────
+model CoinTransaction {
+  id          String     @id @default(uuid())
+  userId      String
+  amount      Int                // Positivo = ganhou | Negativo = gastou
+  source      CoinSource
+  description String?
+  referenceId String?
+  createdAt   DateTime   @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("coin_transactions")
+}
+
+// ── Compra de Gems (dinheiro real → Stripe) ───────────────────────────────────
+model GemPurchase {
+  id                    String   @id @default(uuid())
+  userId                String
+  gemsAmount            Int               // Gems creditadas
+  priceInCents          Int               // Valor pago em centavos (BRL)
+  stripePaymentIntentId String   @unique  // Idempotência — mesma compra não processa 2x
+  createdAt             DateTime @default(now())
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("gem_purchases")
+}
+
+// ── Assinatura Pro ────────────────────────────────────────────────────────────
+model Subscription {
+  id                   String             @id @default(uuid())
+  userId               String             @unique
+  stripeSubscriptionId String             @unique
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+// ── Squad ─────────────────────────────────────────────────────────────────────
 model Squad {
-  id         String    @id @default(uuid())
-  name       String    
-  inviteCode String    @unique
-  rank       SquadRank @default(GARAGE) 
-  createdAt  DateTime  @default(now())
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  rank        SquadRank @default(GARAGE)
+  ownerId     String                      // Quem criou e gerencia
+  maxMembers  Int       @default(5)       // 5 grátis | ilimitado Pro
+  createdAt   DateTime  @default(now())
 
-  // Relacionamentos
-  members    SquadMember[]
+  owner           User                @relation(fields: [ownerId], references: [id])
+  members         SquadMember[]
+  invites         SquadInvite[]
+  weeklySnapshots SquadWeeklySnapshot[]
 
+  @@index([ownerId])
   @@map("squads")
 }
 
+// ── Convite de Squad ──────────────────────────────────────────────────────────
+// Substitui o inviteCode estático. Cada convite tem controle de uso e expiração.
+model SquadInvite {
+  id        String    @id @default(uuid())
+  squadId   String
+  createdBy String                       // userId de quem gerou
+  code      String    @unique            // Código curto (ex: "XK7-PL2")
+  maxUses   Int?                         // null = usos ilimitados
+  usedCount Int       @default(0)
+  expiresAt DateTime?                    // null = sem expiração
+  createdAt DateTime  @default(now())
+
+  squad     Squad     @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  creator   User      @relation(fields: [createdBy], references: [id])
+
+  @@index([squadId])
+  @@map("squad_invites")
+}
+
+// ── Membro da Squad ───────────────────────────────────────────────────────────
 model SquadMember {
-  userId        String
-  squadId       String
+  userId    String
+  squadId   String
+  role      SquadRole @default(MEMBER)
+  isActive  Boolean   @default(true)   // false = saiu mas mantém histórico
+
+  // Stats da semana atual (resetados todo domingo à meia-noite)
   weeklyXp      Int      @default(0)
   weeklyCommits Int      @default(0)
-  joinedAt      DateTime @default(now())
+  weekStartDate DateTime @db.Date       // Início da semana corrente para este membro
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  squad         Squad    @relation(fields: [squadId], references: [id], onDelete: Cascade)
+  // Stats acumulados (nunca resetados)
+  totalXp      Int      @default(0)
+  totalCommits Int      @default(0)
+
+  joinedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
 
   @@id([userId, squadId])
+  @@index([squadId, weeklyXp])   // Leaderboard: ordenar squad por XP da semana
+  @@index([squadId, isActive])   // Filtrar apenas membros ativos
   @@map("squad_members")
 }
 
-model Cosmetic {
-  id         String           @id @default(uuid())
-  name       String
-  category   CosmeticCategory
-  rarity     CosmeticRarity
-  priceCoins Int              @default(0)
-  priceGems  Int              @default(0)
+// ── Snapshot semanal da Squad ─────────────────────────────────────────────────
+// Gerado toda segunda-feira antes do reset de domingo.
+// weeklyXp é zerado após snapshot — o histórico fica aqui.
+model SquadWeeklySnapshot {
+  id        String   @id @default(uuid())
+  squadId   String
+  weekStart DateTime @db.Date
+  weekEnd   DateTime @db.Date
 
-  // Relacionamentos
+  // [{userId, position, xp, commits, rankAtTime}]
+  rankingData Json
+
+  createdAt DateTime @default(now())
+
+  squad Squad @relation(fields: [squadId], references: [id], onDelete: Cascade)
+
+  @@unique([squadId, weekStart])
+  @@map("squad_weekly_snapshots")
+}
+
+// ── Cosmético (catálogo) ──────────────────────────────────────────────────────
+model Cosmetic {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  category    CosmeticCategory
+  rarity      CosmeticRarity
+  priceCoins  Int              @default(0)
+  priceGems   Int              @default(0)
+  isAvailable Boolean          @default(true)  // Soft-delete / itens sazonais
+
   owners     UserCosmetic[]
-  rewardedBy Achievement[]    
+  equippedBy UserEquippedCosmetic[]
+  rewardedBy Achievement[]
 
   @@map("cosmetics")
 }
 
+// ── Inventário do usuário ─────────────────────────────────────────────────────
 model UserCosmetic {
-  userId     String
-  cosmeticId String
-  isEquipped Boolean  @default(false)
-  obtainedAt DateTime @default(now())
+  userId         String
+  cosmeticId     String
+  obtainedSource CosmeticObtainedSource
+  obtainedAt     DateTime               @default(now())
 
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cosmetic   Cosmetic @relation(fields: [cosmeticId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cosmetic Cosmetic @relation(fields: [cosmeticId], references: [id], onDelete: Cascade)
 
   @@id([userId, cosmeticId])
   @@map("user_cosmetics")
 }
 
-model Achievement {
-  id               String              @id @default(uuid())
-  title            String
-  description      String
-  category         AchievementCategory 
-  rarity           AchievementRarity   @default(COMMON) 
-  metricType       String              
-  targetValue      Int                 
-  
-  rewardCosmeticId String?             
-  rewardCosmetic   Cosmetic?           @relation(fields: [rewardCosmeticId], references: [id])
+// ── Cosméticos equipados ──────────────────────────────────────────────────────
+// @@id([userId, category]) garante no banco: apenas 1 item por categoria por usuário.
+// Trocar chapéu = UPDATE nesta linha, não INSERT novo.
+model UserEquippedCosmetic {
+  userId     String
+  category   CosmeticCategory
+  cosmeticId String
 
-  // Relacionamentos
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cosmetic Cosmetic @relation(fields: [cosmeticId], references: [id], onDelete: Cascade)
+
+  @@id([userId, category])
+  @@map("user_equipped_cosmetics")
+}
+
+// ── Conquistas (catálogo) ─────────────────────────────────────────────────────
+model Achievement {
+  id          String              @id @default(uuid())
+  title       String
+  description String
+  category    AchievementCategory
+  rarity      AchievementRarity   @default(COMMON)
+  metricType  MetricType
+  targetValue Int                 // Meta (ex: 30 para "30 dias de streak")
+  isHidden    Boolean             @default(false)  // Easter eggs ficam invisíveis
+
+  // Recompensas ao desbloquear
+  rewardXp         Int      @default(0)
+  rewardCoins      Int      @default(0)
+  rewardCosmeticId String?
+  rewardCosmetic   Cosmetic? @relation(fields: [rewardCosmeticId], references: [id])
+
   winners          UserAchievement[]
+  progressTrackers AchievementProgress[]
 
   @@map("achievements")
 }
 
+// ── Conquistas desbloqueadas ──────────────────────────────────────────────────
 model UserAchievement {
   userId        String
   achievementId String
   unlockedAt    DateTime @default(now())
 
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@id([userId, achievementId])
   @@map("user_achievements")
 }
 
-model DailyChallenge {
-  id          String   @id @default(uuid())
-  title       String               
-  description String              
-  metricType  MetricType 
-  targetValue Int                  
-  rewardCoins Int      @default(0) 
-  rewardXp    Int      @default(0) 
-  isActive    Boolean  @default(false) // Apenas um (ou alguns) ficam como "true" a cada dia
+// ── Progresso em conquistas ───────────────────────────────────────────────────
+// Para conquistas incrementais — mostra "18 / 30" antes de desbloquear.
+model AchievementProgress {
+  userId        String
+  achievementId String
+  currentValue  Int      @default(0)
+  updatedAt     DateTime @updatedAt
 
-  // Relacionamentos
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+  @@map("achievement_progress")
+}
+
+// ── Desafio diário (catálogo) ─────────────────────────────────────────────────
+model DailyChallenge {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  metricType  MetricType
+  targetValue Int
+
+  // Recompensas
+  rewardXp    Int @default(0)
+  rewardCoins Int @default(0)
+  rewardGems  Int @default(0)
+
+  // activeDate preenchida → desafio fixo para aquele dia
+  // activeDate null       → pool rotativo (sorteado pelo sistema)
+  activeDate  DateTime? @db.Date
+
   participants UserDailyChallenge[]
 
   @@map("daily_challenges")
 }
 
+// ── Progresso do usuário no desafio diário ────────────────────────────────────
 model UserDailyChallenge {
-  userId        String
-  challengeId   String
-  date          DateTime  @db.Date        // A data em que o usuário progrediu no desafio
-  currentValue  Int       @default(0)     
-  isCompleted   Boolean   @default(false) 
-  completedAt   DateTime?                 
+  userId      String
+  challengeId String
+  date        DateTime  @db.Date   // Data de participação
+  currentValue Int      @default(0)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge     DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
-  // Chave primária composta: Um usuário não pode fazer o mesmo desafio duas vezes no MESMO dia
   @@id([userId, challengeId, date])
+  @@index([userId, date])
   @@map("user_daily_challenges")
 }
