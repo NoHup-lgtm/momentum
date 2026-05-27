@@ -1,6 +1,3 @@
-desktop/
-mcp/
-supabase/
-.github/
+back/
 node_modules/
 .git/

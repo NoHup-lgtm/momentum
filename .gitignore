@@ -1,10 +1,5 @@
 # Node
 node_modules/
-mcp/node_modules/
-mcp/dist/
-desktop/node_modules/
-desktop/dist/
-desktop/src-tauri/target/
 
 # Next.js
 lp/.next/
@@ -12,11 +7,9 @@ lp/out/
 
 # Env
 .env*.local
-desktop/.env
-desktop/.env.local
+back/.env
 
 # Misc
 .DS_Store
 *.pem
 lp/.vercel
-desktop/.vercel
