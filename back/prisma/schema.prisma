@@ -87,18 +87,27 @@ enum AchievementRarity {
 
 // ── Métricas — usadas em desafios e conquistas ────────────────────────────────
 enum MetricType {
-  DAILY_COMMITS              // Commits em um único dia
+  DAILY_ACTIVITIES           // Atividades em um único dia (commits, PRs…)
+  DAILY_COMMITS              // Commits especificamente em um dia
   DAILY_PRS                  // Pull Requests em um único dia
-  STREAK_DAYS                // Dias consecutivos com commit
+  STREAK_DAYS                // Dias consecutivos com atividade
   MAX_STREAK                 // Maior streak atingida (all-time)
   WEEKLY_COMMITS             // Commits na semana corrente
   TOTAL_XP                   // XP acumulado total (conquistas de longo prazo)
   OPEN_SOURCE_CONTRIBUTIONS  // Contribuições para repos de terceiros
 }
 
+// ── Tipo de atividade do GitHub ───────────────────────────────────────────────
+// Extensível: hoje só COMMIT ativa streak, mas PR e review podem no futuro
+enum ActivityType {
+  COMMIT          // Push com commit(s) — ativa a ofensiva
+  PULL_REQUEST    // PR aberto ou mergeado
+  CODE_REVIEW     // Review submetido
+}
+
 // ── Fontes de XP ──────────────────────────────────────────────────────────────
 enum XpSource {
-  DAILY_COMMIT        // +15 XP por commit do dia
+  DAILY_ACTIVITY      // XP por atividade do dia (commit, PR, etc.)
   STREAK_MILESTONE    // Bônus por marco de streak (7d, 30d, 100d…)
   DAILY_CHALLENGE     // Desafio diário concluído
   ACHIEVEMENT         // Conquista desbloqueada
@@ -109,7 +118,7 @@ enum XpSource {
 
 // ── Fontes de Coins ───────────────────────────────────────────────────────────
 enum CoinSource {
-  DAILY_COMMIT        // Coins por commit do dia
+  DAILY_ACTIVITY      // Coins por atividade do dia
   DAILY_CHALLENGE     // Desafio diário
   ACHIEVEMENT         // Conquista
   STREAK_MILESTONE    // Marco de streak
@@ -174,10 +183,10 @@ model User {
   gems         Int          @default(0)
 
   // Ofensiva
-  currentStreak  Int        @default(0)
-  maxStreak      Int        @default(0)
-  lastCommitDate DateTime?  @db.Date  // Última data com commit válido para streak
-  streakFreezes  Int        @default(1)
+  currentStreak    Int       @default(0)
+  maxStreak        Int       @default(0)
+  lastActivityDate DateTime? @db.Date  // Última data com atividade válida para streak
+  streakFreezes    Int       @default(1)
 
   // Plano
   isPro            Boolean  @default(false)
@@ -193,7 +202,8 @@ model User {
   updatedAt    DateTime     @updatedAt
 
   // Relacionamentos
-  commits             Commit[]
+  dailyActivities     DailyActivity[]
+  processedEvents     ProcessedGithubEvent[]
   streakFreezeUsages  StreakFreezeUsage[]
   xpTransactions      XpTransaction[]
   coinTransactions    CoinTransaction[]
@@ -229,35 +239,52 @@ model UserDevice {
   @@map("user_devices")
 }
 
-// ── Commit verificado via GitHub API ──────────────────────────────────────────
-// Um registro por PushEvent processado. O primeiro commit do dia (dentro da
-// janela válida, considerando timezone + grace period até 1h da manhã) ativa
-// a ofensiva. Os demais acumulam XP mas não contam para streak.
-model Commit {
-  id            String   @id @default(uuid())
-  userId        String
+// ── Atividade diária do usuário ───────────────────────────────────────────────
+// Um registro por usuário por dia por tipo de atividade.
+// Quando o usuário faz o 3º commit do dia: apenas incrementa `count`, não cria nova linha.
+// Crescimento = usuários × dias ativos × tipos de atividade — linear e controlado.
+//
+// Lifecycle:
+//   1. Webhook GitHub chega → verifica ProcessedGithubEvent (dedup)
+//   2. UPSERT DailyActivity: cria se não existe, incrementa count se existe
+//   3. Se primeira atividade do dia → atualiza User.lastActivityDate + recalcula streak
+model DailyActivity {
+  id           String       @id @default(uuid())
+  userId       String
+  date         DateTime     @db.Date      // Dia da atividade (ajustado por timezone + grace period)
+  activityType ActivityType
 
-  // Dados do GitHub
-  commitSha     String            // SHA do commit
-  repoName      String            // "momentum"
-  repoFullName  String            // "dev_marcos/momentum"
-  branch        String?           // "main" | "feat/login"
-  commitMessage String?
-  committedAt   DateTime          // Timestamp UTC do commit no GitHub
-  isPrivateRepo Boolean  @default(false)
+  // Resumo do dia para este tipo de atividade
+  count        Int          @default(1)   // Quantas vezes (commits, PRs, etc.)
+  xpGained     Int          @default(0)   // XP total ganho neste dia por este tipo
+  coinsGained  Int          @default(0)   // Coins totais ganhos
+  keptStreak   Boolean      @default(false) // Esta atividade ativou/manteve a ofensiva do dia?
 
-  // Processamento interno
-  xpGained         Int     @default(15)
-  coinsGained      Int     @default(5)
-  countedForStreak Boolean @default(false)  // true apenas no 1º commit válido do dia
-  processedAt      DateTime @default(now())
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, commitSha])        // Mesmo SHA nunca entra duas vezes
-  @@index([userId, committedAt])       // Query: "usuário commitou hoje?"
-  @@index([userId, countedForStreak])  // Filtrar commits que ativaram streak
-  @@map("commits")
+  @@unique([userId, date, activityType])  // Um resumo por usuário por dia por tipo
+  @@index([userId, date])                 // Query principal: "teve atividade hoje?"
+  @@index([userId, keptStreak])           // Filtrar dias que mantiveram streak
+  @@map("daily_activities")
+}
+
+// ── Eventos GitHub processados (deduplicação) ─────────────────────────────────
+// Armazena apenas o ID do evento do GitHub para evitar processar o mesmo
+// webhook duas vezes. Registros com mais de 30 dias podem ser deletados
+// via cron — webhooks duplicados tardios não são uma preocupação real.
+model ProcessedGithubEvent {
+  eventId     String   @id           // GitHub Event ID (ex: "12345678901")
+  userId      String
+  activityType ActivityType
+  processedAt DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([processedAt])  // Para limpeza periódica: DELETE WHERE processedAt < now() - 30d
+  @@map("processed_github_events")
 }
 
 // ── Uso de streak freeze ──────────────────────────────────────────────────────
