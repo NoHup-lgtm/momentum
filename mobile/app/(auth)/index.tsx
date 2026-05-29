@@ -1,41 +1,104 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Dimensions, ScrollView,
+  ActivityIndicator, Dimensions, Image,
 } from 'react-native';
 import { router } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import { useAuthRequest, makeRedirectUri, type AuthSessionResult } from 'expo-auth-session';
 import { C } from '../../constants/design';
 import { SpiralIcon, GitHubIcon, MomentumWordmark } from '../../components/icons';
 import PixelAvatar from '../../components/avatar/PixelAvatar';
+import { GITHUB_CLIENT_ID } from '../../lib/config';
+import { loginWithGithubCode, authToStoreUser, type AuthUser } from '../../lib/session';
+import { useAppStore } from '../../store/app';
 
 const { width: W } = Dimensions.get('window');
 
-// ── Mock GitHub profile ───────────────────────────────────────────────────────
-const GH_PROFILE = { username: 'dev_marcos', name: 'Marcos Silva', repos: 42, avatarVariant: 0 };
+// Finaliza a sessão de auth se o app foi reaberto pelo redirect
+WebBrowser.maybeCompleteAuthSession();
 
-type Step = 'welcome' | 'permissions' | 'connected';
+const discovery = {
+  authorizationEndpoint: 'https://github.com/login/oauth/authorize',
+  tokenEndpoint: 'https://github.com/login/oauth/access_token',
+};
+
+// momentum://auth — registre exatamente este valor como callback no OAuth App.
+const redirectUri = makeRedirectUri({ scheme: 'momentum', path: 'auth' });
+
+type Step = 'welcome' | 'connected';
 
 export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>('welcome');
-  const next = () => {
-    if (step === 'welcome')     setStep('permissions');
-    else if (step === 'permissions') setStep('connected');
-    else router.replace('/(tabs)');
-  };
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<AuthUser | null>(null);
+  const setUser = useAppStore((s) => s.setUser);
+
+  const [request, response, promptAsync] = useAuthRequest(
+    {
+      clientId: GITHUB_CLIENT_ID,
+      scopes: ['read:user', 'user:email'],
+      redirectUri,
+    },
+    discovery,
+  );
+
+  // Reage ao retorno do GitHub: troca o code pelo login no backend.
+  useEffect(() => {
+    if (!response) return;
+    handleResponse(response);
+  }, [response]);
+
+  async function handleResponse(res: AuthSessionResult) {
+    if (res.type !== 'success' || !res.params.code) {
+      if (res.type === 'error') {
+        setError(res.params.error_description ?? 'Falha na autorização do GitHub');
+      }
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const user = await loginWithGithubCode(res.params.code, redirectUri);
+      setUser(authToStoreUser(user));
+      setProfile(user);
+      setStep('connected');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível entrar');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function connect() {
+    setError(null);
+    if (!GITHUB_CLIENT_ID) {
+      setError('GITHUB_CLIENT_ID não configurado (mobile/.env)');
+      return;
+    }
+    setLoading(true);
+    promptAsync().catch(() => setLoading(false));
+  }
+
+  if (step === 'connected' && profile) {
+    return <StepConnected profile={profile} onContinue={() => router.replace('/(tabs)')} />;
+  }
+
   return (
-    <>
-      {step === 'welcome'     && <StepWelcome onContinue={next} />}
-      {step === 'permissions' && <StepPermissions onContinue={next} />}
-      {step === 'connected'   && <StepConnected profile={GH_PROFILE} onContinue={next} />}
-    </>
+    <StepWelcome
+      loading={loading}
+      error={error}
+      disabled={!request}
+      onConnect={connect}
+    />
   );
 }
 
 // ── Step 0: Welcome ───────────────────────────────────────────────────────────
-function StepWelcome({ onContinue }: { onContinue: () => void }) {
-  const [loading, setLoading] = useState(false);
-  const connect = () => { setLoading(true); setTimeout(onContinue, 1100); };
-
+function StepWelcome({ loading, error, disabled, onConnect }: {
+  loading: boolean; error: string | null; disabled: boolean; onConnect: () => void;
+}) {
   return (
     <View style={s.screen}>
       {/* Watermark */}
@@ -44,7 +107,6 @@ function StepWelcome({ onContinue }: { onContinue: () => void }) {
       </View>
 
       <View style={s.center}>
-        {/* Official brand wordmark: spiral + "momentum" in Lora/Georgia */}
         <MomentumWordmark height={52} />
 
         <Text style={s.subtitle}>feito de dias imperfeitos.</Text>
@@ -55,10 +117,10 @@ function StepWelcome({ onContinue }: { onContinue: () => void }) {
         </Text>
 
         <TouchableOpacity
-          style={[s.btn, s.btnPrimary]}
-          onPress={connect}
+          style={[s.btn, s.btnPrimary, (loading || disabled) && { opacity: 0.6 }]}
+          onPress={onConnect}
           activeOpacity={0.8}
-          disabled={loading}
+          disabled={loading || disabled}
         >
           {loading ? (
             <View style={s.row}>
@@ -73,81 +135,40 @@ function StepWelcome({ onContinue }: { onContinue: () => void }) {
           )}
         </TouchableOpacity>
 
-        <Text style={s.hint}>momentum vive dos seus commits</Text>
+        {error ? (
+          <Text style={s.error}>{error}</Text>
+        ) : (
+          <Text style={s.hint}>momentum vive dos seus commits</Text>
+        )}
       </View>
     </View>
   );
 }
 
-// ── Step 1: Permissions ───────────────────────────────────────────────────────
-const PERMS = [
-  { icon: '👁', label: 'Ler seus eventos públicos do GitHub' },
-  { icon: '🔒', label: 'Acessar repositórios privados (opcional)' },
-  { icon: '🚫', label: 'Nunca escrever, nunca fazer push' },
-];
-
-function StepPermissions({ onContinue }: { onContinue: () => void }) {
-  const [loading, setLoading] = useState(false);
-  const authorize = () => { setLoading(true); setTimeout(onContinue, 1200); };
-
-  return (
-    <View style={s.screen}>
-      <View style={s.center}>
-        <Text style={s.stepLabel}>passo 2 de 3</Text>
-        <Text style={s.titleMd}>O que o momentum acessa</Text>
-
-        <View style={{ width: '100%', gap: 12, marginBottom: 36 }}>
-          {PERMS.map((p, i) => (
-            <View key={i} style={s.permRow}>
-              <Text style={{ fontSize: 18 }}>{p.icon}</Text>
-              <Text style={s.permText}>{p.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={[s.btn, s.btnPrimary]}
-          onPress={authorize}
-          activeOpacity={0.8}
-          disabled={loading}
-        >
-          {loading ? (
-            <View style={s.row}>
-              <ActivityIndicator size="small" color="#f2e4cf" />
-              <Text style={[s.btnText, { marginLeft: 9 }]}>Autorizando…</Text>
-            </View>
-          ) : (
-            <Text style={s.btnText}>Autorizar com GitHub →</Text>
-          )}
-        </TouchableOpacity>
-
-        <Text style={s.hint}>acesso de leitura apenas · revogue a qualquer momento</Text>
-      </View>
-    </View>
-  );
-}
-
-// ── Step 2: Connected ─────────────────────────────────────────────────────────
+// ── Step 1: Connected ─────────────────────────────────────────────────────────
 function StepConnected({ profile, onContinue }: {
-  profile: typeof GH_PROFILE;
+  profile: AuthUser;
   onContinue: () => void;
 }) {
   return (
     <View style={s.screen}>
       <View style={s.center}>
-        <Text style={s.stepLabel}>passo 3 de 3</Text>
+        <Text style={s.stepLabel}>conta conectada</Text>
 
         {/* Avatar */}
         <View style={s.avatarWrap}>
           <View style={s.avatarRing}>
-            <PixelAvatar size={80} variant={profile.avatarVariant} />
+            {profile.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={s.avatarImg} />
+            ) : (
+              <PixelAvatar size={80} variant={0} />
+            )}
           </View>
           <View style={s.onlineDot} />
         </View>
 
-        <Text style={s.titleMd}>{profile.name}</Text>
-        <Text style={s.ghLogin}>@{profile.username}</Text>
-        <Text style={s.ghSub}>{profile.repos} repositórios · GitHub conectado ✓</Text>
+        <Text style={s.titleMd}>@{profile.githubLogin}</Text>
+        <Text style={s.ghSub}>GitHub conectado ✓</Text>
 
         <View style={s.connectedBadge}>
           <Text style={s.connectedText}>conta verificada — pronto para começar</Text>
@@ -174,14 +195,9 @@ const s = StyleSheet.create({
     opacity: 0.04,
   },
   center: { width: '100%', alignItems: 'center' },
-  title: {
-    fontFamily: 'Lora_400Regular', fontSize: 34,
-    color: C.text, marginTop: 20, marginBottom: 8,
-    letterSpacing: -0.5,
-  },
   titleMd: {
     fontFamily: 'Lora_400Regular', fontSize: 24,
-    color: C.text, marginBottom: 24, textAlign: 'center',
+    color: C.text, marginBottom: 6, textAlign: 'center',
     letterSpacing: -0.3,
   },
   subtitle: {
@@ -218,32 +234,27 @@ const s = StyleSheet.create({
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
     color: C.text3, textAlign: 'center', marginTop: 4,
   },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  permRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
-    borderRadius: 8, padding: 14,
+  error: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
+    color: C.danger, textAlign: 'center', marginTop: 4, lineHeight: 16,
   },
-  permText: { fontSize: 13, color: C.text2, flex: 1, lineHeight: 20 },
+  row: { flexDirection: 'row', alignItems: 'center' },
   avatarWrap: { position: 'relative', marginBottom: 20 },
   avatarRing: {
     width: 88, height: 88, borderRadius: 44,
     borderWidth: 2, borderColor: C.accent,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.surface,
+    backgroundColor: C.surface, overflow: 'hidden',
     shadowColor: C.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5, shadowRadius: 16,
   },
+  avatarImg: { width: 80, height: 80, borderRadius: 40 },
   onlineDot: {
     position: 'absolute', bottom: 2, right: 2,
     width: 16, height: 16, borderRadius: 8,
     backgroundColor: C.success,
     borderWidth: 2.5, borderColor: C.bg,
-  },
-  ghLogin: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13,
-    color: C.text3, marginBottom: 4,
   },
   ghSub: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
