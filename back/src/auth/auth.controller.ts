@@ -37,6 +37,7 @@ export class AuthController {
     const user = await this.authService.loginWithGithub(
       body.code,
       body.redirectUri,
+      body.codeVerifier,
     );
     const tokens = this.authService.issueAuthCookies(
       res,

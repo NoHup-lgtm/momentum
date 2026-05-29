@@ -23,8 +23,16 @@ export class AuthService {
     private readonly cookieService: CookieService,
   ) {}
 
-  async loginWithGithub(code: string, redirectUri?: string) {
-    const accessToken = await this.exchangeCodeForToken(code, redirectUri);
+  async loginWithGithub(
+    code: string,
+    redirectUri?: string,
+    codeVerifier?: string,
+  ) {
+    const accessToken = await this.exchangeCodeForToken(
+      code,
+      redirectUri,
+      codeVerifier,
+    );
     const githubUser = await this.fetchGithubUser(accessToken);
     const email = await this.fetchPrimaryEmail(
       accessToken,
@@ -124,7 +132,11 @@ export class AuthService {
     this.cookieService.clearAuthCookies(res);
   }
 
-  private async exchangeCodeForToken(code: string, redirectUri?: string) {
+  private async exchangeCodeForToken(
+    code: string,
+    redirectUri?: string,
+    codeVerifier?: string,
+  ) {
     const clientId = process.env.GITHUB_CLIENT_ID;
     const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
@@ -139,29 +151,47 @@ export class AuthService {
         headers: {
           Accept: 'application/json',
           'Content-Type': 'application/json',
+          'User-Agent': 'momentum-backend',
         },
         body: JSON.stringify({
           client_id: clientId,
           client_secret: clientSecret,
           code,
           redirect_uri: redirectUri,
+          // PKCE: o app (cliente público) gera o verifier; o GitHub exige
+          // quando a autorização incluiu code_challenge.
+          code_verifier: codeVerifier,
         }),
       },
     );
 
-    if (!response.ok) {
-      throw new UnauthorizedException('GitHub token exchange failed');
-    }
-
-    const payload = (await response.json()) as {
+    const raw = await response.text();
+    let payload: {
       access_token?: string;
       error?: string;
       error_description?: string;
-    };
+    } = {};
+    try {
+      payload = JSON.parse(raw) as typeof payload;
+    } catch {
+      // resposta não-JSON (ex: HTML de erro) — mantém raw para o log
+    }
+
+    if (!response.ok) {
+      console.error(
+        `[auth] GitHub token exchange HTTP ${response.status} | redirect_uri=${redirectUri} | body=${raw}`,
+      );
+      throw new UnauthorizedException(
+        `GitHub token exchange failed (HTTP ${response.status})`,
+      );
+    }
 
     if (!payload.access_token) {
+      console.error(
+        `[auth] GitHub token exchange error | redirect_uri=${redirectUri} | body=${raw}`,
+      );
       throw new UnauthorizedException(
-        payload.error_description ?? 'Invalid GitHub code',
+        payload.error_description ?? payload.error ?? 'Invalid GitHub code',
       );
     }
 

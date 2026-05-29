@@ -60,7 +60,11 @@ export default function OnboardingScreen() {
     }
 
     try {
-      const user = await loginWithGithubCode(res.params.code, redirectUri);
+      const user = await loginWithGithubCode(
+        res.params.code,
+        redirectUri,
+        request?.codeVerifier,
+      );
       setUser(authToStoreUser(user));
       setProfile(user);
       setStep('connected');

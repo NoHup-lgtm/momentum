@@ -88,11 +88,12 @@ async function tryRefresh(): Promise<boolean> {
 export async function loginWithGithubCode(
   code: string,
   redirectUri: string,
+  codeVerifier?: string,
 ): Promise<AuthUser> {
   const res = await fetch(`${API_URL}/auth/login/github`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code, redirectUri }),
+    body: JSON.stringify({ code, redirectUri, codeVerifier }),
   });
 
   if (!res.ok) {
