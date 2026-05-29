@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "scheme": "momentum",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "me.momentu.app"
