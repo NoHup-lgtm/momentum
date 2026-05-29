@@ -30,6 +30,7 @@ enum UserRank {
 }
 
 // ── Progressão coletiva da squad ──────────────────────────────────────────────
+// Rank permanente da squad — sobe com conquistas coletivas, não com sprint
 enum SquadRank {
   GARAGE
   BOOTSTRAPPED
@@ -42,6 +43,25 @@ enum SquadRank {
 enum SquadRole {
   OWNER
   MEMBER
+}
+
+// ── Assinatura ────────────────────────────────────────────────────────────────
+enum SubscriptionPlan {
+  PRO   // Freezes ilimitados, 30 gems/mês, baú épico, analytics pessoal
+  MAX   // Tudo do Pro + 100 gems/mês, múltiplas squads, torneios, badge animado
+}
+
+enum SubscriptionBilling {
+  MONTHLY
+  ANNUAL
+}
+
+enum SubscriptionStatus {
+  TRIAL      // Período grátis de 14 dias
+  ACTIVE
+  PAST_DUE   // Pagamento falhou mas ainda no período de graça
+  CANCELED
+  EXPIRED
 }
 
 // ── Cosméticos ────────────────────────────────────────────────────────────────
@@ -60,10 +80,12 @@ enum CosmeticRarity {
   LEGENDARY
 }
 
+// CHEST adicionado: cosméticos podem vir de baús
 enum CosmeticObtainedSource {
   PURCHASED_COINS
   PURCHASED_GEMS
   ACHIEVEMENT_REWARD
+  CHEST_REWARD        // Drop de baú
   EVENT_REWARD
 }
 
@@ -126,18 +148,63 @@ enum CoinSource {
   PURCHASE_ITEM       // Compra de item na loja (valor negativo)
 }
 
+// ── Fontes de Gems ────────────────────────────────────────────────────────────
+enum GemSource {
+  PURCHASE            // Dinheiro real via Stripe (referencia gem_purchases.id)
+  SUBSCRIPTION        // Gems mensais incluídas no plano Pro/Max
+  CHEST               // Drop de baú
+  ACHIEVEMENT         // Recompensa de conquista
+  DAILY_CHALLENGE     // Desafio que recompensa gems
+  EVENT_REWARD        // Torneio ou evento especial
+  PURCHASE_ITEM       // Gasto na loja (valor negativo)
+}
+
 // ── Status do streak freeze ───────────────────────────────────────────────────
 enum FreezeStatus {
   ACTIVE    // Freeze ativo — ainda protegendo o dia
   CONSUMED  // Dia passou, freeze foi consumido com sucesso
 }
 
-// ── Status da assinatura Pro ──────────────────────────────────────────────────
-enum SubscriptionStatus {
-  ACTIVE
-  PAST_DUE   // Pagamento falhou mas ainda no período de graça
-  CANCELED
-  EXPIRED
+// ── Baús ──────────────────────────────────────────────────────────────────────
+enum ChestRarity {
+  COMUM     // Madeira — drops básicos
+  RARO      // Circuito — drops intermediários
+  EPICO     // Void — drops raros
+  LENDARIO  // Dourado — drops exclusivos
+}
+
+enum ChestSource {
+  CHALLENGE     // Completar desafio diário
+  ACHIEVEMENT   // Desbloquear conquista
+  SUBSCRIPTION  // Baú mensal do plano Pro/Max
+  EVENT         // Torneio ou evento especial
+  SQUAD_REWARD  // Recompensa por posição no sprint da liga
+}
+
+enum ChestRewardType {
+  XP
+  COINS
+  GEMS
+  COSMETIC
+}
+
+// ── Liga (sprint competitivo) ─────────────────────────────────────────────────
+// Nota: SquadRank é progressão permanente da squad.
+// Liga é competição individual por XP ganho em cada sprint de 2 semanas.
+enum FeedEventType {
+  STREAK_MILESTONE     // Usuário bateu 7, 14, 30, 50 ou 100 dias
+  LEVEL_UP             // Subiu de nível
+  RANK_UP              // Subiu de rank (Init → Build, etc.)
+  ACHIEVEMENT          // Desbloqueou conquista
+  CHEST_LEGENDARY      // Abriu um baú lendário
+  SQUAD_JOIN           // Novo membro entrou na squad
+  LIGA_PROMOTED        // Subiu de liga (promovido)
+  CHALLENGE_COMPLETED  // Concluiu desafio do dia
+}
+
+enum FeedVisibility {
+  SQUAD   // Apenas membros da mesma squad veem
+  GLOBAL  // Visível no feed público
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -188,9 +255,12 @@ model User {
   lastActivityDate DateTime? @db.Date  // Última data com atividade válida para streak
   streakFreezes    Int       @default(1)
 
-  // Plano
-  isPro            Boolean  @default(false)
-  stripeCustomerId String?  @unique  // Para billing Pro via Stripe
+  // Plano de assinatura (cache denormalizado — fonte da verdade é Subscription)
+  // null = free. Atualizado pelo webhook do Stripe ao confirmar/cancelar.
+  subscriptionPlan SubscriptionPlan?
+
+  // Billing Stripe
+  stripeCustomerId String?  @unique
 
   // Preferências de notificação
   notifyStreakReminder Boolean @default(true)   // Aviso antes de meia-noite
@@ -207,6 +277,7 @@ model User {
   streakFreezeUsages  StreakFreezeUsage[]
   xpTransactions      XpTransaction[]
   coinTransactions    CoinTransaction[]
+  gemTransactions     GemTransaction[]
   gemPurchases        GemPurchase[]
   subscription        Subscription?
   squadMemberships    SquadMember[]
@@ -219,6 +290,9 @@ model User {
   achievements        UserAchievement[]
   achievementProgress AchievementProgress[]
   dailyChallenges     UserDailyChallenge[]
+  chests              UserChest[]
+  ligaParticipations  LigaParticipant[]
+  feedEvents          FeedEvent[]
 
   @@map("users")
 }
@@ -351,7 +425,27 @@ model CoinTransaction {
   @@map("coin_transactions")
 }
 
-// ── Compra de Gems (dinheiro real → Stripe) ───────────────────────────────────
+// ── Histórico de Gems ─────────────────────────────────────────────────────────
+// Ledger completo de gems — cobre todos os fluxos de entrada e saída.
+// Saldo real = SELECT SUM(amount) FROM gem_transactions WHERE userId = ?
+// User.gems é cache denormalizado, atualizado a cada transação.
+model GemTransaction {
+  id          String    @id @default(uuid())
+  userId      String
+  amount      Int       // Positivo = ganhou | Negativo = gastou
+  source      GemSource
+  description String?
+  referenceId String?   // ID do GemPurchase, UserChest, Achievement, etc.
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("gem_transactions")
+}
+
+// ── Compra de Gems com dinheiro real (Stripe) ─────────────────────────────────
+// Registra a compra financeira. Gera um GemTransaction com source=PURCHASE.
 model GemPurchase {
   id                    String   @id @default(uuid())
   userId                String
@@ -366,19 +460,22 @@ model GemPurchase {
   @@map("gem_purchases")
 }
 
-// ── Assinatura Pro ────────────────────────────────────────────────────────────
+// ── Assinatura Pro / Max ──────────────────────────────────────────────────────
 model Subscription {
-  id                   String             @id @default(uuid())
-  userId               String             @unique
-  stripeSubscriptionId String             @unique
-  status               SubscriptionStatus @default(ACTIVE)
+  id                   String              @id @default(uuid())
+  userId               String              @unique
+  stripeSubscriptionId String              @unique
+  plan                 SubscriptionPlan                   // PRO ou MAX
+  billing              SubscriptionBilling                // MONTHLY ou ANNUAL
+  status               SubscriptionStatus  @default(TRIAL)
+  trialEndsAt          DateTime?                          // null = sem trial (upgrade direto)
   currentPeriodStart   DateTime
   currentPeriodEnd     DateTime
-  cancelAtPeriodEnd    Boolean            @default(false)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  cancelAtPeriodEnd    Boolean             @default(false) // Cancelado mas ainda ativo até fim do período
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscriptions")
 }
@@ -388,12 +485,12 @@ model Squad {
   id          String    @id @default(uuid())
   name        String
   description String?
-  rank        SquadRank @default(GARAGE)
-  ownerId     String                      // Quem criou e gerencia
-  maxMembers  Int       @default(5)       // 5 grátis | ilimitado Pro
+  rank        SquadRank @default(GARAGE)   // Progressão permanente da squad
+  ownerId     String                        // Quem criou e gerencia (líder)
+  maxMembers  Int       @default(5)         // 5 grátis | ilimitado Pro | até 10 no Max
   createdAt   DateTime  @default(now())
 
-  owner           User                @relation(fields: [ownerId], references: [id])
+  owner           User                  @relation(fields: [ownerId], references: [id])
   members         SquadMember[]
   invites         SquadInvite[]
   weeklySnapshots SquadWeeklySnapshot[]
@@ -403,13 +500,14 @@ model Squad {
 }
 
 // ── Convite de Squad ──────────────────────────────────────────────────────────
-// Substitui o inviteCode estático. Cada convite tem controle de uso e expiração.
+// Código curto gerado pelo líder — pode ser compartilhado por link ou copiado.
+// Apenas o líder pode gerar convites (validado na camada de negócio).
 model SquadInvite {
   id        String    @id @default(uuid())
   squadId   String
-  createdBy String                       // userId de quem gerou
+  createdBy String                       // userId de quem gerou (sempre o líder)
   code      String    @unique            // Código curto (ex: "XK7-PL2")
-  maxUses   Int?                         // null = usos ilimitados
+  maxUses   Int?                         // null = usos ilimitados (1 por padrão na UI)
   usedCount Int       @default(0)
   expiresAt DateTime?                    // null = sem expiração
   createdAt DateTime  @default(now())
@@ -428,7 +526,7 @@ model SquadMember {
   role      SquadRole @default(MEMBER)
   isActive  Boolean   @default(true)   // false = saiu mas mantém histórico
 
-  // Stats da semana atual (resetados todo domingo à meia-noite)
+  // Stats da semana atual (resetados todo domingo à meia-noite via cron)
   weeklyXp      Int      @default(0)
   weeklyCommits Int      @default(0)
   weekStartDate DateTime @db.Date       // Início da semana corrente para este membro
@@ -468,6 +566,84 @@ model SquadWeeklySnapshot {
   @@map("squad_weekly_snapshots")
 }
 
+// ── Liga — Season (sprint competitivo) ───────────────────────────────────────
+// Competição individual de 2 semanas por XP ganho no período.
+// Independente do SquadRank (que é progressão permanente da squad).
+// Top 3 ao final → promoted = true → entra no tier+1 na próxima season.
+// Bottom 3 → relegated → desce para tier-1.
+model LigaSeason {
+  id           String   @id @default(uuid())
+  tier         Int      // 1 = novato ... N = elite
+  sprintNumber Int      // #1, #2, #3...
+  startsAt     DateTime
+  endsAt       DateTime
+  isActive     Boolean  @default(false) // Apenas uma season por tier pode estar ativa
+
+  participants LigaParticipant[]
+
+  @@unique([tier, sprintNumber])
+  @@index([isActive])
+  @@map("liga_seasons")
+}
+
+// ── Liga — Participante por season ───────────────────────────────────────────
+// XP acumulado durante a season = fonte para o leaderboard da liga.
+// Derivado de XpTransaction WHERE createdAt BETWEEN season.startsAt AND season.endsAt.
+// xpEarned é atualizado incrementalmente a cada XpTransaction (cache para performance).
+model LigaParticipant {
+  id         String     @id @default(uuid())
+  seasonId   String
+  userId     String
+
+  xpEarned   Int        @default(0) // XP ganho durante este sprint
+  finalRank  Int?                   // Posição final — preenchida ao encerrar season
+  promoted   Boolean?               // true = top 3, sobe de tier
+  relegated  Boolean?               // true = bottom 3, desce de tier
+
+  season     LigaSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, xpEarned]) // Leaderboard em tempo real: ORDER BY xpEarned DESC
+  @@map("liga_participants")
+}
+
+// ── Baú do usuário ────────────────────────────────────────────────────────────
+// Um registro por baú ganho. openedAt = null significa baú pendente.
+// O roll de recompensa ocorre no backend no momento da abertura
+// e é salvo em ChestReward antes de retornar ao cliente (anti-cheat).
+model UserChest {
+  id        String      @id @default(uuid())
+  userId    String
+  rarity    ChestRarity
+  source    ChestSource
+  earnedAt  DateTime    @default(now())
+  openedAt  DateTime?                   // null = baú ainda fechado
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewards   ChestReward[]
+
+  @@index([userId, openedAt]) // "baús pendentes" = WHERE openedAt IS NULL
+  @@map("user_chests")
+}
+
+// ── Recompensas do baú ────────────────────────────────────────────────────────
+// Geradas no momento da abertura — 1 a N recompensas por baú.
+// Um baú pode dar XP + coins + um cosmético ao mesmo tempo.
+model ChestReward {
+  id         String          @id @default(uuid())
+  chestId    String
+  rewardType ChestRewardType
+  amount     Int             @default(0) // Para XP, COINS, GEMS
+  cosmeticId String?                     // Preenchido apenas se rewardType = COSMETIC
+
+  chest      UserChest       @relation(fields: [chestId], references: [id], onDelete: Cascade)
+  cosmetic   Cosmetic?       @relation(fields: [cosmeticId], references: [id])
+
+  @@index([chestId])
+  @@map("chest_rewards")
+}
+
 // ── Cosmético (catálogo) ──────────────────────────────────────────────────────
 model Cosmetic {
   id          String           @id @default(uuid())
@@ -479,9 +655,10 @@ model Cosmetic {
   priceGems   Int              @default(0)
   isAvailable Boolean          @default(true)  // Soft-delete / itens sazonais
 
-  owners     UserCosmetic[]
-  equippedBy UserEquippedCosmetic[]
-  rewardedBy Achievement[]
+  owners        UserCosmetic[]
+  equippedBy    UserEquippedCosmetic[]
+  rewardedBy    Achievement[]
+  chestRewards  ChestReward[]
 
   @@map("cosmetics")
 }
@@ -527,8 +704,9 @@ model Achievement {
   isHidden    Boolean             @default(false)  // Easter eggs ficam invisíveis
 
   // Recompensas ao desbloquear
-  rewardXp         Int      @default(0)
-  rewardCoins      Int      @default(0)
+  rewardXp         Int       @default(0)
+  rewardCoins      Int       @default(0)
+  rewardGems       Int       @default(0)
   rewardCosmeticId String?
   rewardCosmetic   Cosmetic? @relation(fields: [rewardCosmeticId], references: [id])
 
@@ -592,15 +770,41 @@ model DailyChallenge {
 model UserDailyChallenge {
   userId      String
   challengeId String
-  date        DateTime  @db.Date   // Data de participação
+  date        DateTime  @db.Date    // Data de participação
   currentValue Int      @default(0)
   isCompleted Boolean   @default(false)
-  completedAt DateTime?
+  completedAt DateTime?             // Quando finalizou o desafio
+  claimedAt   DateTime?             // Quando clicou em "coletar" — null = não coletado ainda
 
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   challenge DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
   @@id([userId, challengeId, date])
   @@index([userId, date])
+  @@index([userId, isCompleted, claimedAt]) // "desafios concluídos mas não coletados"
   @@map("user_daily_challenges")
+}
+
+// ── Feed de eventos ───────────────────────────────────────────────────────────
+// Gerado automaticamente pelos serviços quando eventos notáveis ocorrem.
+// Alimenta a tela de feed — mostra atividade da squad e do mundo.
+// payload é JSONB livre — schema depende do type:
+//   STREAK_MILESTONE → { streak: 30 }
+//   ACHIEVEMENT      → { achievementId: "...", title: "..." }
+//   CHEST_LEGENDARY  → { itemName: "Espada Plasma" }
+//   LIGA_PROMOTED    → { fromTier: 2, toTier: 3 }
+model FeedEvent {
+  id         String          @id @default(uuid())
+  userId     String
+  type       FeedEventType
+  payload    Json            @default("{}")
+  visibility FeedVisibility  @default(SQUAD)
+  createdAt  DateTime        @default(now())
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt])          // Feed global paginado por data
+  @@index([visibility, createdAt]) // Filtrar por visibilidade
+  @@map("feed_events")
 }
