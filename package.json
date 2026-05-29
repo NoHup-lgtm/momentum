@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@types/react": "~19.1.10",
     "expo-build-properties": "^56.0.15"
   }
 }

@@ -1,13 +1,21 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Animated, Dimensions, StatusBar,
+  Animated, Dimensions, StatusBar, Modal,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { C, RANKS, getRank } from '../../constants/design';
-import { FlameIcon, XPIcon, CoinIcon, SpiralIcon } from '../../components/icons';
+import { useTheme } from '../../contexts/ThemeContext';
+import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon } from '../../components/icons';
 import { AvatarRing, XPBar } from '../../components/ui';
+import StreakMilestone from '../../components/home/StreakMilestone';
+import TodayCard from '../../components/home/TodayCard';
+import LevelUpOverlay from '../../components/home/LevelUpOverlay';
+import ShareStreakCard from '../../components/home/ShareStreakCard';
+import PendingChestsCard from '../../components/home/PendingChestsCard';
+import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
 
 const { width: W } = Dimensions.get('window');
 
@@ -37,6 +45,8 @@ const MOCK_SQUAD = {
   ],
 };
 
+const PENDING_CHESTS = { count: 3, topRarity: 'epico' as const };
+
 const MOCK_CHALLENGES: {
   id: string; label: string; desc: string;
   xp: number; coins: number; done: boolean; claimed: boolean;
@@ -47,7 +57,10 @@ const MOCK_CHALLENGES: {
 ];
 
 // ── Streak Card ───────────────────────────────────────────────────────────────
-function StreakCard({ streak, longest, freezes }: { streak: number; longest: number; freezes: number }) {
+function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: {
+  streak: number; longest: number; freezes: number; commitedToday: boolean; onFreezePress: () => void;
+}) {
+  const { colors } = useTheme();
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -60,9 +73,9 @@ function StreakCard({ streak, longest, freezes }: { streak: number; longest: num
   }, []);
 
   return (
-    <View style={s.streakCard}>
+    <View style={[s.streakCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
       {/* Glow blob */}
-      <View style={s.streakGlow} />
+      <View style={[s.streakGlow, { backgroundColor: colors.accent }]} />
 
       <View style={s.streakTop}>
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -74,20 +87,27 @@ function StreakCard({ streak, longest, freezes }: { streak: number; longest: num
           <Text style={s.streakLabel}>dias de ofensiva</Text>
         </View>
 
-        <TouchableOpacity style={s.freezeBtn}>
-          <Text style={s.freezeEmoji}>🧊</Text>
+        <TouchableOpacity style={s.freezeBtn} onPress={onFreezePress}>
+          <IceIcon size={20} color="#7ab4e8" />
           <Text style={s.freezeCount}>{freezes}</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={s.streakDivider} />
+      <View style={[s.streakDivider, { backgroundColor: colors.surface2 }]} />
+
+      {/* Today status pill */}
+      <View style={[s.todayPill, commitedToday ? s.todayPillDone : s.todayPillMissing]}>
+        <Text style={[s.todayPillText, { color: commitedToday ? C.success : C.danger }]}>
+          {commitedToday ? '✓ commitou hoje' : '⚠ ainda não commitou hoje'}
+        </Text>
+      </View>
 
       <View style={s.streakBottom}>
         <Text style={s.streakStat}>
           <Text style={s.streakStatValue}>{longest}</Text>
           {'  '}recorde pessoal
         </Text>
-        <Text style={s.streakHint}>não quebre a ofensiva</Text>
+        <Text style={[s.streakHint, { color: colors.accent }]}>não quebre a ofensiva</Text>
       </View>
     </View>
   );
@@ -95,9 +115,10 @@ function StreakCard({ streak, longest, freezes }: { streak: number; longest: num
 
 // ── XP Card ───────────────────────────────────────────────────────────────────
 function XPCard({ user }: { user: typeof MOCK_USER }) {
+  const { colors } = useTheme();
   const rank = getRank(user.rankId);
   return (
-    <View style={s.xpCard}>
+    <View style={[s.xpCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
       <View style={s.xpHeader}>
         <AvatarRing size={44} variant={user.avatarVariant} rankId={user.rankId} />
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -118,12 +139,17 @@ function XPCard({ user }: { user: typeof MOCK_USER }) {
 
 // ── Squad Mini Card ───────────────────────────────────────────────────────────
 function SquadMiniCard({ squad }: { squad: typeof MOCK_SQUAD }) {
+  const { colors } = useTheme();
   return (
-    <TouchableOpacity style={s.squadCard} activeOpacity={0.8} onPress={() => router.push('/(tabs)/squad')}>
+    <TouchableOpacity
+      style={[s.squadCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}
+      activeOpacity={0.8}
+      onPress={() => router.push('/(tabs)/squad')}
+    >
       <View style={s.squadHeader}>
         <Text style={s.squadName}>{squad.name}</Text>
-        <View style={s.squadRankBadge}>
-          <Text style={s.squadRankText}>#{squad.rank}</Text>
+        <View style={[s.squadRankBadge, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '30' }]}>
+          <Text style={[s.squadRankText, { color: colors.accent }]}>#{squad.rank}</Text>
         </View>
       </View>
 
@@ -141,7 +167,7 @@ function SquadMiniCard({ squad }: { squad: typeof MOCK_SQUAD }) {
           );
         })}
         <TouchableOpacity style={s.viewSquadBtn} onPress={() => router.push('/(tabs)/squad')}>
-          <Text style={s.viewSquadText}>ver squad →</Text>
+          <Text style={[s.viewSquadText, { color: colors.accent }]}>ver squad →</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -156,10 +182,12 @@ function DailyChallengeCard({
   challenge: typeof MOCK_CHALLENGES[0];
   onClaim: (id: string) => void;
 }) {
+  const { colors } = useTheme();
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
   const handleClaim = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     Animated.sequence([
       Animated.spring(scaleAnim, { toValue: 1.05, useNativeDriver: true, speed: 25 }),
       Animated.spring(scaleAnim, { toValue: 1.0,  useNativeDriver: true, speed: 25 }),
@@ -171,7 +199,10 @@ function DailyChallengeCard({
   const isClaimed = challenge.claimed;
 
   return (
-    <Animated.View style={[s.challengeCard, { transform: [{ scale: scaleAnim }] }]}>
+    <Animated.View style={[
+      s.challengeCard,
+      { backgroundColor: colors.surface, borderColor: colors.surface2, transform: [{ scale: scaleAnim }] },
+    ]}>
       {/* Claimed overlay */}
       {isClaimed && (
         <Animated.View style={[s.claimedOverlay, { opacity: fadeAnim }]}>
@@ -198,14 +229,18 @@ function DailyChallengeCard({
       </View>
 
       {challenge.done && !isClaimed && (
-        <TouchableOpacity style={s.claimBtn} onPress={handleClaim} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[s.claimBtn, { backgroundColor: colors.accent, shadowColor: colors.accent }]}
+          onPress={handleClaim}
+          activeOpacity={0.8}
+        >
           <Text style={s.claimBtnText}>coletar</Text>
         </TouchableOpacity>
       )}
 
       {!challenge.done && (
-        <View style={s.progressBar}>
-          <View style={s.progressFill} />
+        <View style={[s.progressBar, { backgroundColor: colors.surface2 }]}>
+          <View style={[s.progressFill, { backgroundColor: colors.accent }]} />
         </View>
       )}
     </Animated.View>
@@ -216,6 +251,19 @@ function DailyChallengeCard({
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const [challenges, setChallenges] = useState(MOCK_CHALLENGES);
+  const [showMilestone, setShowMilestone] = useState(false);
+  const [showLevelUp, setShowLevelUp]     = useState(false);
+  const [showFreeze, setShowFreeze]       = useState(false);
+  const [freezesLeft, setFreezesLeft]     = useState(MOCK_USER.freezesLeft);
+
+  // Auto-show milestone on mount if streak is a milestone
+  React.useEffect(() => {
+    const milestones = [7, 14, 30, 50, 100];
+    if (milestones.includes(MOCK_USER.streak)) {
+      const t = setTimeout(() => setShowMilestone(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const claim = (id: string) => {
     setChallenges(prev =>
@@ -223,8 +271,10 @@ export default function HomeScreen() {
     );
   };
 
+  const { colors } = useTheme();
+
   return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
@@ -247,11 +297,21 @@ export default function HomeScreen() {
         <StreakCard
           streak={MOCK_USER.streak}
           longest={MOCK_USER.longestStreak}
-          freezes={MOCK_USER.freezesLeft}
+          freezes={freezesLeft}
+          commitedToday={challenges.some(c => c.id === 'c1' && c.done)}
+          onFreezePress={() => setShowFreeze(true)}
         />
 
+        {/* Pending chests notification */}
+        <PendingChestsCard count={PENDING_CHESTS.count} topRarity={PENDING_CHESTS.topRarity} />
+
+        {/* Today's GitHub activity */}
+        <TodayCard />
+
         {/* XP */}
-        <XPCard user={MOCK_USER} />
+        <TouchableOpacity activeOpacity={0.9} onLongPress={() => setShowLevelUp(true)}>
+          <XPCard user={MOCK_USER} />
+        </TouchableOpacity>
 
         {/* Squad mini */}
         <SquadMiniCard squad={MOCK_SQUAD} />
@@ -274,8 +334,77 @@ export default function HomeScreen() {
           ))}
         </ScrollView>
 
+        {/* Share streak */}
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>ofensiva</Text>
+        </View>
+        <ShareStreakCard streak={MOCK_USER.streak} username={MOCK_USER.username} />
+
+        {/* Subscription banner */}
+        <View style={s.sectionHeader}>
+          <Text style={s.sectionTitle}>momentum pro · max</Text>
+        </View>
+        <SubscriptionBanner />
+
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Freeze modal */}
+      <Modal visible={showFreeze} transparent animationType="fade" onRequestClose={() => setShowFreeze(false)}>
+        <TouchableOpacity style={fz.backdrop} activeOpacity={1} onPress={() => setShowFreeze(false)}>
+          <View style={fz.sheet}>
+            <IceIcon size={36} color="#7ab4e8" />
+            <Text style={fz.title}>gelo de ofensiva</Text>
+            <Text style={fz.desc}>
+              Um gelo protege sua streak por 1 dia de inatividade.
+              Use com sabedoria — são raros.
+            </Text>
+            <View style={fz.statsRow}>
+              <View style={fz.statBox}>
+                <Text style={fz.statVal}>{freezesLeft}</Text>
+                <Text style={fz.statLbl}>disponíveis</Text>
+              </View>
+              <View style={fz.statBox}>
+                <Text style={fz.statVal}>{MOCK_USER.streak}</Text>
+                <Text style={fz.statLbl}>dias em risco</Text>
+              </View>
+            </View>
+            {freezesLeft > 0 ? (
+              <TouchableOpacity
+                style={fz.activateBtn}
+                onPress={() => {
+                  setFreezesLeft(f => f - 1);
+                  setShowFreeze(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={fz.activateBtnText}>ativar gelo agora</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={fz.noFreeze}>
+                <Text style={fz.noFreezeText}>sem gelos disponíveis</Text>
+              </View>
+            )}
+            <TouchableOpacity onPress={() => setShowFreeze(false)}>
+              <Text style={fz.cancel}>cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Streak milestone */}
+      <StreakMilestone
+        streak={MOCK_USER.streak}
+        visible={showMilestone}
+        onDismiss={() => setShowMilestone(false)}
+      />
+
+      {/* Level up overlay */}
+      <LevelUpOverlay
+        level={MOCK_USER.level + 1}
+        visible={showLevelUp}
+        onDismiss={() => setShowLevelUp(false)}
+      />
     </View>
   );
 }
@@ -325,6 +454,15 @@ const s = StyleSheet.create({
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
     color: C.text3, textTransform: 'lowercase',
   },
+  todayPill: {
+    alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1,
+    paddingHorizontal: 10, paddingVertical: 4, marginBottom: 12,
+  },
+  todayPillDone:    { backgroundColor: C.success + '12', borderColor: C.success + '40' },
+  todayPillMissing: { backgroundColor: C.danger  + '12', borderColor: C.danger  + '40' },
+  todayPillText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, letterSpacing: 0.02,
+  },
   streakDivider: {
     height: 1, backgroundColor: C.surface2,
     marginVertical: 14,
@@ -345,7 +483,6 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(58,130,247,0.08)',
     borderRadius: 8, borderWidth: 1, borderColor: 'rgba(58,130,247,0.2)',
   },
-  freezeEmoji: { fontSize: 18 },
   freezeCount: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
     color: '#3a82f7', marginTop: 2,
@@ -487,4 +624,49 @@ const s = StyleSheet.create({
     zIndex: 10,
   },
   claimedEmoji: { fontSize: 32 },
+});
+
+const fz = StyleSheet.create({
+  backdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: C.surface2,
+    padding: 28, alignItems: 'center', gap: 12,
+  },
+  title: {
+    fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text,
+  },
+  desc: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
+    color: C.text3, textAlign: 'center', lineHeight: 18,
+  },
+  statsRow: { flexDirection: 'row', gap: 20, marginVertical: 4 },
+  statBox: {
+    backgroundColor: C.surface2, borderRadius: 8,
+    paddingHorizontal: 20, paddingVertical: 12, alignItems: 'center',
+  },
+  statVal: { fontFamily: 'Lora_400Regular', fontSize: 24, color: C.text },
+  statLbl: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: 2 },
+  activateBtn: {
+    width: '100%', backgroundColor: '#7ab4e8', borderRadius: 8,
+    paddingVertical: 13, alignItems: 'center',
+    shadowColor: '#7ab4e8', shadowOpacity: 0.4, shadowOffset: { width: 0, height: 0 }, shadowRadius: 10,
+  },
+  activateBtnText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#0a1520',
+  },
+  noFreeze: {
+    width: '100%', backgroundColor: C.surface2, borderRadius: 8,
+    paddingVertical: 13, alignItems: 'center',
+  },
+  noFreezeText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3,
+  },
+  cancel: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3,
+    paddingVertical: 8,
+  },
 });

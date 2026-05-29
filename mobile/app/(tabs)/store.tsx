@@ -1,68 +1,93 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Modal,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../../constants/design';
-import { CoinIcon, GemIcon, XPIcon } from '../../components/icons';
+import { useTheme } from '../../contexts/ThemeContext';
+import { CoinIcon, GemIcon, GiftIcon, LockIcon } from '../../components/icons';
+import { PixelItem } from '../../components/store/PixelItem';
+import { Toast, type ToastHandle } from '../../components/ui/Toast';
 
 const { width: W } = Dimensions.get('window');
 
 // ── Item data ─────────────────────────────────────────────────────────────────
 const COIN_ITEMS = [
-  { id: 'c1', name: 'Boné Dev',       rarity: 'comum',     price: 150,  currency: 'coin', owned: false },
-  { id: 'c2', name: 'Hoodie Clone',   rarity: 'raro',      price: 280,  currency: 'coin', owned: false },
-  { id: 'c3', name: 'Gorro Hacker',   rarity: 'comum',     price: 120,  currency: 'coin', owned: true  },
-  { id: 'c4', name: 'Óculos Hack',    rarity: 'raro',      price: 200,  currency: 'coin', owned: false },
-  { id: 'c5', name: 'Planta Desk',    rarity: 'comum',     price: 80,   currency: 'coin', owned: false },
-  { id: 'c6', name: 'Teclado Mec.',   rarity: 'raro',      price: 350,  currency: 'coin', owned: false },
-  { id: 'c7', name: 'Bucket Hat',     rarity: 'comum',     price: 100,  currency: 'coin', owned: false },
-  { id: 'c8', name: 'Polo Corporat.', rarity: 'raro',      price: 240,  currency: 'coin', owned: false },
+  { id: 'c1',  name: 'Boné Dev',         rarity: 'comum',  price: 150, currency: 'coin', owned: false },
+  { id: 'c2',  name: 'Hoodie Clone',      rarity: 'raro',   price: 280, currency: 'coin', owned: false },
+  { id: 'c3',  name: 'Gorro Hacker',      rarity: 'comum',  price: 120, currency: 'coin', owned: true  },
+  { id: 'c4',  name: 'Oculos Hack',       rarity: 'raro',   price: 200, currency: 'coin', owned: false },
+  { id: 'c5',  name: 'Planta Desk',       rarity: 'comum',  price: 80,  currency: 'coin', owned: false },
+  { id: 'c6',  name: 'Teclado Mec.',      rarity: 'raro',   price: 350, currency: 'coin', owned: false },
+  { id: 'c7',  name: 'Bucket Hat',        rarity: 'comum',  price: 100, currency: 'coin', owned: false },
+  { id: 'c8',  name: 'Polo Corp.',        rarity: 'raro',   price: 240, currency: 'coin', owned: false },
+  { id: 'c9',  name: 'Jaleco Lab',        rarity: 'comum',  price: 130, currency: 'coin', owned: false },
+  { id: 'c10', name: 'Mochila Git',       rarity: 'raro',   price: 220, currency: 'coin', owned: false },
+  { id: 'c11', name: 'Capacete Espacial', rarity: 'raro',   price: 310, currency: 'coin', owned: false },
+  { id: 'c12', name: 'Caneca Dev',        rarity: 'comum',  price: 60,  currency: 'coin', owned: false },
+  { id: 'c13', name: 'Cachecol Binario',  rarity: 'raro',   price: 190, currency: 'coin', owned: false },
+  { id: 'c14', name: 'Luvas Taticas',     rarity: 'raro',   price: 175, currency: 'coin', owned: false },
+  { id: 'c15', name: 'Robo de Mesa',      rarity: 'raro',   price: 260, currency: 'coin', owned: false },
+  { id: 'c16', name: 'Faixa de Antena',   rarity: 'comum',  price: 90,  currency: 'coin', owned: false },
 ];
 
 const GEM_ITEMS = [
-  { id: 'g1', name: 'Hoodie Hacker 💜', rarity: 'épico',     price: 50,  currency: 'gem',  featured: true  },
-  { id: 'g2', name: 'Coroa Dados',      rarity: 'épico',     price: 35,  currency: 'gem',  featured: false },
-  { id: 'g3', name: 'Bg: Matrix',       rarity: 'lendário',  price: 80,  currency: 'gem',  featured: false },
-  { id: 'g4', name: 'Headset Pro',      rarity: 'épico',     price: 40,  currency: 'gem',  featured: false },
+  { id: 'g1',  name: 'Hoodie do Void',    rarity: 'epico',    price: 50,  currency: 'gem', featured: true  },
+  { id: 'g2',  name: 'Coroa de Dados',    rarity: 'epico',    price: 35,  currency: 'gem', featured: false },
+  { id: 'g3',  name: 'Bg: Matrix',        rarity: 'lendario', price: 80,  currency: 'gem', featured: false },
+  { id: 'g4',  name: 'Headset Pro',       rarity: 'epico',    price: 40,  currency: 'gem', featured: false },
+  { id: 'g5',  name: 'Manto do Void',     rarity: 'epico',    price: 55,  currency: 'gem', featured: false },
+  { id: 'g6',  name: 'Armadura Neon',     rarity: 'epico',    price: 65,  currency: 'gem', featured: false },
+  { id: 'g7',  name: 'Lamina de Plasma',  rarity: 'epico',    price: 45,  currency: 'gem', featured: false },
+  { id: 'g8',  name: 'Drone Vigilia',     rarity: 'epico',    price: 40,  currency: 'gem', featured: false },
+  { id: 'g9',  name: 'Bg: Circuito',      rarity: 'raro',     price: 25,  currency: 'gem', featured: false },
+  { id: 'g10', name: 'Bg: Cosmos',        rarity: 'epico',    price: 60,  currency: 'gem', featured: false },
+  { id: 'g11', name: 'Tiara Neural',      rarity: 'epico',    price: 48,  currency: 'gem', featured: false },
+  { id: 'g12', name: 'Cubo Quantico',     rarity: 'epico',    price: 52,  currency: 'gem', featured: false },
+  { id: 'g13', name: 'Escudo de Bits',    rarity: 'epico',    price: 38,  currency: 'gem', featured: false },
+  { id: 'g14', name: 'Bastao do Void',    rarity: 'lendario', price: 95,  currency: 'gem', featured: false },
 ];
 
 const LEGEND_ITEMS = [
-  { id: 'l1', name: '🔥 Chama Eterna',  rarity: 'lendário', condition: '100 dias de streak',   owned: false },
-  { id: 'l2', name: '⚡ Aura Elétrica', rarity: 'lendário', condition: 'Top 1 por 4 semanas',  owned: false },
-  { id: 'l3', name: '🌀 Espiral Viva',  rarity: 'lendário', condition: 'Alcance Legend rank',   owned: false },
+  { id: 'l1', name: 'Chama Eterna',    rarity: 'lendario', condition: '100 dias de streak'          },
+  { id: 'l2', name: 'Aura Eletrica',   rarity: 'lendario', condition: 'Top 1 por 4 semanas'         },
+  { id: 'l3', name: 'Espiral Viva',    rarity: 'lendario', condition: 'Alcance o rank Legend'       },
+  { id: 'l4', name: 'Protocolo Zero',  rarity: 'lendario', condition: '100 commits em um unico dia' },
+  { id: 'l5', name: 'Olho do Sistema', rarity: 'lendario', condition: 'Desbloqueie todas as outras' },
 ];
 
 const CHALLENGE_REWARDS = [
-  { id: 'ch1', name: 'Kit Iniciante',    rarity: 'comum',  condition: '7 check-ins seguidos',       available: true  },
-  { id: 'ch2', name: 'Pato de Borracha', rarity: 'raro',   condition: 'Faça 5 PRs em uma semana',   available: false },
-  { id: 'ch3', name: 'Troféu de Ouro',   rarity: 'épico',  condition: 'Seja Top 1 da liga',         available: false },
-  { id: 'ch4', name: 'Ampulheta Hacker', rarity: 'épico',  condition: '50 commits em um dia',       available: false },
+  { id: 'ch1', name: 'Kit Iniciante',     rarity: 'comum',    condition: '7 check-ins seguidos',      available: true  },
+  { id: 'ch2', name: 'Pato Depurador',    rarity: 'raro',     condition: 'Faca 5 PRs em uma semana',  available: false },
+  { id: 'ch3', name: 'Trofeu de Ouro',    rarity: 'epico',    condition: 'Seja Top 1 da liga',        available: false },
+  { id: 'ch4', name: 'Ampulheta Hacker',  rarity: 'epico',    condition: '50 commits em um dia',      available: false },
+  { id: 'ch5', name: 'Robo de Batalha',   rarity: 'epico',    condition: 'Venca 3 ligas seguidas',    available: false },
+  { id: 'ch6', name: 'Espada Binaria',    rarity: 'lendario', condition: 'Alcance streak de 200 dias', available: false },
 ];
 
 const RARITY_COLOR: Record<string, string> = {
-  comum: C.text3, raro: '#3a82f7', épico: C.purple, lendário: C.gold,
+  comum: C.text3, raro: '#3a82f7', epico: C.purple, lendario: C.gold,
 };
 
-const TABS = ['moedas', 'gems', 'lendário', 'desafios'] as const;
+const TABS = ['moedas', 'gems', 'lendario', 'desafios'] as const;
 type Tab = typeof TABS[number];
 
 // ── Item Card ─────────────────────────────────────────────────────────────────
-function ItemCard({ item, onBuy }: { item: any; onBuy: () => void }) {
+function ItemCard({ item, onBuy, onPreview }: { item: any; onBuy: (name: string) => void; onPreview: (item: any) => void }) {
   const rarityColor = RARITY_COLOR[item.rarity] ?? C.text3;
   const isGem = item.currency === 'gem';
   const isOwned = item.owned;
-
-  // Pixel art placeholder: colored square with initials
-  const initials = item.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2);
-  const bgColor = isGem ? C.purple + '30' : isOwned ? C.success + '20' : C.surface2;
+  const bgColor = isGem ? C.purple + '18' : isOwned ? C.success + '15' : C.surface2;
 
   return (
     <View style={[s.itemCard, isGem && s.itemCardGem, isOwned && s.itemCardOwned]}>
-      {/* Art */}
-      <View style={[s.itemArt, { backgroundColor: bgColor }]}>
-        <Text style={[s.itemArtText, { color: rarityColor }]}>{initials}</Text>
-      </View>
+      {/* Pixel art */}
+      <TouchableOpacity onPress={() => onPreview(item)} activeOpacity={0.85}>
+        <View style={[s.itemArt, { backgroundColor: bgColor }]}>
+          <PixelItem id={item.id} size={CARD_W - 32} />
+        </View>
+      </TouchableOpacity>
 
       <Text style={s.itemName} numberOfLines={1}>{item.name}</Text>
       <View style={[s.rarityPill, { borderColor: rarityColor + '50', backgroundColor: rarityColor + '15' }]}>
@@ -71,10 +96,14 @@ function ItemCard({ item, onBuy }: { item: any; onBuy: () => void }) {
 
       {isOwned ? (
         <View style={s.ownedBadge}>
-          <Text style={s.ownedText}>equipado ✓</Text>
+          <Text style={s.ownedText}>equipado</Text>
         </View>
       ) : (
-        <TouchableOpacity style={[s.buyBtn, isGem && s.buyBtnGem]} onPress={onBuy} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[s.buyBtn, isGem && s.buyBtnGem]}
+          onPress={() => onBuy(item.name)}
+          activeOpacity={0.8}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             {isGem ? <GemIcon size={11} /> : <CoinIcon size={11} />}
             <Text style={[s.buyBtnText, isGem && { color: C.purple }]}>{item.price}</Text>
@@ -106,7 +135,7 @@ function ChallengeItem({ item }: { item: typeof CHALLENGE_REWARDS[0] }) {
   return (
     <View style={[s.challengeItem, item.available && s.challengeItemAvail]}>
       <View style={[s.challengeArt, { backgroundColor: rarityColor + '20' }]}>
-        <Text style={{ fontSize: 20 }}>🎁</Text>
+        <PixelItem id={item.id} size={40} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={s.challengeName}>{item.name}</Text>
@@ -121,7 +150,7 @@ function ChallengeItem({ item }: { item: typeof CHALLENGE_REWARDS[0] }) {
         </TouchableOpacity>
       ) : (
         <View style={s.lockedBadge}>
-          <Text style={s.lockedText}>🔒</Text>
+          <LockIcon size={18} color={C.text3} />
         </View>
       )}
     </View>
@@ -131,19 +160,37 @@ function ChallengeItem({ item }: { item: typeof CHALLENGE_REWARDS[0] }) {
 // ── Store Screen ──────────────────────────────────────────────────────────────
 export default function StoreScreen() {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const [tab, setTab] = useState<Tab>('moedas');
   const [coins, setCoins] = useState(480);
   const [gems, setGems] = useState(15);
+  const [preview, setPreview] = useState<any | null>(null);
+  const toastRef = useRef<ToastHandle>(null);
 
-  const handleBuyCoin = (price: number) => {
-    if (coins >= price) setCoins(c => c - price);
+  const handleBuyCoin = (price: number, name: string) => {
+    if (coins >= price) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setCoins(c => c - price);
+      toastRef.current?.show(`${name} equipado`);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toastRef.current?.show('moedas insuficientes', 'info');
+    }
   };
-  const handleBuyGem = (price: number) => {
-    if (gems >= price) setGems(g => g - price);
+  const handleBuyGem = (price: number, name: string) => {
+    if (gems >= price) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setGems(g => g - price);
+      toastRef.current?.show(`${name} equipado`);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      toastRef.current?.show('gems insuficientes', 'info');
+    }
   };
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
+      <Toast ref={toastRef} />
       {/* Header */}
       <View style={s.header}>
         <Text style={s.title}>loja</Text>
@@ -167,10 +214,13 @@ export default function StoreScreen() {
         {TABS.map((t) => (
           <TouchableOpacity
             key={t}
-            style={[s.tab, tab === t && s.tabActive]}
+            style={[
+              s.tab,
+              tab === t && { backgroundColor: colors.accent + '18', borderColor: colors.accent + '50' },
+            ]}
             onPress={() => setTab(t)}
           >
-            <Text style={[s.tabText, tab === t && s.tabTextActive]}>{t}</Text>
+            <Text style={[s.tabText, tab === t && { color: colors.accent }]}>{t}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -183,10 +233,10 @@ export default function StoreScreen() {
             <View style={s.featuredBanner}>
               <View>
                 <Text style={s.featuredLabel}>ITEM DA SEMANA</Text>
-                <Text style={s.featuredName}>Teclado Mecânico 🎹</Text>
-                <Text style={s.featuredSub}>Acessório · Raro</Text>
+                <Text style={s.featuredName}>Teclado Mecanico</Text>
+                <Text style={s.featuredSub}>Acessorio · Raro</Text>
               </View>
-              <TouchableOpacity style={s.featuredBtn} onPress={() => handleBuyCoin(280)}>
+              <TouchableOpacity style={s.featuredBtn} onPress={() => handleBuyCoin(280, 'Teclado Mecanico')}>
                 <CoinIcon size={13} />
                 <Text style={s.featuredBtnText}>280</Text>
               </TouchableOpacity>
@@ -195,7 +245,7 @@ export default function StoreScreen() {
             <Text style={s.sectionTitle}>com moedas</Text>
             <View style={s.grid}>
               {COIN_ITEMS.map(item => (
-                <ItemCard key={item.id} item={item} onBuy={() => handleBuyCoin(item.price)} />
+                <ItemCard key={item.id} item={item} onBuy={(name) => handleBuyCoin(item.price, name)} onPreview={(item) => setPreview(item)} />
               ))}
             </View>
           </>
@@ -212,10 +262,10 @@ export default function StoreScreen() {
                     <Text style={s.discountText}>-20%</Text>
                   </View>
                 </View>
-                <Text style={s.featuredName}>Hoodie Hacker 💜</Text>
-                <Text style={s.featuredSub}>Camisa · Épico</Text>
+                <Text style={s.featuredName}>Hoodie do Void</Text>
+                <Text style={s.featuredSub}>Camisa · Epico</Text>
               </View>
-              <TouchableOpacity style={[s.featuredBtn, { backgroundColor: C.purple }]} onPress={() => handleBuyGem(50)}>
+              <TouchableOpacity style={[s.featuredBtn, { backgroundColor: C.purple }]} onPress={() => handleBuyGem(50, 'Hoodie do Void')}>
                 <GemIcon size={13} />
                 <Text style={s.featuredBtnText}>50</Text>
               </TouchableOpacity>
@@ -224,18 +274,18 @@ export default function StoreScreen() {
             <Text style={s.sectionTitle}>premium · gems</Text>
             <View style={s.grid}>
               {GEM_ITEMS.slice(1).map(item => (
-                <ItemCard key={item.id} item={item} onBuy={() => handleBuyGem(item.price)} />
+                <ItemCard key={item.id} item={item} onBuy={(name) => handleBuyGem(item.price, name)} onPreview={(item) => setPreview(item)} />
               ))}
             </View>
           </>
         )}
 
-        {tab === 'lendário' && (
+        {tab === 'lendario' && (
           <>
             <View style={s.legendInfo}>
               <Text style={s.legendInfoText}>
-                Itens lendários não são compráveis — são conquistados.
-                Complete as condições para desbloqueá-los.
+                Itens lendarios nao sao compraveis — sao conquistados.
+                Complete as condicoes para desbloquea-los.
               </Text>
             </View>
             {LEGEND_ITEMS.map(item => (
@@ -255,6 +305,53 @@ export default function StoreScreen() {
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Item preview modal */}
+      <Modal visible={!!preview} transparent animationType="slide" onRequestClose={() => setPreview(null)}>
+        <TouchableOpacity style={pv.backdrop} activeOpacity={1} onPress={() => setPreview(null)}>
+          <View style={pv.sheet} onStartShouldSetResponder={() => true}>
+            {preview && (() => {
+              const rarityColor = RARITY_COLOR[preview.rarity] ?? C.text3;
+              const isGem = preview.currency === 'gem';
+              return (
+                <>
+                  <Text style={pv.label}>visualização</Text>
+                  {/* Large preview art */}
+                  <View style={[pv.artFrame, { borderColor: rarityColor + '40' }]}>
+                    <PixelItem id={preview.id} size={140} />
+                  </View>
+                  <Text style={pv.name}>{preview.name}</Text>
+                  <View style={[pv.rarityPill, { borderColor: rarityColor + '50', backgroundColor: rarityColor + '15' }]}>
+                    <Text style={[pv.rarityText, { color: rarityColor }]}>{preview.rarity}</Text>
+                  </View>
+                  {!preview.owned && (
+                    <TouchableOpacity
+                      style={[pv.buyBtn, isGem && { backgroundColor: C.purple }]}
+                      onPress={() => {
+                        isGem
+                          ? handleBuyGem(preview.price, preview.name)
+                          : handleBuyCoin(preview.price, preview.name);
+                        setPreview(null);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {isGem ? <GemIcon size={14} /> : <CoinIcon size={14} />}
+                        <Text style={pv.buyBtnText}>{preview.price}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  )}
+                  {preview.owned && (
+                    <View style={pv.ownedBadge}>
+                      <Text style={pv.ownedText}>item equipado</Text>
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -348,11 +445,9 @@ const s = StyleSheet.create({
   itemCardGem: { borderColor: C.purple + '40' },
   itemCardOwned: { borderColor: C.success + '40' },
   itemArt: {
-    width: '100%', height: CARD_W - 24, borderRadius: 6,
+    width: '100%', aspectRatio: 1, borderRadius: 6,
     alignItems: 'center', justifyContent: 'center',
-  },
-  itemArtText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 22, fontWeight: '700',
+    overflow: 'hidden',
   },
   itemName: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text,
@@ -441,5 +536,51 @@ const s = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center',
   },
-  lockedText: { fontSize: 14 },
+});
+
+const pv = StyleSheet.create({
+  backdrop: {
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: C.surface2,
+    padding: 28, alignItems: 'center', gap: 12,
+  },
+  label: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
+    color: C.text3, letterSpacing: 0.1, textTransform: 'lowercase',
+  },
+  artFrame: {
+    width: 164, height: 164,
+    backgroundColor: C.surface2, borderRadius: 12,
+    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  name: {
+    fontFamily: 'Lora_400Regular', fontSize: 20,
+    color: C.text, letterSpacing: -0.2,
+  },
+  rarityPill: {
+    paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1,
+  },
+  rarityText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
+  },
+  buyBtn: {
+    width: '100%', backgroundColor: C.accent, borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center', marginTop: 8,
+    shadowColor: C.accent, shadowOpacity: 0.4, shadowOffset: { width: 0, height: 0 }, shadowRadius: 12,
+  },
+  buyBtnText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: '#f2e4cf',
+  },
+  ownedBadge: {
+    width: '100%', backgroundColor: C.success + '15', borderRadius: 10,
+    paddingVertical: 14, alignItems: 'center', marginTop: 8,
+    borderWidth: 1, borderColor: C.success + '30',
+  },
+  ownedText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.success,
+  },
 });

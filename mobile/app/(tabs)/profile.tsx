@@ -5,7 +5,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { C, getRank, type RankId } from '../../constants/design';
-import { FlameIcon, XPIcon, CoinIcon, GemIcon } from '../../components/icons';
+import { useTheme } from '../../contexts/ThemeContext';
+import {
+  FlameIcon, XPIcon, CoinIcon, GemIcon,
+  LightningIcon, StarburstIcon, TrophyIcon, IceIcon,
+  SpiralIcon, ShieldIcon, MoonIcon, SunriseIcon, ProcessorIcon,
+  InfinityPixelIcon, CrownIcon,
+} from '../../components/icons';
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 
@@ -80,15 +86,33 @@ function Heatmap({ color }: { color: string }) {
   );
 }
 
+// ── Achievement Icon (SVG, no emoji) ─────────────────────────────────────────
+function AchieveIcon({ id, size = 24, dim = false }: { id: string; size?: number; dim?: boolean }) {
+  const c = (base: string) => dim ? C.text3 : base;
+  const map: Record<string, React.ReactNode> = {
+    'faísca':     <LightningIcon     size={size} color={c('#ffd97a')} />,
+    'centurião':  <StarburstIcon     size={size} color={c(C.gold)}   />,
+    'constante':  <FlameIcon         size={size} glowing={!dim}      />,
+    'top1':       <TrophyIcon        size={size} color={c(C.gold)}   />,
+    'pioneiro':   <SunriseIcon       size={size} color={c(C.accent)} />,
+    'fundador':   <ShieldIcon        size={size} color={c(C.purple)} />,
+    'madrugador': <MoonIcon          size={size} color={c('#c8b8f0')}/>,
+    'arquiteto':  <ProcessorIcon     size={size} color={c('#3a82f7')}/>,
+    'inabalável': <IceIcon           size={size} color={c('#7ab4e8')}/>,
+    'infinito':   <InfinityPixelIcon size={size} color={c(C.text2)} />,
+    'elétrico':   <LightningIcon     size={size} color={c('#ffd97a')}/>,
+    'lenda':      <SpiralIcon        size={size} color={c(C.accent)} />,
+    'mestre':     <CrownIcon         size={size} color={c(C.gold)}   />,
+    'noturno':    <MoonIcon          size={size} color={c('#c8b8f0')}/>,
+  };
+  return <>{map[id] ?? <StarburstIcon size={size} color={c(C.gold)} />}</>;
+}
+
 // ── Achievement Badge ─────────────────────────────────────────────────────────
 function AchievementBadge({ achievement }: { achievement: typeof ACHIEVEMENTS[0] }) {
-  const icons: Record<string, string> = {
-    'faísca': '⚡', 'centurião': '💯', 'constante': '🔥',
-    'top1': '🏆', 'inabalável': '🧊', 'lenda': '🌀',
-  };
   return (
     <View style={[s.achieveBadge, !achievement.earned && s.achieveLocked]}>
-      <Text style={s.achieveIcon}>{icons[achievement.id] ?? '🏅'}</Text>
+      <AchieveIcon id={achievement.id} size={24} dim={!achievement.earned} />
       <Text style={[s.achieveLabel, !achievement.earned && { color: C.text3 }]}>
         {achievement.label}
       </Text>
@@ -99,22 +123,23 @@ function AchievementBadge({ achievement }: { achievement: typeof ACHIEVEMENTS[0]
 // ── Profile Screen ────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { colors, plan } = useTheme();
   const rank = getRank(USER.rankId);
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
 
         {/* Header */}
         <View style={s.header}>
           <Text style={s.title}>perfil</Text>
           <TouchableOpacity style={s.settingsBtn}>
-            <Text style={s.settingsIcon}>⚙</Text>
+            <ProcessorIcon size={18} color={C.text3} />
           </TouchableOpacity>
         </View>
 
         {/* Avatar + rank */}
-        <View style={s.heroCard}>
+        <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
           <View style={s.rankEmblemWrap}>
             <RankEmblem rankId={USER.rankId} size={72} glowing />
           </View>
@@ -126,10 +151,27 @@ export default function ProfileScreen() {
           <Text style={s.userName}>{USER.name}</Text>
           <Text style={s.userHandle}>@{USER.username}</Text>
 
-          <View style={s.rankBadge}>
-            <Text style={[s.rankBadgeText, { color: rank.color }]}>
-              {rank.label} · Lv. {USER.level}
-            </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={s.rankBadge}>
+              <Text style={[s.rankBadgeText, { color: rank.color }]}>
+                {rank.label} · Lv. {USER.level}
+              </Text>
+            </View>
+            {/* Plan badge — only shown when subscribed */}
+            {plan !== 'free' && (
+              <View style={{
+                backgroundColor: colors.accent + '18',
+                borderWidth: 1, borderColor: colors.accent + '50',
+                borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2,
+              }}>
+                <Text style={{
+                  fontFamily: 'JetBrainsMono_400Regular',
+                  fontSize: 9, color: colors.accent, letterSpacing: 0.5,
+                }}>
+                  {plan.toUpperCase()}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Balances */}
@@ -184,6 +226,13 @@ export default function ProfileScreen() {
           <Text style={s.sectionTitle}>atividade · 13 semanas</Text>
           <View style={s.heatmapCard}>
             <Heatmap color={rank.color} />
+            <View style={{ height: 1, backgroundColor: C.surface2, marginVertical: 10 }} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.success }} />
+              <Text style={{
+                fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+              }}>sincronizado há 2 min · github.com/{USER.username}</Text>
+            </View>
           </View>
         </View>
 

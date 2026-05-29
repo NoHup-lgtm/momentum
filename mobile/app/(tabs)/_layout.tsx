@@ -2,21 +2,23 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Tabs, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { C } from '../../constants/design';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SpiralIcon } from '../../components/icons';
 
 // ── Tab icon components ───────────────────────────────────────────────────────
-function HomeIcon({ focused }: { focused: boolean }) {
+function HomeIcon({ focused, accent }: { focused: boolean; accent: string }) {
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
-      <View style={[tabStyles.iconSquare, focused && tabStyles.iconSquareFocused]} />
-      <View style={[tabStyles.iconBar, focused && tabStyles.iconBarFocused]} />
+      <View style={[tabStyles.iconSquare, focused && { backgroundColor: accent }]} />
+      <View style={[tabStyles.iconBar, focused && { backgroundColor: accent }]} />
     </View>
   );
 }
 
-function SquadIcon({ focused }: { focused: boolean }) {
-  const color = focused ? C.accent : C.text3;
+function SquadIcon({ focused, accent }: { focused: boolean; accent: string }) {
+  const color = focused ? accent : C.text3;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
       <View style={[tabStyles.dot, { backgroundColor: color, marginBottom: 3 }]} />
@@ -28,8 +30,8 @@ function SquadIcon({ focused }: { focused: boolean }) {
   );
 }
 
-function ProfileIcon({ focused }: { focused: boolean }) {
-  const color = focused ? C.accent : C.text3;
+function ProfileIcon({ focused, accent }: { focused: boolean; accent: string }) {
+  const color = focused ? accent : C.text3;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
       <View style={[tabStyles.avatarHead, { borderColor: color }]} />
@@ -38,8 +40,8 @@ function ProfileIcon({ focused }: { focused: boolean }) {
   );
 }
 
-function StoreIcon({ focused }: { focused: boolean }) {
-  const color = focused ? C.accent : C.text3;
+function StoreIcon({ focused, accent }: { focused: boolean; accent: string }) {
+  const color = focused ? accent : C.text3;
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}>
       <View style={[tabStyles.gem, { borderBottomColor: color }]} />
@@ -69,12 +71,20 @@ const tabStyles = StyleSheet.create({
 // ── Custom tab bar ────────────────────────────────────────────────────────────
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const TABS = ['index', 'squad', 'profile', 'store'];
   const LABELS = ['home', 'squad', 'perfil', 'loja'];
   const ICONS = [HomeIcon, SquadIcon, ProfileIcon, StoreIcon];
 
   return (
-    <View style={[barStyles.container, { paddingBottom: insets.bottom || 12 }]}>
+    <View style={[
+      barStyles.container,
+      {
+        paddingBottom: insets.bottom || 12,
+        backgroundColor: colors.surface,
+        borderTopColor: colors.surface2,
+      },
+    ]}>
       {/* Left tabs */}
       {[0, 1].map((idx) => {
         const route = state.routes[idx];
@@ -84,20 +94,36 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           <TouchableOpacity
             key={route.key}
             style={barStyles.tab}
-            onPress={() => navigation.navigate(route.name)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              navigation.navigate(route.name);
+            }}
             activeOpacity={0.7}
           >
-            <Icon focused={focused} />
-            <Text style={[barStyles.label, focused && barStyles.labelFocused]}>
+            <Icon focused={focused} accent={colors.accent} />
+            <Text style={[barStyles.label, focused && { color: colors.accent }]}>
               {LABELS[idx]}
             </Text>
           </TouchableOpacity>
         );
       })}
 
-      {/* Center spiral button */}
-      <TouchableOpacity style={barStyles.centerBtn} activeOpacity={0.85}>
-        <SpiralIcon size={26} color={C.text} />
+      {/* Center spiral button → feed */}
+      <TouchableOpacity
+        style={barStyles.centerWrap}
+        activeOpacity={0.85}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          router.push('/feed');
+        }}
+      >
+        <View style={[
+          barStyles.centerBtn,
+          { borderColor: colors.accent, shadowColor: colors.accent },
+        ]}>
+          <SpiralIcon size={26} color={C.text} />
+        </View>
+        <Text style={barStyles.centerLabel}>feed</Text>
       </TouchableOpacity>
 
       {/* Right tabs */}
@@ -109,11 +135,14 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           <TouchableOpacity
             key={route.key}
             style={barStyles.tab}
-            onPress={() => navigation.navigate(route.name)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              navigation.navigate(route.name);
+            }}
             activeOpacity={0.7}
           >
-            <Icon focused={focused} />
-            <Text style={[barStyles.label, focused && barStyles.labelFocused]}>
+            <Icon focused={focused} accent={colors.accent} />
+            <Text style={[barStyles.label, focused && { color: colors.accent }]}>
               {LABELS[idx]}
             </Text>
           </TouchableOpacity>
@@ -147,6 +176,11 @@ const barStyles = StyleSheet.create({
     textTransform: 'lowercase',
   },
   labelFocused: { color: C.accent },
+  centerWrap: {
+    alignItems: 'center',
+    marginTop: -12,
+    gap: 3,
+  },
   centerBtn: {
     width: 52,
     height: 52,
@@ -156,12 +190,17 @@ const barStyles = StyleSheet.create({
     borderColor: C.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -16,
     shadowColor: C.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
     elevation: 8,
+  },
+  centerLabel: {
+    fontFamily: 'JetBrainsMono_400Regular',
+    fontSize: 9,
+    color: C.text3,
+    letterSpacing: 0.05,
   },
 });
 
