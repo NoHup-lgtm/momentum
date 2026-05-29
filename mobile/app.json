@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "momentum",
+    "slug": "momentum",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "momentum",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "me.momentu.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#140e08"
+      },
+      "package": "me.momentu.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-build-properties",
+        {
+          "android": { "newArchEnabled": true },
+          "ios": { "newArchEnabled": true }
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
