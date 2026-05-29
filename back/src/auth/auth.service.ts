@@ -86,6 +86,9 @@ export class AuthService {
     });
   }
 
+  // Gera os tokens e os entrega nos cookies httpOnly (web) E os retorna no
+  // corpo (mobile — React Native não persiste cookies automaticamente, então
+  // o app guarda os tokens no SecureStore e envia via Authorization: Bearer).
   issueAuthCookies(res: Response, userId: string, githubId: string) {
     const accessTtl = process.env.JWT_EXPIRES_IN ?? DEFAULT_ACCESS_TTL;
     const refreshTtl =
@@ -113,6 +116,8 @@ export class AuthService {
       accessTtl,
       refreshTtl,
     );
+
+    return { accessToken, refreshToken };
   }
 
   clearAuthCookies(res: Response) {

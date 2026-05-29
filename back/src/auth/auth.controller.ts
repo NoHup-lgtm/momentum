@@ -11,6 +11,16 @@ import type { Request, Response } from 'express';
 import { AuthService } from './auth.service.js';
 import type { LoginWithGithubDto } from './dto/login.dto.js';
 
+// Extrai o token do header `Authorization: Bearer <token>` (clientes mobile)
+// caindo de volta para o cookie httpOnly (clientes web).
+function bearerToken(req: Request): string | undefined {
+  const header = req.headers.authorization;
+  if (header?.startsWith('Bearer ')) {
+    return header.slice(7).trim();
+  }
+  return undefined;
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -28,14 +38,20 @@ export class AuthController {
       body.code,
       body.redirectUri,
     );
-    this.authService.issueAuthCookies(res, user.id, user.githubId);
+    const tokens = this.authService.issueAuthCookies(
+      res,
+      user.id,
+      user.githubId,
+    );
 
-    return user;
+    // user + tokens: web usa os cookies, mobile usa os tokens do corpo.
+    return { user, ...tokens };
   }
 
   @Get('check')
   async check(@Req() req: Request) {
-    const token = req.cookies?.access_token as string | undefined;
+    const token =
+      (req.cookies?.access_token as string | undefined) ?? bearerToken(req);
     if (!token) {
       throw new UnauthorizedException('Missing access token');
     }
@@ -51,10 +67,14 @@ export class AuthController {
   @Post('refresh')
   @Post('refreshtoken')
   async refresh(
+    @Body() body: { refreshToken?: string },
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token = req.cookies?.refresh_token as string | undefined;
+    const token =
+      (req.cookies?.refresh_token as string | undefined) ??
+      bearerToken(req) ??
+      body?.refreshToken;
     if (!token) {
       throw new UnauthorizedException('Missing refresh token');
     }
@@ -64,7 +84,11 @@ export class AuthController {
       throw new UnauthorizedException('User not found');
     }
 
-    this.authService.issueAuthCookies(res, user.id, user.githubId);
-    return user;
+    const tokens = this.authService.issueAuthCookies(
+      res,
+      user.id,
+      user.githubId,
+    );
+    return { user, ...tokens };
   }
 }
