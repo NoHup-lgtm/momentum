@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "expo-build-properties": "^56.0.15"
+  }
+}

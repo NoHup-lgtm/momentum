@@ -1,5 +1,5 @@
-import React from 'react';
-import Svg, { Path, Circle, Line, Polygon, Rect, G } from 'react-native-svg';
+import React, { useMemo } from 'react';
+import Svg, { Path, Circle, Line, Polygon, Rect, G, Text as SvgText } from 'react-native-svg';
 import { C } from '../../constants/design';
 
 // ── Flame ─────────────────────────────────────────────────────────────────────
@@ -48,40 +48,103 @@ export function GemIcon({ size = 16, color = C.purple }: { size?: number; color?
   );
 }
 
-// ── Spiral logo ───────────────────────────────────────────────────────────────
+// ── Spiral logo — 1.75 turns, 120 segments, growing stroke (matches brand SVG) ─
 export function SpiralIcon({ size = 48, color = C.accent }: { size?: number; color?: string }) {
-  const SEGS = 80;
+  const lines = useMemo(() => {
+    const SEGS = 120;
+    const cx = size / 2, cy = size / 2;
+    const maxR = size * 0.43, minR = size * 0.04;
+    const minSW = 0.008 * size, maxSW = 0.083 * size;
+    const pts: [number, number][] = [];
+    for (let i = 0; i <= SEGS; i++) {
+      const t = i / SEGS;
+      const a = -Math.PI / 2 + t * 1.75 * 2 * Math.PI;
+      const r = minR + (maxR - minR) * t;
+      pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+    }
+    return pts.slice(0, -1).map((p, i) => ({
+      x1: p[0], y1: p[1], x2: pts[i + 1][0], y2: pts[i + 1][1],
+      sw: minSW + (maxSW - minSW) * (i / (SEGS - 1)),
+    }));
+  }, [size]);
+
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {lines.map((l, i) => (
+        <Line
+          key={i}
+          x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
+          stroke={color} strokeWidth={l.sw} strokeLinecap="round"
+        />
+      ))}
+    </Svg>
+  );
+}
+
+// ── Momentum Wordmark (spiral + "momentum" in Lora) ───────────────────────────
+// Matches momentum-logo-dark.svg layout: icon left, wordmark text right
+export function MomentumWordmark({
+  height = 44,
+  color = C.accent,
+  textColor = C.text,
+}: {
+  height?: number;
+  color?: string;
+  textColor?: string;
+}) {
+  const iconSize = height;
+  const gap = height * 0.35;
+  const fontSize = height * 0.75;
+  // Approximate text width for "momentum" at this font size (8 chars × ~0.52em)
+  const textW = fontSize * 5.8;
+  const totalW = iconSize + gap + textW;
+
+  return (
+    <Svg width={totalW} height={height} viewBox={`0 0 ${totalW} ${height}`}>
+      {/* Spiral on the left */}
+      <G>
+        <SpiralIconPaths size={iconSize} color={color} />
+      </G>
+      {/* "momentum" wordmark */}
+      <SvgText
+        x={iconSize + gap}
+        y={height * 0.68}
+        fontSize={fontSize}
+        fontFamily="Georgia, serif"
+        fill={textColor}
+        letterSpacing={1.5}
+      >
+        momentum
+      </SvgText>
+    </Svg>
+  );
+}
+
+// Internal helper — renders spiral paths into an existing SVG context
+function SpiralIconPaths({ size, color }: { size: number; color: string }) {
+  const SEGS = 120;
   const cx = size / 2, cy = size / 2;
   const maxR = size * 0.43, minR = size * 0.04;
-
-  const lines: React.ReactElement[] = [];
+  const minSW = 0.008 * size, maxSW = 0.083 * size;
   const pts: [number, number][] = [];
-
   for (let i = 0; i <= SEGS; i++) {
     const t = i / SEGS;
     const a = -Math.PI / 2 + t * 1.75 * 2 * Math.PI;
     const r = minR + (maxR - minR) * t;
     pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
   }
-
-  for (let i = 0; i < pts.length - 1; i++) {
-    const sw = (0.009 + (0.082 - 0.009) * (i / (SEGS - 1))) * size;
-    lines.push(
-      <Line
-        key={i}
-        x1={pts[i][0]} y1={pts[i][1]}
-        x2={pts[i + 1][0]} y2={pts[i + 1][1]}
-        stroke={color}
-        strokeWidth={sw}
-        strokeLinecap="round"
-      />
-    );
-  }
-
   return (
-    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {lines}
-    </Svg>
+    <>
+      {pts.slice(0, -1).map((p, i) => (
+        <Line
+          key={i}
+          x1={p[0]} y1={p[1]} x2={pts[i + 1][0]} y2={pts[i + 1][1]}
+          stroke={color}
+          strokeWidth={minSW + (maxSW - minSW) * (i / (SEGS - 1))}
+          strokeLinecap="round"
+        />
+      ))}
+    </>
   );
 }
 

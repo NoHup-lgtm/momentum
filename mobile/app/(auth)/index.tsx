@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { C } from '../../constants/design';
-import { SpiralIcon, GitHubIcon } from '../../components/icons';
+import { SpiralIcon, GitHubIcon, MomentumWordmark } from '../../components/icons';
 import PixelAvatar from '../../components/avatar/PixelAvatar';
 
 const { width: W } = Dimensions.get('window');
@@ -44,9 +44,9 @@ function StepWelcome({ onContinue }: { onContinue: () => void }) {
       </View>
 
       <View style={s.center}>
-        <SpiralIcon size={64} />
+        {/* Official brand wordmark: spiral + "momentum" in Lora/Georgia */}
+        <MomentumWordmark height={52} />
 
-        <Text style={s.title}>momentum</Text>
         <Text style={s.subtitle}>feito de dias imperfeitos.</Text>
 
         <Text style={s.body}>
