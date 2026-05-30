@@ -15,7 +15,7 @@ import {
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 import { useAppStore } from '../../store/app';
-import { getHeatmap } from '../../lib/session';
+import { getHeatmap, logout } from '../../lib/session';
 
 // converte contagem de commits em intensidade 0–5 para o heatmap
 const toIntensity = (count: number) =>
@@ -133,6 +133,13 @@ export default function ProfileScreen() {
 
   // Usuário real do store (/me). Fallback no mock por campo enquanto carrega.
   const su = useAppStore((s) => s.user);
+  const clearUser = useAppStore((s) => s.clearUser);
+
+  async function handleLogout() {
+    await logout(); // limpa os tokens do SecureStore
+    clearUser();
+    router.replace('/(auth)');
+  }
 
   // Heatmap + totalCommits + weekXP vêm do GitHub (13 semanas).
   const [heatmap, setHeatmap] = useState<number[]>(HEATMAP);
@@ -342,6 +349,11 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Logout */}
+        <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+          <Text style={s.logoutText}>sair da conta</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 32 }} />
       </ScrollView>
     </View>
@@ -483,5 +495,14 @@ const s = StyleSheet.create({
   },
   allTimeValue: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text2,
+  },
+  logoutBtn: {
+    marginTop: 24, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 14, borderRadius: 8,
+    borderWidth: 1, borderColor: C.danger + '55',
+    backgroundColor: C.danger + '12',
+  },
+  logoutText: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.danger,
   },
 });
