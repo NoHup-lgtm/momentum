@@ -2,20 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { C } from '../../constants/design';
 
-const LANG_COLORS: Record<string, string> = {
-  TypeScript: '#3178c6', Python: '#3572a5', Rust: '#dea584',
-  Go: '#00add8', JavaScript: '#f1e05a', Swift: '#fa7343',
-  Kotlin: '#a97bff', CSS: '#563d7c',
-};
+type Commit = { repo: string; count: number };
 
-const TODAY_COMMITS = [
-  { repo: 'momentum/mobile',   lang: 'TypeScript', commits: 4, time: '18:42' },
-  { repo: 'dev-k/api-server',  lang: 'Python',     commits: 2, time: '14:11' },
-  { repo: 'dev-k/dotfiles',    lang: 'TypeScript', commits: 1, time: '09:05' },
-];
-
-export default function TodayCard() {
-  const total = TODAY_COMMITS.reduce((s, r) => s + r.commits, 0);
+export default function TodayCard({
+  commits = [],
+  username,
+}: {
+  commits?: Commit[];
+  username?: string;
+}) {
+  const total = commits.reduce((sum, r) => sum + r.count, 0);
 
   return (
     <View style={s.card}>
@@ -26,20 +22,25 @@ export default function TodayCard() {
         </View>
       </View>
 
-      {TODAY_COMMITS.map((r, i) => (
-        <View key={i} style={[s.row, i < TODAY_COMMITS.length - 1 && s.rowBorder]}>
-          <View style={[s.langDot, { backgroundColor: LANG_COLORS[r.lang] ?? C.text3 }]} />
-          <Text style={s.repoName} numberOfLines={1}>{r.repo}</Text>
-          <Text style={s.time}>{r.time}</Text>
-          <View style={s.commitPill}>
-            <Text style={s.commitCount}>+{r.commits}</Text>
+      {commits.length === 0 ? (
+        <Text style={s.empty}>nenhum commit hoje ainda</Text>
+      ) : (
+        commits.map((r, i) => (
+          <View key={i} style={[s.row, i < commits.length - 1 && s.rowBorder]}>
+            <View style={[s.langDot, { backgroundColor: C.accent }]} />
+            <Text style={s.repoName} numberOfLines={1}>{r.repo}</Text>
+            <View style={s.commitPill}>
+              <Text style={s.commitCount}>+{r.count}</Text>
+            </View>
           </View>
-        </View>
-      ))}
+        ))
+      )}
 
       <View style={s.syncRow}>
         <View style={s.syncDot} />
-        <Text style={s.syncText}>sincronizado agora · github.com/araujo</Text>
+        <Text style={s.syncText}>
+          sincronizado agora{username ? ` · github.com/${username}` : ''}
+        </Text>
       </View>
     </View>
   );
@@ -100,5 +101,9 @@ const s = StyleSheet.create({
   },
   syncText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+  },
+  empty: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
+    color: C.text3, paddingVertical: 8,
   },
 });

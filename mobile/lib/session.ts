@@ -144,6 +144,37 @@ export async function fetchMe(): Promise<MeUser | null> {
   return (await res.json()) as MeUser;
 }
 
+// ── GitHub activity ───────────────────────────────────────────────────────────
+export interface RepoCommits {
+  repo: string;
+  count: number;
+}
+export interface ContributionDay {
+  date: string;
+  count: number;
+}
+
+// Sincroniza as contribuições do GitHub e retorna o /me já atualizado.
+export async function syncGithub(): Promise<MeUser | null> {
+  const res = await apiFetch('/me/github/sync', { method: 'POST' });
+  if (!res.ok) return null;
+  return (await res.json()) as MeUser;
+}
+
+// Commits de hoje agrupados por repositório.
+export async function getGithubToday(): Promise<RepoCommits[]> {
+  const res = await apiFetch('/me/github/today', { method: 'GET' });
+  if (!res.ok) return [];
+  return (await res.json()) as RepoCommits[];
+}
+
+// Contagem diária das 13 semanas (heatmap).
+export async function getHeatmap(): Promise<ContributionDay[]> {
+  const res = await apiFetch('/me/github/heatmap', { method: 'GET' });
+  if (!res.ok) return [];
+  return (await res.json()) as ContributionDay[];
+}
+
 export async function logout() {
   await clearTokens();
 }

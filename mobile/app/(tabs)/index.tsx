@@ -17,6 +17,7 @@ import ShareStreakCard from '../../components/home/ShareStreakCard';
 import PendingChestsCard from '../../components/home/PendingChestsCard';
 import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
 import { useAppStore } from '../../store/app';
+import { syncGithub, getGithubToday, meToStoreUser, type RepoCommits } from '../../lib/session';
 
 const { width: W } = Dimensions.get('window');
 
@@ -275,11 +276,22 @@ export default function HomeScreen() {
       }
     : MOCK_USER;
 
+  const setUser = useAppStore((s) => s.setUser);
+  const [todayCommits, setTodayCommits] = useState<RepoCommits[]>([]);
   const [challenges, setChallenges] = useState(MOCK_CHALLENGES);
   const [showMilestone, setShowMilestone] = useState(false);
   const [showLevelUp, setShowLevelUp]     = useState(false);
   const [showFreeze, setShowFreeze]       = useState(false);
   const [freezesLeft, setFreezesLeft]     = useState(user.freezesLeft);
+
+  // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista de hoje.
+  React.useEffect(() => {
+    (async () => {
+      const me = await syncGithub();
+      if (me) setUser(meToStoreUser(me));
+      setTodayCommits(await getGithubToday());
+    })();
+  }, []);
 
   // Auto-show milestone on mount if streak is a milestone
   React.useEffect(() => {
@@ -331,7 +343,7 @@ export default function HomeScreen() {
         <PendingChestsCard count={PENDING_CHESTS.count} topRarity={PENDING_CHESTS.topRarity} />
 
         {/* Today's GitHub activity */}
-        <TodayCard />
+        <TodayCard commits={todayCommits} username={user.username} />
 
         {/* XP */}
         <TouchableOpacity activeOpacity={0.9} onLongPress={() => setShowLevelUp(true)}>

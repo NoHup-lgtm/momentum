@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
 } from 'react-native';
@@ -15,6 +15,11 @@ import {
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 import { useAppStore } from '../../store/app';
+import { getHeatmap } from '../../lib/session';
+
+// converte contagem de commits em intensidade 0–5 para o heatmap
+const toIntensity = (count: number) =>
+  count === 0 ? 0 : Math.min(5, Math.ceil(count / 3));
 
 const { width: W } = Dimensions.get('window');
 
@@ -58,10 +63,10 @@ const ACHIEVEMENTS = [
 ];
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
-function Heatmap({ color }: { color: string }) {
+function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) {
   const cellSize = (W - 56) / 13;
   const weeks = Array.from({ length: 13 }, (_, w) =>
-    Array.from({ length: 7 }, (_, d) => HEATMAP[w * 7 + d])
+    Array.from({ length: 7 }, (_, d) => data[w * 7 + d] ?? 0)
   );
 
   return (
@@ -127,8 +132,25 @@ export default function ProfileScreen() {
   const { colors, plan } = useTheme();
 
   // Usuário real do store (/me). Fallback no mock por campo enquanto carrega.
-  // totalCommits e weekXP ainda são mock (sem endpoint — cards futuros).
   const su = useAppStore((s) => s.user);
+
+  // Heatmap + totalCommits + weekXP vêm do GitHub (13 semanas).
+  const [heatmap, setHeatmap] = useState<number[]>(HEATMAP);
+  const [ghCommits, setGhCommits] = useState(USER.totalCommits);
+  const [weekXP, setWeekXP] = useState(USER.weekXP);
+
+  useEffect(() => {
+    (async () => {
+      const days = await getHeatmap();
+      if (days.length === 0) return;
+      setHeatmap(days.map((d) => toIntensity(d.count)));
+      setGhCommits(days.reduce((sum, d) => sum + d.count, 0));
+      // weekXP provisório: dias ativos nos últimos 7 × 50 XP/dia (igual ao back)
+      const activeLast7 = days.slice(-7).filter((d) => d.count > 0).length;
+      setWeekXP(activeLast7 * 50);
+    })();
+  }, []);
+
   const user = {
     name: su?.displayName ?? USER.name,
     username: su?.githubLogin ?? USER.username,
@@ -140,8 +162,8 @@ export default function ProfileScreen() {
     coins: su?.coins ?? USER.coins,
     gems: su?.gems ?? USER.gems,
     avatarVariant: su?.avatarVariant ?? USER.avatarVariant,
-    totalCommits: USER.totalCommits,
-    weekXP: USER.weekXP,
+    totalCommits: ghCommits,
+    weekXP: weekXP,
   };
 
   const rank = getRank(user.rankId);
@@ -245,7 +267,7 @@ export default function ProfileScreen() {
         <View style={s.section}>
           <Text style={s.sectionTitle}>atividade · 13 semanas</Text>
           <View style={s.heatmapCard}>
-            <Heatmap color={rank.color} />
+            <Heatmap color={rank.color} data={heatmap} />
             <View style={{ height: 1, backgroundColor: C.surface2, marginVertical: 10 }} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.success }} />
