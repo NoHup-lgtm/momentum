@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Lora } from 'next/font/google'
 import './globals.css'
-import { LangProvider } from '@/lib/i18n'
 
 const lora = Lora({
   subsets: ['latin'],
@@ -37,7 +36,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={lora.variable}>
-      <body><LangProvider>{children}</LangProvider></body>
+      <body>{children}</body>
     </html>
   )
 }

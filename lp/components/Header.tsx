@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import SpiralIcon from './SpiralIcon'
 import { useLang, useT } from '@/lib/i18n'
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
-  const { lang, setLang } = useLang()
+  const lang = useLang()
+  const router = useRouter()
   const t = useT()
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Header() {
           {(['pt', 'en'] as const).map(l => (
             <button
               key={l}
-              onClick={() => setLang(l)}
+              onClick={() => router.push(l === 'pt' ? '/' : '/en')}
               style={{
                 background: lang === l ? 'var(--surface-2)' : 'transparent',
                 border: 'none', cursor: 'pointer', borderRadius: '3px',
