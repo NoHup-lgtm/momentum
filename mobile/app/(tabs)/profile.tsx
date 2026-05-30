@@ -14,6 +14,7 @@ import {
 } from '../../components/icons';
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
+import { useAppStore } from '../../store/app';
 
 const { width: W } = Dimensions.get('window');
 
@@ -124,7 +125,26 @@ function AchievementBadge({ achievement }: { achievement: typeof ACHIEVEMENTS[0]
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { colors, plan } = useTheme();
-  const rank = getRank(USER.rankId);
+
+  // Usuário real do store (/me). Fallback no mock por campo enquanto carrega.
+  // totalCommits e weekXP ainda são mock (sem endpoint — cards futuros).
+  const su = useAppStore((s) => s.user);
+  const user = {
+    name: su?.displayName ?? USER.name,
+    username: su?.githubLogin ?? USER.username,
+    rankId: su?.rank ?? USER.rankId,
+    level: su?.level ?? USER.level,
+    streak: su?.currentStreak ?? USER.streak,
+    longestStreak: su?.maxStreak ?? USER.longestStreak,
+    totalXP: su?.totalXp ?? USER.totalXP,
+    coins: su?.coins ?? USER.coins,
+    gems: su?.gems ?? USER.gems,
+    avatarVariant: su?.avatarVariant ?? USER.avatarVariant,
+    totalCommits: USER.totalCommits,
+    weekXP: USER.weekXP,
+  };
+
+  const rank = getRank(user.rankId);
 
   return (
     <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
@@ -141,20 +161,20 @@ export default function ProfileScreen() {
         {/* Avatar + rank */}
         <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
           <View style={s.rankEmblemWrap}>
-            <RankEmblem rankId={USER.rankId} size={72} glowing />
+            <RankEmblem rankId={user.rankId} size={72} glowing />
           </View>
 
           <View style={s.avatarWrap}>
-            <AvatarRing size={80} variant={USER.avatarVariant} rankId={USER.rankId} />
+            <AvatarRing size={80} variant={user.avatarVariant} rankId={user.rankId} />
           </View>
 
-          <Text style={s.userName}>{USER.name}</Text>
-          <Text style={s.userHandle}>@{USER.username}</Text>
+          <Text style={s.userName}>{user.name}</Text>
+          <Text style={s.userHandle}>@{user.username}</Text>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={s.rankBadge}>
               <Text style={[s.rankBadgeText, { color: rank.color }]}>
-                {rank.label} · Lv. {USER.level}
+                {rank.label} · Lv. {user.level}
               </Text>
             </View>
             {/* Plan badge — only shown when subscribed */}
@@ -178,12 +198,12 @@ export default function ProfileScreen() {
           <View style={s.balances}>
             <View style={s.balanceItem}>
               <CoinIcon size={14} />
-              <Text style={s.balanceVal}>{USER.coins}</Text>
+              <Text style={s.balanceVal}>{user.coins}</Text>
             </View>
             <View style={s.balanceDivider} />
             <View style={s.balanceItem}>
               <GemIcon size={14} />
-              <Text style={[s.balanceVal, { color: C.purple }]}>{USER.gems}</Text>
+              <Text style={[s.balanceVal, { color: C.purple }]}>{user.gems}</Text>
             </View>
           </View>
         </View>
@@ -191,9 +211,9 @@ export default function ProfileScreen() {
         {/* Stats row */}
         <View style={s.statsRow}>
           {[
-            { label: 'commits',  value: USER.totalCommits },
-            { label: 'ofensiva', value: `${USER.streak}d` },
-            { label: 'recorde',  value: `${USER.longestStreak}d` },
+            { label: 'commits',  value: user.totalCommits },
+            { label: 'ofensiva', value: `${user.streak}d` },
+            { label: 'recorde',  value: `${user.longestStreak}d` },
           ].map((st, i) => (
             <View key={i} style={s.statCell}>
               <Text style={s.statValue}>{st.value}</Text>
@@ -231,7 +251,7 @@ export default function ProfileScreen() {
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.success }} />
               <Text style={{
                 fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
-              }}>sincronizado há 2 min · github.com/{USER.username}</Text>
+              }}>sincronizado há 2 min · github.com/{user.username}</Text>
             </View>
           </View>
         </View>
@@ -288,9 +308,9 @@ export default function ProfileScreen() {
           <Text style={s.sectionTitle}>estatísticas gerais</Text>
           <View style={s.allTimeCard}>
             {[
-              { label: 'XP total',         value: USER.totalXP.toLocaleString() },
-              { label: 'XP esta semana',   value: USER.weekXP.toLocaleString()  },
-              { label: 'maior ofensiva',   value: `${USER.longestStreak} dias`  },
+              { label: 'XP total',         value: user.totalXP.toLocaleString() },
+              { label: 'XP esta semana',   value: user.weekXP.toLocaleString()  },
+              { label: 'maior ofensiva',   value: `${user.longestStreak} dias`  },
             ].map((st, i) => (
               <View key={i} style={[s.allTimeRow, i > 0 && { borderTopWidth: 1, borderTopColor: C.surface2 }]}>
                 <Text style={s.allTimeLabel}>{st.label}</Text>

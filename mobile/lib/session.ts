@@ -19,6 +19,25 @@ interface LoginResponse {
   refreshToken: string;
 }
 
+// Shape do GET /me (usuário logado com gamificação)
+export interface MeUser {
+  id: string;
+  githubLogin: string;
+  displayName: string;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string; // enum do backend em MAIÚSCULO (INIT, BUILD, ...)
+  level: number;
+  totalXp: number;
+  currentStreak: number;
+  maxStreak: number;
+  streakFreezes: number;
+  coins: number;
+  gems: number;
+  isPro: boolean;
+  committedToday: boolean;
+}
+
 // ── Armazenamento seguro dos tokens ──────────────────────────────────────────
 const ACCESS_KEY = 'momentum.access_token';
 const REFRESH_KEY = 'momentum.refresh_token';
@@ -115,6 +134,16 @@ export async function checkSession(): Promise<AuthUser | null> {
   return (await res.json()) as AuthUser;
 }
 
+// Busca o usuário logado com os dados de gamificação. null = não autenticado.
+export async function fetchMe(): Promise<MeUser | null> {
+  const token = await getAccessToken();
+  if (!token) return null;
+
+  const res = await apiFetch('/me', { method: 'GET' });
+  if (!res.ok) return null;
+  return (await res.json()) as MeUser;
+}
+
 export async function logout() {
   await clearTokens();
 }
@@ -146,9 +175,31 @@ export function authToStoreUser(auth: AuthUser): User {
     totalXp: 0,
     currentStreak: 0,
     maxStreak: 0,
+    streakFreezes: 0,
     coins: 0,
     gems: 0,
     isPro: false,
     committedToday: false,
+  };
+}
+
+// Converte o /me (rank em MAIÚSCULO) para o User do store (RankId minúsculo).
+export function meToStoreUser(me: MeUser): User {
+  return {
+    id: me.id,
+    githubLogin: me.githubLogin,
+    displayName: me.displayName,
+    avatarUrl: me.avatarUrl ?? '',
+    avatarVariant: me.avatarVariant,
+    rank: me.rank.toLowerCase() as RankId,
+    level: me.level,
+    totalXp: me.totalXp,
+    currentStreak: me.currentStreak,
+    maxStreak: me.maxStreak,
+    streakFreezes: me.streakFreezes,
+    coins: me.coins,
+    gems: me.gems,
+    isPro: me.isPro,
+    committedToday: me.committedToday,
   };
 }

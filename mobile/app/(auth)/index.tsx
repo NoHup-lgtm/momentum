@@ -10,7 +10,7 @@ import { C } from '../../constants/design';
 import { SpiralIcon, GitHubIcon, MomentumWordmark } from '../../components/icons';
 import PixelAvatar from '../../components/avatar/PixelAvatar';
 import { GITHUB_CLIENT_ID } from '../../lib/config';
-import { loginWithGithubCode, authToStoreUser, type AuthUser } from '../../lib/session';
+import { loginWithGithubCode, fetchMe, meToStoreUser, type AuthUser } from '../../lib/session';
 import { useAppStore } from '../../store/app';
 
 const { width: W } = Dimensions.get('window');
@@ -65,7 +65,9 @@ export default function OnboardingScreen() {
         redirectUri,
         request?.codeVerifier,
       );
-      setUser(authToStoreUser(user));
+      // Carrega o perfil completo (gamificação) e popula o store.
+      const me = await fetchMe();
+      if (me) setUser(meToStoreUser(me));
       setProfile(user);
       setStep('connected');
     } catch (e) {

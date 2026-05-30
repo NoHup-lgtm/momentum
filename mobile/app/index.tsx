@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
 import { C } from '../constants/design';
-import { checkSession, authToStoreUser } from '../lib/session';
+import { fetchMe, meToStoreUser } from '../lib/session';
 import { useAppStore } from '../store/app';
 
 // Reidrata a sessão: se houver token válido vai pras tabs, senão pro onboarding.
@@ -14,9 +14,9 @@ export default function Index() {
   useEffect(() => {
     (async () => {
       try {
-        const user = await checkSession();
-        if (user) {
-          setUser(authToStoreUser(user));
+        const me = await fetchMe();
+        if (me) {
+          setUser(meToStoreUser(me));
           setAuthed(true);
         }
       } finally {

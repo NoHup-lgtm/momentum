@@ -14,6 +14,7 @@ export interface User {
   maxStreak: number;
   coins: number;
   gems: number;
+  streakFreezes: number;
   isPro: boolean;
   committedToday: boolean;
 }

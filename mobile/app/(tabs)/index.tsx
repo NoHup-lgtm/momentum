@@ -6,7 +6,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { C, RANKS, getRank } from '../../constants/design';
+import { C, RANKS, getRank, type RankId } from '../../constants/design';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon } from '../../components/icons';
 import { AvatarRing, XPBar } from '../../components/ui';
@@ -16,8 +16,12 @@ import LevelUpOverlay from '../../components/home/LevelUpOverlay';
 import ShareStreakCard from '../../components/home/ShareStreakCard';
 import PendingChestsCard from '../../components/home/PendingChestsCard';
 import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
+import { useAppStore } from '../../store/app';
 
 const { width: W } = Dimensions.get('window');
+
+// Threshold provisório de XP por nível (fórmula de leveling vem em card futuro).
+const nextLevelXp = (level: number) => level * 1000;
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 const MOCK_USER = {
@@ -29,9 +33,10 @@ const MOCK_USER = {
   xpToNext: 3000,
   level: 7,
   coins: 480,
-  rankId: 'build' as const,
+  rankId: 'build' as RankId,
   avatarVariant: 0,
   freezesLeft: 2,
+  committedToday: true,
 };
 
 const MOCK_SQUAD = {
@@ -250,16 +255,36 @@ function DailyChallengeCard({
 // ── Home Screen ───────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+
+  // Usuário real do store (populado pelo /me). Fallback no mock se ainda não carregou.
+  const storeUser = useAppStore((s) => s.user);
+  const user = storeUser
+    ? {
+        name: storeUser.displayName,
+        username: storeUser.githubLogin,
+        streak: storeUser.currentStreak,
+        longestStreak: storeUser.maxStreak,
+        xp: storeUser.totalXp,
+        xpToNext: nextLevelXp(storeUser.level),
+        level: storeUser.level,
+        coins: storeUser.coins,
+        rankId: storeUser.rank,
+        avatarVariant: storeUser.avatarVariant,
+        freezesLeft: storeUser.streakFreezes,
+        committedToday: storeUser.committedToday,
+      }
+    : MOCK_USER;
+
   const [challenges, setChallenges] = useState(MOCK_CHALLENGES);
   const [showMilestone, setShowMilestone] = useState(false);
   const [showLevelUp, setShowLevelUp]     = useState(false);
   const [showFreeze, setShowFreeze]       = useState(false);
-  const [freezesLeft, setFreezesLeft]     = useState(MOCK_USER.freezesLeft);
+  const [freezesLeft, setFreezesLeft]     = useState(user.freezesLeft);
 
   // Auto-show milestone on mount if streak is a milestone
   React.useEffect(() => {
     const milestones = [7, 14, 30, 50, 100];
-    if (milestones.includes(MOCK_USER.streak)) {
+    if (milestones.includes(user.streak)) {
       const t = setTimeout(() => setShowMilestone(true), 600);
       return () => clearTimeout(t);
     }
@@ -283,7 +308,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={s.header}>
           <View>
-            <Text style={s.greeting}>bom dia, {MOCK_USER.name.toLowerCase()}.</Text>
+            <Text style={s.greeting}>bom dia, {user.name.toLowerCase()}.</Text>
             <Text style={s.date}>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
           </View>
           <TouchableOpacity onPress={() => router.push('/feed')}>
@@ -295,10 +320,10 @@ export default function HomeScreen() {
 
         {/* Streak */}
         <StreakCard
-          streak={MOCK_USER.streak}
-          longest={MOCK_USER.longestStreak}
+          streak={user.streak}
+          longest={user.longestStreak}
           freezes={freezesLeft}
-          commitedToday={challenges.some(c => c.id === 'c1' && c.done)}
+          commitedToday={user.committedToday}
           onFreezePress={() => setShowFreeze(true)}
         />
 
@@ -310,7 +335,7 @@ export default function HomeScreen() {
 
         {/* XP */}
         <TouchableOpacity activeOpacity={0.9} onLongPress={() => setShowLevelUp(true)}>
-          <XPCard user={MOCK_USER} />
+          <XPCard user={user} />
         </TouchableOpacity>
 
         {/* Squad mini */}
@@ -338,7 +363,7 @@ export default function HomeScreen() {
         <View style={s.sectionHeader}>
           <Text style={s.sectionTitle}>ofensiva</Text>
         </View>
-        <ShareStreakCard streak={MOCK_USER.streak} username={MOCK_USER.username} />
+        <ShareStreakCard streak={user.streak} username={user.username} />
 
         {/* Subscription banner */}
         <View style={s.sectionHeader}>
@@ -365,7 +390,7 @@ export default function HomeScreen() {
                 <Text style={fz.statLbl}>disponíveis</Text>
               </View>
               <View style={fz.statBox}>
-                <Text style={fz.statVal}>{MOCK_USER.streak}</Text>
+                <Text style={fz.statVal}>{user.streak}</Text>
                 <Text style={fz.statLbl}>dias em risco</Text>
               </View>
             </View>
@@ -394,14 +419,14 @@ export default function HomeScreen() {
 
       {/* Streak milestone */}
       <StreakMilestone
-        streak={MOCK_USER.streak}
+        streak={user.streak}
         visible={showMilestone}
         onDismiss={() => setShowMilestone(false)}
       />
 
       {/* Level up overlay */}
       <LevelUpOverlay
-        level={MOCK_USER.level + 1}
+        level={user.level + 1}
         visible={showLevelUp}
         onDismiss={() => setShowLevelUp(false)}
       />
