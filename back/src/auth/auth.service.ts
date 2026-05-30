@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CookieService } from '../core/services/cookie.service.js';
+import { CryptoService } from '../core/services/crypto.service.js';
 import type { AuthUserDto } from './dto/auth-user.dto.js';
 import type {
   GithubEmailsResponseDto,
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly cookieService: CookieService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async loginWithGithub(
@@ -39,18 +41,21 @@ export class AuthService {
       githubUser.email ?? null,
     );
 
+    // criptografa o token do GitHub antes de persistir (AES-256-GCM)
+    const encryptedToken = this.crypto.encrypt(accessToken);
+
     const user = await this.prisma.user.upsert({
       where: { githubId: String(githubUser.id) },
       create: {
         githubId: String(githubUser.id),
         githubLogin: githubUser.login,
-        accessToken,
+        accessToken: encryptedToken,
         avatarUrl: githubUser.avatar_url ?? null,
         email,
       },
       update: {
         githubLogin: githubUser.login,
-        accessToken,
+        accessToken: encryptedToken,
         avatarUrl: githubUser.avatar_url ?? null,
         email,
       },

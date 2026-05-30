@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { levelProgress } from '../common/leveling.js';
 
 @Injectable()
 export class UserService {
@@ -37,6 +38,8 @@ export class UserService {
 
     return {
       ...rest,
+      // level + progresso derivados do totalXp (fonte única em leveling.ts)
+      ...levelProgress(user.totalXp),
       displayName: displayName ?? user.githubLogin,
       isPro: subscriptionPlan != null,
       committedToday: await this.hasCommittedToday(userId, timezone),

@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CryptoService } from '../core/services/crypto.service.js';
+import { levelFromXp } from '../common/leveling.js';
 
 // XP/coins creditados por dia ativo (provisório — fórmula de leveling vem depois)
 const XP_PER_ACTIVE_DAY = 50;
@@ -18,7 +20,10 @@ export interface RepoCommits {
 
 @Injectable()
 export class GithubService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly crypto: CryptoService,
+  ) {}
 
   // ── GraphQL helper ──────────────────────────────────────────────────────────
   private async graphql<T>(
@@ -59,7 +64,8 @@ export class GithubService {
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+    // token vem criptografado do banco — descriptografa pra usar na API do GitHub
+    return { ...user, accessToken: this.crypto.decrypt(user.accessToken) };
   }
 
   // ── Calendário de contribuições (heatmap + streak) ────────────────────────────
@@ -255,7 +261,7 @@ export class GithubService {
       where: { id: userId },
       select: { totalXp: true },
     });
-    const level = Math.floor((refreshed?.totalXp ?? 0) / 1000) + 1;
+    const level = levelFromXp(refreshed?.totalXp ?? 0);
     await this.prisma.user.update({ where: { id: userId }, data: { level } });
 
     return { addedXp, addedCoins, currentStreak, activeDays: activeDays.length };
