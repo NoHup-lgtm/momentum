@@ -7,6 +7,7 @@ const PLANS = [
   {
     name: 'Grátis',
     price: null,
+    priceLabel: null,
     badge: null,
     desc: 'Para começar, sentir o jogo e manter a ofensiva antes de qualquer compromisso.',
     features: [
@@ -22,8 +23,9 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    price: 19,
-    badge: '14 dias grátis',
+    price: null,
+    priceLabel: 'Em breve',
+    badge: 'no lançamento',
     desc: 'Para quem leva a sério e não quer nada no caminho.',
     features: [
       'Tudo do plano grátis',
@@ -117,7 +119,7 @@ export default function PricingSection() {
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-3)' }}>/mês</span>
                     </div>
                   ) : (
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>Grátis</span>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>{plan.priceLabel ?? 'Grátis'}</span>
                   )}
                 </div>
 
@@ -163,8 +165,8 @@ export default function PricingSection() {
             fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: 'var(--text-3)', marginTop: '28px', lineHeight: '1.7',
           }}>
-            Preços estimados — podem mudar antes do lançamento.
-            <br />Cosméticos extras disponíveis via compra avulsa dentro do app.
+            O plano pago chega no lançamento — preço ainda em definição.
+            <br />Começar é, e sempre será, de graça.
           </p>
         </FadeIn>
       </div>
