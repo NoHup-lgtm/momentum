@@ -10,13 +10,26 @@ const lora = Lora({
   display: 'swap',
 })
 
+const DESCRIPTION =
+  'App mobile para devs: cada commit vira streak, XP e rank. Compita com sua squad. Não quebre a ofensiva.'
+
 export const metadata: Metadata = {
+  metadataBase: new URL('https://momentu.me'),
   title: 'momentum — Feito de dias imperfeitos.',
-  description: 'O app desktop que mantém seus projetos de software vivos quando a motivação some. Agentes de IA que entendem o seu ritmo.',
+  description: DESCRIPTION,
+  keywords: ['momentum', 'devs', 'github', 'streak', 'gamificação', 'commits', 'app mobile'],
   openGraph: {
-    title: 'momentum',
-    description: 'Feito de dias imperfeitos.',
+    title: 'momentum — Feito de dias imperfeitos.',
+    description: DESCRIPTION,
+    url: 'https://momentu.me',
+    siteName: 'momentum',
+    locale: 'pt_BR',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'momentum — Feito de dias imperfeitos.',
+    description: DESCRIPTION,
   },
 }
 
