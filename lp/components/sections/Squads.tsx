@@ -1,4 +1,7 @@
+'use client'
+
 import FadeIn from '../FadeIn'
+import { useT } from '@/lib/i18n'
 
 const RANKS = [
   { emoji: '🔵', name: 'Init' },
@@ -18,6 +21,8 @@ const LEADERBOARD = [
 ]
 
 export default function SquadsSection() {
+  const t = useT().squads
+
   return (
     <section id="squad" style={{
       background: 'var(--bg)',
@@ -30,15 +35,15 @@ export default function SquadsSection() {
             fontFamily: 'var(--font-mono)', fontSize: '10px',
             letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--accent)', display: 'block', marginBottom: '14px', opacity: 0.85,
-          }}>squad mode</span>
+          }}>{t.eyebrow}</span>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
             color: 'var(--text)', margin: '0 0 14px', letterSpacing: '-0.01em',
-          }}>Difícil parar quando<br />todo mundo tá olhando.</h2>
+          }}>{t.titleLine1}<br />{t.titleLine2}</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-2)', lineHeight: '1.65', margin: '0 0 52px', maxWidth: '500px' }}>
-            Leaderboard semanal entre seus amigos. Rank sobe domingo. Nova rodada segunda.
+            {t.sub}
           </p>
         </FadeIn>
 
@@ -57,9 +62,9 @@ export default function SquadsSection() {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-3)' }}>
-                  semana 23 · termina em 2d 14h
+                  {t.week}
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--accent)' }}>ao vivo</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--accent)' }}>{t.live}</span>
               </div>
 
               {LEADERBOARD.map((user, i) => (
@@ -88,9 +93,9 @@ export default function SquadsSection() {
                       fontSize: '13px',
                       color: user.isYou ? 'var(--accent)' : 'var(--text)',
                       fontWeight: user.isYou ? '500' : '400',
-                    }}>{user.name}</div>
+                    }}>{user.isYou ? t.youName : user.name}</div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-3)' }}>
-                      {user.commits} commits · {user.xp} XP
+                      {t.commitsXp(user.commits, user.xp)}
                     </div>
                   </div>
 
@@ -108,7 +113,7 @@ export default function SquadsSection() {
 
               <div style={{ padding: '12px 20px', borderTop: '1px solid var(--surface-2)' }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--text-3)', textAlign: 'center' }}>
-                  top 3 sobem de rank no domingo
+                  {t.lbFooter}
                 </div>
               </div>
             </div>
@@ -122,7 +127,7 @@ export default function SquadsSection() {
                   fontFamily: 'var(--font-mono)', fontSize: '10px',
                   letterSpacing: '0.12em', textTransform: 'uppercase',
                   color: 'var(--text-3)', marginBottom: '14px',
-                }}>sistema de ranks</div>
+                }}>{t.ranksTitle}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   {RANKS.map((r, i) => (
                     <div key={i} style={{
@@ -141,7 +146,7 @@ export default function SquadsSection() {
                         <span style={{
                           marginLeft: 'auto', fontFamily: 'var(--font-mono)',
                           fontSize: '9px', color: 'var(--accent)', opacity: 0.7,
-                        }}>você</span>
+                        }}>{t.youTag}</span>
                       )}
                     </div>
                   ))}
@@ -156,14 +161,8 @@ export default function SquadsSection() {
                   fontFamily: 'var(--font-mono)', fontSize: '10px',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
                   color: 'var(--text-3)', marginBottom: '14px',
-                }}>regras simples</div>
-                {[
-                  '1 commit = ofensiva mantida + XP',
-                  'XP semanal = posição no ranking',
-                  'Top 3 sobem de rank todo domingo',
-                  'Streak freeze: 1/mês grátis · 3/mês Pro',
-                  'Grace period até 1h da manhã',
-                ].map((rule, i, arr) => (
+                }}>{t.rulesTitle}</div>
+                {t.rules.map((rule, i, arr) => (
                   <div key={i} style={{
                     display: 'flex', gap: '10px', alignItems: 'flex-start',
                     fontSize: '13px', color: 'var(--text-2)', lineHeight: '1.5',

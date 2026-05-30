@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import FadeIn from '../FadeIn'
 import SpiralIcon from '../SpiralIcon'
+import { useT } from '@/lib/i18n'
 
 export default function FinalCTASection() {
+  const t = useT().finalCta
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
@@ -39,12 +41,12 @@ export default function FinalCTASection() {
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', color: 'var(--text)',
             margin: '0 0 16px', lineHeight: '1.18',
-          }}>Você não é o problema.<br />O processo é.</h2>
+          }}>{t.titleLine1}<br />{t.titleLine2}</h2>
           <p style={{
             fontSize: '15px', color: 'var(--text-2)',
             lineHeight: '1.65', margin: '0 auto 36px', maxWidth: '420px',
           }}>
-            Entre na lista de espera e seja avisado quando o app estiver pronto para download.
+            {t.sub}
           </p>
 
           {state === 'done' ? (
@@ -54,7 +56,7 @@ export default function FinalCTASection() {
               background: 'rgba(90,122,80,0.12)', border: '1px solid rgba(90,122,80,0.3)',
             }}>
               <span style={{ color: 'var(--success)' }}>✓</span>
-              <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>Você está na lista.</span>
+              <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>{t.done}</span>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -63,7 +65,7 @@ export default function FinalCTASection() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && submit()}
-                placeholder="seu@email.com"
+                placeholder={t.emailPlaceholder}
                 style={{
                   flex: 1, minWidth: '200px', maxWidth: '280px',
                   background: 'var(--surface)', border: '1px solid var(--surface-2)',
@@ -86,14 +88,14 @@ export default function FinalCTASection() {
                   opacity: !email.includes('@') ? 0.5 : 1,
                   transition: 'opacity 0.18s',
                 }}
-              >{state === 'loading' ? '...' : 'Entrar na lista →'}</button>
+              >{state === 'loading' ? t.ctaLoading : t.cta}</button>
             </div>
           )}
           {state === 'error' && (
             <p style={{
               marginTop: '14px', fontFamily: 'var(--font-mono)', fontSize: '11px',
               color: 'var(--danger)',
-            }}>Algo deu errado. Tenta de novo em instantes.</p>
+            }}>{t.error}</p>
           )}
         </FadeIn>
 
@@ -101,7 +103,7 @@ export default function FinalCTASection() {
           <p style={{
             fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: 'var(--text-3)', letterSpacing: '0.06em',
-          }}>momentum · feito de dias imperfeitos.</p>
+          }}>{t.footer}</p>
         </FadeIn>
       </div>
     </section>

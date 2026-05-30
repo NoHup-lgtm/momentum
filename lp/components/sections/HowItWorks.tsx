@@ -1,34 +1,11 @@
-import FadeIn from '../FadeIn'
+'use client'
 
-const STEPS = [
-  {
-    n: '01',
-    title: 'Conecta o GitHub',
-    body: 'Login com sua conta GitHub. O app passa a monitorar sua atividade — commits em qualquer repositório, público ou privado. Sem acesso de escrita, sem segredo.',
-  },
-  {
-    n: '02',
-    title: 'Commita. Normalmente.',
-    body: 'Você trabalha como sempre. Quando o GitHub registra um commit seu, o momentum detecta automaticamente. Não tem botão pra apertar, não tem checklist manual.',
-  },
-  {
-    n: '03',
-    title: 'Sua ofensiva cresce',
-    body: 'Cada dia com pelo menos 1 commit aumenta sua streak. Às 20h, se você ainda não commitou, chega uma notificação. Meia-noite sem commit — a ofensiva quebra.',
-  },
-  {
-    n: '04',
-    title: 'XP vira rank',
-    body: 'Commits geram XP. XP acumulado na semana determina sua posição no ranking da squad. Domingo à noite: resultado. Top 3 sobem de rank. Nova semana começa na segunda.',
-  },
-  {
-    n: '05',
-    title: 'Personaliza, conquista, repete',
-    body: 'Coins ganhas jogando desbloqueiam cosméticos. Streaks longas desbloqueiam itens lendários. Cada semana é uma nova rodada — nunca é tarde pra recuperar.',
-  },
-]
+import FadeIn from '../FadeIn'
+import { useT } from '@/lib/i18n'
 
 export default function HowItWorksSection() {
+  const t = useT().howItWorks
+
   return (
     <section id="como-funciona" style={{
       background: 'var(--bg)',
@@ -41,15 +18,15 @@ export default function HowItWorksSection() {
             fontFamily: 'var(--font-mono)', fontSize: '10px',
             letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--accent)', display: 'block', marginBottom: '14px', opacity: 0.85,
-          }}>como funciona</span>
+          }}>{t.eyebrow}</span>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
             color: 'var(--text)', margin: '0 0 10px', letterSpacing: '-0.01em',
-          }}>Trabalha. O jogo<br />acontece sozinho.</h2>
+          }}>{t.titleLine1}<br />{t.titleLine2}</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-2)', lineHeight: '1.65', margin: '0 0 60px', maxWidth: '500px' }}>
-            Não tem nada pra preencher. Só commitar.
+            {t.sub}
           </p>
         </FadeIn>
 
@@ -62,12 +39,12 @@ export default function HowItWorksSection() {
           }} />
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-            {STEPS.map((step, i) => (
+            {t.steps.map((step, i) => (
               <FadeIn key={step.n} delay={i * 80}>
                 <div style={{
                   display: 'flex', gap: '32px', alignItems: 'flex-start',
                   padding: '24px 0',
-                  borderBottom: i < STEPS.length - 1 ? '1px solid var(--surface-2)' : 'none',
+                  borderBottom: i < t.steps.length - 1 ? '1px solid var(--surface-2)' : 'none',
                 }}>
                   <div style={{
                     width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,

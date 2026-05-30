@@ -1,45 +1,10 @@
 'use client'
 
 import FadeIn from '../FadeIn'
-
-const PLANS = [
-  {
-    name: 'Grátis',
-    price: null,
-    priceLabel: null,
-    badge: null,
-    desc: 'Para começar, sentir o jogo e manter a ofensiva antes de qualquer compromisso.',
-    features: [
-      'Streak verificada pelo GitHub',
-      'XP e ranking semanal',
-      'Squad com até 5 pessoas',
-      '1 streak freeze por mês',
-      'Avatar com cosméticos básicos',
-      'Anúncios discretos (só na tela de resultado)',
-    ],
-    cta: 'Entrar na lista de espera',
-    primary: false,
-  },
-  {
-    name: 'Pro',
-    price: null,
-    priceLabel: 'Em breve',
-    badge: 'no lançamento',
-    desc: 'Para quem leva a sério e não quer nada no caminho.',
-    features: [
-      'Tudo do plano grátis',
-      'Sem anúncios',
-      '3 streak freezes por mês',
-      'Squad ilimitada',
-      'Stats avançados e histórico completo',
-      'Acesso antecipado a cosméticos',
-    ],
-    cta: 'Entrar na lista de espera',
-    primary: true,
-  },
-]
+import { useT } from '@/lib/i18n'
 
 export default function PricingSection() {
+  const t = useT().pricing
   const goToWaitlist = () =>
     document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })
 
@@ -55,15 +20,15 @@ export default function PricingSection() {
             fontFamily: 'var(--font-mono)', fontSize: '10px',
             letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--accent)', display: 'block', marginBottom: '14px', opacity: 0.85,
-          }}>preços</span>
+          }}>{t.eyebrow}</span>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
             color: 'var(--text)', margin: '0 0 10px', letterSpacing: '-0.01em',
-          }}>Simples e transparente.</h2>
+          }}>{t.title}</h2>
           <p style={{ fontSize: '16px', color: 'var(--text-2)', lineHeight: '1.65', margin: 0, maxWidth: '480px' }}>
-            Comece grátis. Upgrade só quando sentir o valor.
+            {t.sub}
           </p>
         </FadeIn>
 
@@ -72,7 +37,7 @@ export default function PricingSection() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
           gap: '16px', marginTop: '52px', maxWidth: '760px',
         }}>
-          {PLANS.map((plan, i) => (
+          {t.plans.map((plan, i) => (
             <FadeIn key={i} delay={i * 100}>
               <div style={{
                 position: 'relative',
@@ -100,14 +65,9 @@ export default function PricingSection() {
                 }}>{plan.name}</div>
 
                 <div style={{ marginBottom: '10px' }}>
-                  {plan.price ? (
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>R${plan.price}</span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-3)' }}>/mês</span>
-                    </div>
-                  ) : (
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>{plan.priceLabel ?? 'Grátis'}</span>
-                  )}
+                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: '42px', fontWeight: '400', color: 'var(--text)', lineHeight: 1 }}>
+                    {plan.priceLabel ?? t.free}
+                  </span>
                 </div>
 
                 <p style={{ fontSize: '13.5px', color: 'var(--text-2)', lineHeight: '1.65', margin: '0 0 28px' }}>{plan.desc}</p>
@@ -143,8 +103,8 @@ export default function PricingSection() {
             fontFamily: 'var(--font-mono)', fontSize: '11px',
             color: 'var(--text-3)', marginTop: '28px', lineHeight: '1.7',
           }}>
-            O plano pago chega no lançamento — preço ainda em definição.
-            <br />Começar é, e sempre será, de graça.
+            {t.disclaimer1}
+            <br />{t.disclaimer2}
           </p>
         </FadeIn>
       </div>

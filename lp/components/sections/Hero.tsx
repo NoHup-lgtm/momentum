@@ -2,8 +2,10 @@
 
 import { useState } from 'react'
 import SpiralIcon from '../SpiralIcon'
+import { useT } from '@/lib/i18n'
 
 export default function Hero() {
+  const t = useT().hero
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'already' | 'error'>('idle')
 
@@ -34,7 +36,6 @@ export default function Hero() {
       padding: '120px clamp(20px, 6vw, 80px) 80px',
       textAlign: 'center',
     }}>
-      {/* Background spiral */}
       <div style={{
         position: 'absolute', top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
@@ -59,7 +60,7 @@ export default function Hero() {
           color: 'var(--accent)', marginBottom: '22px', opacity: 0.85,
         }}>
           <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} />
-          App mobile para devs · em desenvolvimento
+          {t.badge}
         </div>
 
         <h1 style={{
@@ -69,7 +70,7 @@ export default function Hero() {
           color: 'var(--text)', margin: '0 0 22px',
           letterSpacing: '-0.02em',
         }}>
-          Feito de dias<br />imperfeitos.
+          {t.titleLine1}<br />{t.titleLine2}
         </h1>
 
         <p style={{
@@ -77,19 +78,14 @@ export default function Hero() {
           lineHeight: '1.65', color: 'var(--text-2)',
           margin: '0 auto 44px', maxWidth: '480px',
         }}>
-          Cada commit que você faz vira streak, XP e rank. Compita com sua squad. Não quebre a ofensiva.
+          {t.subtitle}
         </p>
 
-        {/* Streak preview badge */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           gap: '24px', marginBottom: '40px', flexWrap: 'wrap',
         }}>
-          {[
-            { label: '🔥', value: '23', sub: 'dias de ofensiva' },
-            { label: '⚡', value: '1.4k', sub: 'XP esta semana' },
-            { label: '🏆', value: '#2', sub: 'na sua squad' },
-          ].map((stat, i) => (
+          {t.stats.map((stat, i) => (
             <div key={i} style={{
               background: 'var(--surface)', border: '1px solid var(--surface-2)',
               borderRadius: '8px', padding: '14px 20px', textAlign: 'center',
@@ -108,7 +104,6 @@ export default function Hero() {
           ))}
         </div>
 
-        {/* Waitlist form */}
         {state === 'done' ? (
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: '10px',
@@ -116,9 +111,7 @@ export default function Hero() {
             background: 'rgba(90,122,80,0.12)', border: '1px solid rgba(90,122,80,0.3)',
           }}>
             <span style={{ color: 'var(--success)', fontSize: '16px' }}>✓</span>
-            <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>
-              Você está na lista. Avisaremos quando lançar.
-            </span>
+            <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>{t.done}</span>
           </div>
         ) : state === 'already' ? (
           <div style={{
@@ -126,9 +119,7 @@ export default function Hero() {
             padding: '14px 28px', borderRadius: '6px',
             background: 'var(--surface)', border: '1px solid var(--surface-2)',
           }}>
-            <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>
-              Esse email já está na lista.
-            </span>
+            <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>{t.already}</span>
           </div>
         ) : (
           <div id="waitlist" style={{
@@ -140,7 +131,7 @@ export default function Hero() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && submit()}
-              placeholder="seu@email.com"
+              placeholder={t.emailPlaceholder}
               style={{
                 flex: 1, minWidth: '220px',
                 background: 'var(--surface)', border: '1px solid var(--surface-2)',
@@ -163,7 +154,7 @@ export default function Hero() {
                 transition: 'opacity 0.18s', whiteSpace: 'nowrap',
               }}
             >
-              {state === 'loading' ? 'Entrando...' : 'Entrar na lista →'}
+              {state === 'loading' ? t.ctaLoading : t.cta}
             </button>
           </div>
         )}
@@ -172,7 +163,7 @@ export default function Hero() {
           marginTop: '16px', fontFamily: 'var(--font-mono)', fontSize: '11px',
           color: state === 'error' ? 'var(--danger)' : 'var(--text-3)', letterSpacing: '0.03em',
         }}>
-          {state === 'error' ? 'Algo deu errado. Tenta de novo em instantes.' : 'iOS · Android · sem spam.'}
+          {state === 'error' ? t.error : t.footnote}
         </p>
       </div>
 

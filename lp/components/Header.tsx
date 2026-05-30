@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import SpiralIcon from './SpiralIcon'
+import { useLang, useT } from '@/lib/i18n'
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
+  const { lang, setLang } = useLang()
+  const t = useT()
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 50)
@@ -15,6 +18,13 @@ export default function Header() {
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  const navItems = [
+    { label: t.nav.howItWorks, id: 'como-funciona' },
+    { label: t.nav.squad, id: 'squad' },
+    { label: t.nav.roadmap, id: 'roadmap' },
+    { label: t.nav.pricing, id: 'precos' },
+  ]
 
   return (
     <nav style={{
@@ -36,12 +46,7 @@ export default function Header() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {[
-          { label: 'Como funciona', id: 'como-funciona' },
-          { label: 'Squad', id: 'squad' },
-          { label: 'Roadmap', id: 'roadmap' },
-          { label: 'Preços', id: 'precos' },
-        ].map(item => (
+        {navItems.map(item => (
           <button
             key={item.id}
             onClick={() => scrollTo(item.id)}
@@ -54,6 +59,29 @@ export default function Header() {
             }}
           >{item.label}</button>
         ))}
+
+        {/* Language toggle */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '2px',
+          border: '1px solid var(--surface-2)', borderRadius: '5px',
+          padding: '2px', marginRight: '4px',
+        }}>
+          {(['pt', 'en'] as const).map(l => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              style={{
+                background: lang === l ? 'var(--surface-2)' : 'transparent',
+                border: 'none', cursor: 'pointer', borderRadius: '3px',
+                fontFamily: 'var(--font-mono)', fontSize: '10px',
+                letterSpacing: '0.05em', textTransform: 'uppercase',
+                color: lang === l ? 'var(--text)' : 'var(--text-3)',
+                padding: '5px 8px', transition: 'all 0.15s ease',
+              }}
+            >{l}</button>
+          ))}
+        </div>
+
         <button
           onClick={() => scrollTo('waitlist')}
           style={{
@@ -64,7 +92,7 @@ export default function Header() {
             transition: 'opacity 0.18s ease',
           }}
         >
-          Lista de espera
+          {t.nav.waitlist}
         </button>
       </div>
     </nav>

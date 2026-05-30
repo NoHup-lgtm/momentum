@@ -1,25 +1,11 @@
-import FadeIn from '../FadeIn'
+'use client'
 
-const FEATURES = [
-  {
-    num: '01', name: 'Ofensiva', role: 'retenção', featured: false,
-    desc: 'Só ativa quando o GitHub confirma um commit seu. Não tem como fingir. Às 20h você recebe alerta se ainda não commitou. Meia-noite sem commit — streak quebra.',
-  },
-  {
-    num: '02', name: 'XP e Rank', role: 'progressão', featured: true,
-    desc: 'Commits geram XP. XP determina seu rank semanal. Seis ranks: Init → Build → Deploy → Senior → Architect → Legend. Top 3 da squad sobem todo domingo.',
-  },
-  {
-    num: '03', name: 'Squad', role: 'social', featured: false,
-    desc: 'Leaderboard em tempo real com seus amigos devs. Commits do dia, XP da semana, rank atual — tudo visível. Difícil parar quando a squad está olhando.',
-  },
-  {
-    num: '04', name: 'Cosméticos', role: 'identidade', featured: false,
-    desc: 'Seu avatar de dev pixel art, personalizável. Itens comuns com Coins ganhas jogando. Itens lendários só desbloqueados por conquistas reais — não são compráveis.',
-  },
-]
+import FadeIn from '../FadeIn'
+import { useT } from '@/lib/i18n'
 
 export default function FeaturesSection() {
+  const t = useT().features
+
   return (
     <section id="features" style={{
       background: 'var(--surface)',
@@ -31,13 +17,13 @@ export default function FeaturesSection() {
             fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: '500',
             letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--accent)', display: 'block', marginBottom: '14px', opacity: 0.85,
-          }}>o sistema</span>
+          }}>{t.eyebrow}</span>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(28px, 3.8vw, 46px)',
             fontWeight: '400', lineHeight: '1.15',
             color: 'var(--text)', margin: '0 0 14px', letterSpacing: '-0.01em',
-          }}>Quatro mecanismos.<br />Um hábito.</h2>
+          }}>{t.titleLine1}<br />{t.titleLine2}</h2>
         </FadeIn>
 
         <div style={{
@@ -45,7 +31,7 @@ export default function FeaturesSection() {
           gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))',
           gap: '14px', marginTop: '48px',
         }}>
-          {FEATURES.map((f, i) => (
+          {t.items.map((f, i) => (
             <FadeIn key={i} delay={i * 75}>
               <div style={{
                 background: f.featured ? 'var(--surface-2)' : 'transparent',
@@ -59,7 +45,7 @@ export default function FeaturesSection() {
                     fontFamily: 'var(--font-mono)', fontSize: '9px',
                     letterSpacing: '0.12em', textTransform: 'uppercase',
                     color: 'var(--accent)', opacity: 0.7,
-                  }}>principal</div>
+                  }}>{t.featuredTag}</div>
                 )}
                 <div style={{
                   fontFamily: 'var(--font-mono)', fontSize: '11px',
