@@ -39,6 +39,7 @@ export default function Header() {
         {[
           { label: 'Como funciona', id: 'como-funciona' },
           { label: 'Squad', id: 'squad' },
+          { label: 'Roadmap', id: 'roadmap' },
           { label: 'Preços', id: 'precos' },
         ].map(item => (
           <button
