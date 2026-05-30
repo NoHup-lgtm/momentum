@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import FadeIn from '../FadeIn'
 
 const PLANS = [
@@ -41,20 +40,8 @@ const PLANS = [
 ]
 
 export default function PricingSection() {
-  const [submitted, setSubmitted] = useState(false)
-  const [email, setEmail] = useState('')
-  const [active, setActive] = useState<number | null>(null)
-
-  const submit = async (i: number) => {
-    setActive(i)
-    if (!email.includes('@')) return
-    await fetch('/api/waitlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    setSubmitted(true)
-  }
+  const goToWaitlist = () =>
+    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })
 
   return (
     <section id="precos" style={{
@@ -134,27 +121,18 @@ export default function PricingSection() {
                   ))}
                 </ul>
 
-                {submitted && active === i ? (
-                  <div style={{
-                    width: '100%', padding: '12px 20px', borderRadius: '5px', boxSizing: 'border-box',
-                    background: 'rgba(90,122,80,0.1)', border: '1px solid rgba(90,122,80,0.25)',
-                    textAlign: 'center', fontSize: '13px', color: 'var(--success)',
-                    fontFamily: 'var(--font-mono)',
-                  }}>✓ Na lista de espera</div>
-                ) : (
-                  <button
-                    onClick={() => submit(i)}
-                    style={{
-                      width: '100%', padding: '12px 20px', borderRadius: '5px',
-                      fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',
-                      cursor: 'pointer', letterSpacing: '0.01em',
-                      border: plan.primary ? 'none' : '1px solid var(--text-3)',
-                      background: plan.primary ? 'var(--accent)' : 'transparent',
-                      color: plan.primary ? '#f2e4cf' : 'var(--text)',
-                      transition: 'opacity 0.18s ease',
-                    }}
-                  >{plan.cta}</button>
-                )}
+                <button
+                  onClick={goToWaitlist}
+                  style={{
+                    width: '100%', padding: '12px 20px', borderRadius: '5px',
+                    fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',
+                    cursor: 'pointer', letterSpacing: '0.01em',
+                    border: plan.primary ? 'none' : '1px solid var(--text-3)',
+                    background: plan.primary ? 'var(--accent)' : 'transparent',
+                    color: plan.primary ? '#f2e4cf' : 'var(--text)',
+                    transition: 'opacity 0.18s ease',
+                  }}
+                >{plan.cta}</button>
               </div>
             </FadeIn>
           ))}

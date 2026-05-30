@@ -6,17 +6,21 @@ import SpiralIcon from '../SpiralIcon'
 
 export default function FinalCTASection() {
   const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'loading' | 'done'>('idle')
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
   const submit = async () => {
     if (!email.includes('@')) return
     setState('loading')
-    await fetch('/api/waitlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    setState('done')
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'finalcta' }),
+      })
+      setState(res.ok ? 'done' : 'error')
+    } catch {
+      setState('error')
+    }
   }
 
   return (
@@ -84,6 +88,12 @@ export default function FinalCTASection() {
                 }}
               >{state === 'loading' ? '...' : 'Entrar na lista →'}</button>
             </div>
+          )}
+          {state === 'error' && (
+            <p style={{
+              marginTop: '14px', fontFamily: 'var(--font-mono)', fontSize: '11px',
+              color: 'var(--danger)',
+            }}>Algo deu errado. Tenta de novo em instantes.</p>
           )}
         </FadeIn>
 

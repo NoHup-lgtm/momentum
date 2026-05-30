@@ -1,40 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { neon } from '@neondatabase/serverless'
+import { randomUUID } from 'node:crypto'
 
-// Simple file-based waitlist — swap for Resend/Brevo/etc in production
-const WAITLIST_FILE = path.join(process.cwd(), 'waitlist.json')
-
-function readList(): string[] {
-  try {
-    return JSON.parse(fs.readFileSync(WAITLIST_FILE, 'utf-8'))
-  } catch {
-    return []
-  }
-}
-
+// Persiste na tabela `waitlist` do Neon (mesma do app). Requer DATABASE_URL
+// configurada nas env vars do projeto lp na Vercel.
 export async function POST(req: NextRequest) {
-  const { email } = await req.json().catch(() => ({}))
+  const { email, source } = await req.json().catch(() => ({}))
 
   if (!email || typeof email !== 'string' || !email.includes('@')) {
     return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
   }
 
-  const normalized = email.trim().toLowerCase()
-  const list = readList()
-
-  if (list.includes(normalized)) {
-    return NextResponse.json({ ok: true, already: true })
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) {
+    console.error('[waitlist] DATABASE_URL não configurada')
+    return NextResponse.json({ error: 'Configuração ausente.' }, { status: 500 })
   }
 
-  list.push(normalized)
-  fs.writeFileSync(WAITLIST_FILE, JSON.stringify(list, null, 2))
+  const normalized = email.trim().toLowerCase()
 
-  console.log(`[waitlist] +1: ${normalized} (total: ${list.length})`)
-  return NextResponse.json({ ok: true })
+  try {
+    const sql = neon(dbUrl)
+    const rows = await sql`
+      INSERT INTO waitlist (id, email, source)
+      VALUES (${randomUUID()}, ${normalized}, ${source ?? null})
+      ON CONFLICT (email) DO NOTHING
+      RETURNING id
+    `
+    // 0 linhas = email já existia (conflito ignorado)
+    return NextResponse.json({ ok: true, already: rows.length === 0 })
+  } catch (e) {
+    console.error('[waitlist] insert failed:', e)
+    return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
+  }
 }
 
 export async function GET() {
-  // Basic count endpoint — protect in production
-  return NextResponse.json({ count: readList().length })
+  const dbUrl = process.env.DATABASE_URL
+  if (!dbUrl) return NextResponse.json({ count: 0 })
+  try {
+    const sql = neon(dbUrl)
+    const rows = await sql`SELECT count(*)::int AS count FROM waitlist`
+    return NextResponse.json({ count: rows[0]?.count ?? 0 })
+  } catch {
+    return NextResponse.json({ count: 0 })
+  }
 }

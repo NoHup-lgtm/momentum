@@ -5,18 +5,23 @@ import SpiralIcon from '../SpiralIcon'
 
 export default function Hero() {
   const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'already'>('idle')
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'already' | 'error'>('idle')
 
   const submit = async () => {
     if (!email.includes('@')) return
     setState('loading')
-    const res = await fetch('/api/waitlist', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    })
-    const data = await res.json()
-    setState(data.already ? 'already' : 'done')
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'hero' }),
+      })
+      if (!res.ok) { setState('error'); return }
+      const data = await res.json()
+      setState(data.already ? 'already' : 'done')
+    } catch {
+      setState('error')
+    }
   }
 
   return (
@@ -165,9 +170,9 @@ export default function Hero() {
 
         <p style={{
           marginTop: '16px', fontFamily: 'var(--font-mono)', fontSize: '11px',
-          color: 'var(--text-3)', letterSpacing: '0.03em',
+          color: state === 'error' ? 'var(--danger)' : 'var(--text-3)', letterSpacing: '0.03em',
         }}>
-          iOS · Android · sem spam.
+          {state === 'error' ? 'Algo deu errado. Tenta de novo em instantes.' : 'iOS · Android · sem spam.'}
         </p>
       </div>
 
