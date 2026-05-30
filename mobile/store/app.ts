@@ -10,6 +10,8 @@ export interface User {
   rank: RankId;
   level: number;
   totalXp: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
   currentStreak: number;
   maxStreak: number;
   coins: number;

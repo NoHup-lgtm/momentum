@@ -29,6 +29,8 @@ export interface MeUser {
   rank: string; // enum do backend em MAIÚSCULO (INIT, BUILD, ...)
   level: number;
   totalXp: number;
+  xpIntoLevel: number;
+  xpToNextLevel: number;
   currentStreak: number;
   maxStreak: number;
   streakFreezes: number;
@@ -204,6 +206,8 @@ export function authToStoreUser(auth: AuthUser): User {
     rank: 'init' as RankId,
     level: 1,
     totalXp: 0,
+    xpIntoLevel: 0,
+    xpToNextLevel: 100,
     currentStreak: 0,
     maxStreak: 0,
     streakFreezes: 0,
@@ -225,6 +229,8 @@ export function meToStoreUser(me: MeUser): User {
     rank: me.rank.toLowerCase() as RankId,
     level: me.level,
     totalXp: me.totalXp,
+    xpIntoLevel: me.xpIntoLevel,
+    xpToNextLevel: me.xpToNextLevel,
     currentStreak: me.currentStreak,
     maxStreak: me.maxStreak,
     streakFreezes: me.streakFreezes,

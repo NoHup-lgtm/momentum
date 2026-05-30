@@ -21,9 +21,6 @@ import { syncGithub, getGithubToday, meToStoreUser, type RepoCommits } from '../
 
 const { width: W } = Dimensions.get('window');
 
-// Threshold provisório de XP por nível (fórmula de leveling vem em card futuro).
-const nextLevelXp = (level: number) => level * 1000;
-
 // ── Mock data ─────────────────────────────────────────────────────────────────
 const MOCK_USER = {
   name: 'Arthur',
@@ -265,8 +262,8 @@ export default function HomeScreen() {
         username: storeUser.githubLogin,
         streak: storeUser.currentStreak,
         longestStreak: storeUser.maxStreak,
-        xp: storeUser.totalXp,
-        xpToNext: nextLevelXp(storeUser.level),
+        xp: storeUser.xpIntoLevel,
+        xpToNext: storeUser.xpToNextLevel,
         level: storeUser.level,
         coins: storeUser.coins,
         rankId: storeUser.rank,
