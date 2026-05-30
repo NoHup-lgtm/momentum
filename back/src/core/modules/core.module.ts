@@ -7,6 +7,8 @@ import { CookieService } from '../services/cookie.service.js';
 @Module({
   imports: [JwtModule.register({ secret: process.env.JWT_SECRET })],
   providers: [CookieService, AuthGuard],
-  exports: [CookieService, AuthGuard],
+  // Exporta JwtModule também: assim o AuthGuard pode ser instanciado via
+  // @UseGuards(AuthGuard) em qualquer módulo (ex: UserModule) sem reimportar.
+  exports: [CookieService, AuthGuard, JwtModule],
 })
 export class CoreModule {}
