@@ -8,6 +8,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { useLangStore } from '../lib/i18n';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,6 +27,11 @@ function RootNavigator() {
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded]);
+
+  // Carrega a preferência de idioma salva (sobrepõe a detecção do device).
+  useEffect(() => {
+    useLangStore.getState().loadLang();
+  }, []);
 
   if (!fontsLoaded) return null;
 

@@ -12,6 +12,7 @@ import PixelAvatar from '../../components/avatar/PixelAvatar';
 import { GITHUB_CLIENT_ID } from '../../lib/config';
 import { loginWithGithubCode, fetchMe, meToStoreUser, type AuthUser } from '../../lib/session';
 import { useAppStore } from '../../store/app';
+import { useT, useLang, useSetLang } from '../../lib/i18n';
 
 const { width: W } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ export default function OnboardingScreen() {
   const [error, setError] = useState<string | null>(null);
   const [profile, setProfile] = useState<AuthUser | null>(null);
   const setUser = useAppStore((s) => s.setUser);
+  const t = useT().auth;
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -53,7 +55,7 @@ export default function OnboardingScreen() {
   async function handleResponse(res: AuthSessionResult) {
     if (res.type !== 'success' || !res.params.code) {
       if (res.type === 'error') {
-        setError(res.params.error_description ?? 'Falha na autorização do GitHub');
+        setError(res.params.error_description ?? t.errorAuth);
       }
       setLoading(false);
       return;
@@ -71,7 +73,7 @@ export default function OnboardingScreen() {
       setProfile(user);
       setStep('connected');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Não foi possível entrar');
+      setError(e instanceof Error ? e.message : t.errorGeneric);
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,7 @@ export default function OnboardingScreen() {
   function connect() {
     setError(null);
     if (!GITHUB_CLIENT_ID) {
-      setError('GITHUB_CLIENT_ID não configurado (mobile/.env)');
+      setError(t.errorNoClient);
       return;
     }
     setLoading(true);
@@ -105,8 +107,10 @@ export default function OnboardingScreen() {
 function StepWelcome({ loading, error, disabled, onConnect }: {
   loading: boolean; error: string | null; disabled: boolean; onConnect: () => void;
 }) {
+  const t = useT().auth;
   return (
     <View style={s.screen}>
+      <LangToggle />
       {/* Watermark */}
       <View style={s.watermark} pointerEvents="none">
         <SpiralIcon size={360} color={C.text} />
@@ -115,12 +119,9 @@ function StepWelcome({ loading, error, disabled, onConnect }: {
       <View style={s.center}>
         <MomentumWordmark height={52} />
 
-        <Text style={s.subtitle}>feito de dias imperfeitos.</Text>
+        <Text style={s.subtitle}>{t.subtitle}</Text>
 
-        <Text style={s.body}>
-          Cada commit que você faz vira streak, XP e rank.{'\n'}
-          Compita com sua squad. Não quebre a ofensiva.
-        </Text>
+        <Text style={s.body}>{t.body}</Text>
 
         <TouchableOpacity
           style={[s.btn, s.btnPrimary, (loading || disabled) && { opacity: 0.6 }]}
@@ -131,12 +132,12 @@ function StepWelcome({ loading, error, disabled, onConnect }: {
           {loading ? (
             <View style={s.row}>
               <ActivityIndicator size="small" color="#f2e4cf" />
-              <Text style={[s.btnText, { marginLeft: 9 }]}>Conectando…</Text>
+              <Text style={[s.btnText, { marginLeft: 9 }]}>{t.connecting}</Text>
             </View>
           ) : (
             <View style={s.row}>
               <GitHubIcon size={18} />
-              <Text style={[s.btnText, { marginLeft: 9 }]}>Continuar com GitHub</Text>
+              <Text style={[s.btnText, { marginLeft: 9 }]}>{t.continueGithub}</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -144,7 +145,7 @@ function StepWelcome({ loading, error, disabled, onConnect }: {
         {error ? (
           <Text style={s.error}>{error}</Text>
         ) : (
-          <Text style={s.hint}>momentum vive dos seus commits</Text>
+          <Text style={s.hint}>{t.hint}</Text>
         )}
       </View>
     </View>
@@ -156,10 +157,12 @@ function StepConnected({ profile, onContinue }: {
   profile: AuthUser;
   onContinue: () => void;
 }) {
+  const t = useT().auth;
   return (
     <View style={s.screen}>
+      <LangToggle />
       <View style={s.center}>
-        <Text style={s.stepLabel}>conta conectada</Text>
+        <Text style={s.stepLabel}>{t.connected}</Text>
 
         {/* Avatar */}
         <View style={s.avatarWrap}>
@@ -174,22 +177,49 @@ function StepConnected({ profile, onContinue }: {
         </View>
 
         <Text style={s.titleMd}>@{profile.githubLogin}</Text>
-        <Text style={s.ghSub}>GitHub conectado ✓</Text>
+        <Text style={s.ghSub}>{t.githubConnected}</Text>
 
         <View style={s.connectedBadge}>
-          <Text style={s.connectedText}>conta verificada — pronto para começar</Text>
+          <Text style={s.connectedText}>{t.verified}</Text>
         </View>
 
         <TouchableOpacity style={[s.btn, s.btnPrimary]} onPress={onContinue} activeOpacity={0.8}>
-          <Text style={s.btnText}>Entrar no momentum →</Text>
+          <Text style={s.btnText}>{t.enter}</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
+// ── Language toggle (PT/EN) ─────────────────────────────────────────────────
+function LangToggle() {
+  const lang = useLang();
+  const setLang = useSetLang();
+  return (
+    <View style={s.langToggle}>
+      {(['pt', 'en'] as const).map((l) => (
+        <TouchableOpacity key={l} onPress={() => setLang(l)} style={[s.langBtn, lang === l && s.langBtnActive]}>
+          <Text style={[s.langTxt, lang === l && s.langTxtActive]}>{l.toUpperCase()}</Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
+  langToggle: {
+    position: 'absolute', top: 58, right: 20, zIndex: 10,
+    flexDirection: 'row', gap: 2,
+    borderWidth: 1, borderColor: C.surface2, borderRadius: 6, padding: 2,
+  },
+  langBtn: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 4 },
+  langBtnActive: { backgroundColor: C.surface2 },
+  langTxt: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
+    letterSpacing: 0.05, color: C.text3,
+  },
+  langTxtActive: { color: C.text },
   screen: {
     flex: 1, backgroundColor: C.bg,
     alignItems: 'center', justifyContent: 'center',
