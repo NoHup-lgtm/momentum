@@ -299,6 +299,47 @@ export async function claimChallenge(id: string): Promise<boolean> {
   }
 }
 
+// ── Leaderboards ──────────────────────────────────────────────────────────────
+export interface RankUser {
+  position: number;
+  id: string;
+  githubLogin: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string;
+  level: number;
+  totalXp: number;
+}
+export interface RankSquad {
+  position: number;
+  id: string;
+  name: string;
+  rank: string;
+  memberCount: number;
+  totalXp: number;
+}
+
+export async function getTopUsers(): Promise<RankUser[]> {
+  try {
+    const res = await apiFetch('/leaderboard/users', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as RankUser[];
+  } catch {
+    return [];
+  }
+}
+
+export async function getTopSquads(): Promise<RankSquad[]> {
+  try {
+    const res = await apiFetch('/leaderboard/squads', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as RankSquad[];
+  } catch {
+    return [];
+  }
+}
+
 export async function logout() {
   await clearTokens();
 }

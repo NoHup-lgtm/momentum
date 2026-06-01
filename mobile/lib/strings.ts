@@ -61,6 +61,14 @@ export const strings = {
         keep_streak: { label: 'Mantenha a chama', desc: 'Mantenha a ofensiva por 3 dias' },
       },
     },
+    ranking: {
+      title: 'ranking',
+      tabUsers: 'devs',
+      tabSquads: 'squads',
+      members: 'membros',
+      you: 'você',
+      empty: 'Sem dados ainda.',
+    },
   },
   en: {
     common: {
@@ -119,6 +127,14 @@ export const strings = {
         commit_marathon: { label: 'Marathon', desc: 'Make 5 commits today' },
         keep_streak: { label: 'Keep the flame', desc: 'Keep a 3-day streak' },
       },
+    },
+    ranking: {
+      title: 'leaderboard',
+      tabUsers: 'devs',
+      tabSquads: 'squads',
+      members: 'members',
+      you: 'you',
+      empty: 'No data yet.',
     },
   },
 } as const;
