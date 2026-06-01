@@ -6,7 +6,14 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C } from '../../constants/design';
 import { CoinIcon, GemIcon } from '../../components/icons';
+import { PixelItem } from '../../components/store/PixelItem';
 import { useT } from '../../lib/i18n';
+
+// chave do cosmético → id da pixel art (PixelItem/GRIDS)
+const ART: Record<string, string> = {
+  dev_cap: 'c1', hacker_beanie: 'c3', desk_plant: 'c5', clone_hoodie: 'c2',
+  hack_glasses: 'c4', mech_keyboard: 'c6', space_helmet: 'c11', matrix_bg: 'g3',
+};
 import { useAppStore } from '../../store/app';
 import { getShop, buyItem, fetchMe, meToStoreUser, type Shop, type ShopItem } from '../../lib/session';
 
@@ -82,7 +89,7 @@ export default function StoreScreen() {
             return (
               <View key={item.id} style={[s.card, { borderColor: color + '40' }]}>
                 <View style={[s.art, { backgroundColor: color + '14' }]}>
-                  <View style={[s.artDot, { backgroundColor: color }]} />
+                  <PixelItem id={ART[item.key] ?? 'c1'} size={CARD_W - 48} />
                 </View>
                 <Text style={s.name} numberOfLines={1}>{label}</Text>
 
