@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { C, RANKS, getRank, type RankId } from '../../constants/design';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon } from '../../components/icons';
@@ -305,6 +305,20 @@ export default function HomeScreen() {
       setHomeChests(await getChests());
     })();
   }, []);
+
+  // Ao voltar o foco pra Home (ex: depois de abrir baú / comprar / coletar),
+  // atualiza os dados leves sem refazer o sync pesado do GitHub.
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const me = await fetchMe();
+        if (me) setUser(meToStoreUser(me));
+        setHomeChests(await getChests());
+        setRawChallenges(await getChallenges());
+        setHomeSquad(await getMySquad());
+      })();
+    }, []),
+  );
 
   // Baús pendentes → contagem + raridade mais alta (pro card da Home).
   const CHEST_ORDER = ['COMUM', 'RARO', 'EPICO', 'LENDARIO'];
