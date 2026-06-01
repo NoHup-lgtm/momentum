@@ -140,10 +140,13 @@ export async function checkSession(): Promise<AuthUser | null> {
 export async function fetchMe(): Promise<MeUser | null> {
   const token = await getAccessToken();
   if (!token) return null;
-
-  const res = await apiFetch('/me', { method: 'GET' });
-  if (!res.ok) return null;
-  return (await res.json()) as MeUser;
+  try {
+    const res = await apiFetch('/me', { method: 'GET' });
+    if (!res.ok) return null;
+    return (await res.json()) as MeUser;
+  } catch {
+    return null;
+  }
 }
 
 // ── GitHub activity ───────────────────────────────────────────────────────────
@@ -158,23 +161,35 @@ export interface ContributionDay {
 
 // Sincroniza as contribuições do GitHub e retorna o /me já atualizado.
 export async function syncGithub(): Promise<MeUser | null> {
-  const res = await apiFetch('/me/github/sync', { method: 'POST' });
-  if (!res.ok) return null;
-  return (await res.json()) as MeUser;
+  try {
+    const res = await apiFetch('/me/github/sync', { method: 'POST' });
+    if (!res.ok) return null;
+    return (await res.json()) as MeUser;
+  } catch {
+    return null;
+  }
 }
 
 // Commits de hoje agrupados por repositório.
 export async function getGithubToday(): Promise<RepoCommits[]> {
-  const res = await apiFetch('/me/github/today', { method: 'GET' });
-  if (!res.ok) return [];
-  return (await res.json()) as RepoCommits[];
+  try {
+    const res = await apiFetch('/me/github/today', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as RepoCommits[];
+  } catch {
+    return [];
+  }
 }
 
 // Contagem diária das 13 semanas (heatmap).
 export async function getHeatmap(): Promise<ContributionDay[]> {
-  const res = await apiFetch('/me/github/heatmap', { method: 'GET' });
-  if (!res.ok) return [];
-  return (await res.json()) as ContributionDay[];
+  try {
+    const res = await apiFetch('/me/github/heatmap', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as ContributionDay[];
+  } catch {
+    return [];
+  }
 }
 
 // ── Squad ─────────────────────────────────────────────────────────────────────
@@ -202,15 +217,26 @@ export interface Squad {
 }
 
 export async function getMySquad(): Promise<Squad | null> {
-  const res = await apiFetch('/squads/me', { method: 'GET' });
-  if (!res.ok) return null;
-  return ((await res.json()) as Squad | null) ?? null;
+  try {
+    const res = await apiFetch('/squads/me', { method: 'GET' });
+    if (!res.ok) return null;
+    // Nest envia corpo VAZIO quando o handler retorna null (sem squad).
+    const text = await res.text();
+    return text ? (JSON.parse(text) as Squad) : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getSquadLeaderboard(): Promise<SquadMember[]> {
-  const res = await apiFetch('/squads/me/leaderboard', { method: 'GET' });
-  if (!res.ok) return [];
-  return (await res.json()) as SquadMember[];
+  try {
+    const res = await apiFetch('/squads/me/leaderboard', { method: 'GET' });
+    if (!res.ok) return [];
+    const text = await res.text();
+    return text ? (JSON.parse(text) as SquadMember[]) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function createSquad(name: string, description?: string): Promise<Squad> {
