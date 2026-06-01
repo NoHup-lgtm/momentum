@@ -19,8 +19,8 @@ import SubscriptionBanner from '../../components/subscription/SubscriptionBanner
 import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe,
-  getChallenges, claimChallenge, getMySquad,
-  type RepoCommits, type DailyChallenge, type Squad,
+  getChallenges, claimChallenge, getMySquad, getChests,
+  type RepoCommits, type DailyChallenge, type Squad, type PendingChest,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
 
@@ -46,7 +46,6 @@ const MOCK_USER = {
   committedToday: true,
 };
 
-const PENDING_CHESTS = { count: 3, topRarity: 'epico' as const };
 
 const MOCK_CHALLENGES: {
   id: string; label: string; desc: string;
@@ -280,6 +279,7 @@ export default function HomeScreen() {
   const [todayCommits, setTodayCommits] = useState<RepoCommits[]>([]);
   const [rawChallenges, setRawChallenges] = useState<DailyChallenge[]>([]);
   const [homeSquad, setHomeSquad] = useState<Squad | null>(null);
+  const [homeChests, setHomeChests] = useState<PendingChest[]>([]);
   const [showMilestone, setShowMilestone] = useState(false);
   const [showLevelUp, setShowLevelUp]     = useState(false);
   const [showFreeze, setShowFreeze]       = useState(false);
@@ -302,8 +302,16 @@ export default function HomeScreen() {
       setTodayCommits(await getGithubToday());
       setRawChallenges(await getChallenges());
       setHomeSquad(await getMySquad());
+      setHomeChests(await getChests());
     })();
   }, []);
+
+  // Baús pendentes → contagem + raridade mais alta (pro card da Home).
+  const CHEST_ORDER = ['COMUM', 'RARO', 'EPICO', 'LENDARIO'];
+  const topChestRarity = (homeChests.reduce(
+    (best, c) => (CHEST_ORDER.indexOf(c.rarity) > CHEST_ORDER.indexOf(best) ? c.rarity : best),
+    'COMUM',
+  ).toLowerCase()) as 'comum' | 'raro' | 'epico' | 'lendario';
 
   // Squad real → formato do mini-card.
   const squadMini = homeSquad
@@ -371,7 +379,9 @@ export default function HomeScreen() {
         />
 
         {/* Pending chests notification */}
-        <PendingChestsCard count={PENDING_CHESTS.count} topRarity={PENDING_CHESTS.topRarity} />
+        {homeChests.length > 0 && (
+          <PendingChestsCard count={homeChests.length} topRarity={topChestRarity} />
+        )}
 
         {/* Today's GitHub activity */}
         <TodayCard commits={todayCommits} username={user.username} />

@@ -15,7 +15,8 @@ import {
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 import { useAppStore } from '../../store/app';
-import { getHeatmap, logout } from '../../lib/session';
+import { getHeatmap, logout, getAchievements, type AchievementItem } from '../../lib/session';
+import { useT } from '../../lib/i18n';
 
 // converte contagem de commits em intensidade 0–5 para o heatmap
 const toIntensity = (count: number) =>
@@ -53,14 +54,6 @@ const HEATMAP = Array.from({ length: 91 }, (_, i) => {
   return rnd > 0.6 ? Math.floor(rnd * 4) + 1 : 0;
 });
 
-const ACHIEVEMENTS = [
-  { id: 'faísca',     label: 'Faísca',     desc: '7 dias seguidos',       earned: true  },
-  { id: 'centurião',  label: 'Centurião',  desc: '100 commits',           earned: true  },
-  { id: 'constante',  label: 'Constante',  desc: '30 dias seguidos',      earned: true  },
-  { id: 'top1',       label: 'Top 1',      desc: 'Semana #1 na liga',     earned: true  },
-  { id: 'inabalável', label: 'Inabalável', desc: '100 dias — em progresso', earned: false },
-  { id: 'lenda',      label: 'Lenda Viva', desc: 'Alcance Legend',        earned: false },
-];
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
 function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) {
@@ -93,35 +86,22 @@ function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) 
 }
 
 // ── Achievement Icon (SVG, no emoji) ─────────────────────────────────────────
-function AchieveIcon({ id, size = 24, dim = false }: { id: string; size?: number; dim?: boolean }) {
-  const c = (base: string) => dim ? C.text3 : base;
-  const map: Record<string, React.ReactNode> = {
-    'faísca':     <LightningIcon     size={size} color={c('#ffd97a')} />,
-    'centurião':  <StarburstIcon     size={size} color={c(C.gold)}   />,
-    'constante':  <FlameIcon         size={size} glowing={!dim}      />,
-    'top1':       <TrophyIcon        size={size} color={c(C.gold)}   />,
-    'pioneiro':   <SunriseIcon       size={size} color={c(C.accent)} />,
-    'fundador':   <ShieldIcon        size={size} color={c(C.purple)} />,
-    'madrugador': <MoonIcon          size={size} color={c('#c8b8f0')}/>,
-    'arquiteto':  <ProcessorIcon     size={size} color={c('#3a82f7')}/>,
-    'inabalável': <IceIcon           size={size} color={c('#7ab4e8')}/>,
-    'infinito':   <InfinityPixelIcon size={size} color={c(C.text2)} />,
-    'elétrico':   <LightningIcon     size={size} color={c('#ffd97a')}/>,
-    'lenda':      <SpiralIcon        size={size} color={c(C.accent)} />,
-    'mestre':     <CrownIcon         size={size} color={c(C.gold)}   />,
-    'noturno':    <MoonIcon          size={size} color={c('#c8b8f0')}/>,
-  };
-  return <>{map[id] ?? <StarburstIcon size={size} color={c(C.gold)} />}</>;
+function AchieveIcon({ category, size = 24, dim = false }: { category: string; size?: number; dim?: boolean }) {
+  const c = dim ? C.text3 : undefined;
+  switch (category) {
+    case 'STREAK': return <FlameIcon size={size} glowing={!dim} />;
+    case 'COMMIT': return <StarburstIcon size={size} color={c ?? C.gold} />;
+    case 'RANK': return <ProcessorIcon size={size} color={c ?? '#3a82f7'} />;
+    default: return <StarburstIcon size={size} color={c ?? C.gold} />;
+  }
 }
 
 // ── Achievement Badge ─────────────────────────────────────────────────────────
-function AchievementBadge({ achievement }: { achievement: typeof ACHIEVEMENTS[0] }) {
+function AchievementBadge({ label, category, dim }: { label: string; category: string; dim: boolean }) {
   return (
-    <View style={[s.achieveBadge, !achievement.earned && s.achieveLocked]}>
-      <AchieveIcon id={achievement.id} size={24} dim={!achievement.earned} />
-      <Text style={[s.achieveLabel, !achievement.earned && { color: C.text3 }]}>
-        {achievement.label}
-      </Text>
+    <View style={[s.achieveBadge, dim && s.achieveLocked]}>
+      <AchieveIcon category={category} size={24} dim={dim} />
+      <Text style={[s.achieveLabel, dim && { color: C.text3 }]}>{label}</Text>
     </View>
   );
 }
@@ -142,21 +122,27 @@ export default function ProfileScreen() {
   }
 
   // Heatmap + totalCommits + weekXP vêm do GitHub (13 semanas).
+  const ta = useT().achievements;
   const [heatmap, setHeatmap] = useState<number[]>(HEATMAP);
   const [ghCommits, setGhCommits] = useState(USER.totalCommits);
   const [weekXP, setWeekXP] = useState(USER.weekXP);
+  const [achs, setAchs] = useState<AchievementItem[]>([]);
 
   useEffect(() => {
     (async () => {
       const days = await getHeatmap();
-      if (days.length === 0) return;
-      setHeatmap(days.map((d) => toIntensity(d.count)));
-      setGhCommits(days.reduce((sum, d) => sum + d.count, 0));
-      // weekXP provisório: dias ativos nos últimos 7 × 50 XP/dia (igual ao back)
-      const activeLast7 = days.slice(-7).filter((d) => d.count > 0).length;
-      setWeekXP(activeLast7 * 50);
+      if (days.length > 0) {
+        setHeatmap(days.map((d) => toIntensity(d.count)));
+        setGhCommits(days.reduce((sum, d) => sum + d.count, 0));
+        const activeLast7 = days.slice(-7).filter((d) => d.count > 0).length;
+        setWeekXP(activeLast7 * 50);
+      }
+      setAchs(await getAchievements());
     })();
   }, []);
+
+  // Conquistas pra prévia: desbloqueadas primeiro.
+  const achPreview = [...achs].sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
 
   const user = {
     name: su?.displayName ?? USER.name,
@@ -294,8 +280,13 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -18 }} contentContainerStyle={{ paddingHorizontal: 18, gap: 10 }}>
-            {ACHIEVEMENTS.map((a) => (
-              <AchievementBadge key={a.id} achievement={a} />
+            {achPreview.map((a) => (
+              <AchievementBadge
+                key={a.id}
+                label={ta.items[a.key as keyof typeof ta.items]?.label ?? a.key}
+                category={a.category}
+                dim={!a.unlocked}
+              />
             ))}
           </ScrollView>
         </View>
