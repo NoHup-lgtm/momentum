@@ -69,6 +69,18 @@ export const strings = {
       you: 'você',
       empty: 'Sem dados ainda.',
     },
+    achievements: {
+      title: 'conquistas',
+      unlocked: 'desbloqueadas',
+      locked: 'bloqueadas',
+      items: {
+        spark: { label: 'Faísca', desc: '7 dias de ofensiva' },
+        consistent: { label: 'Constante', desc: '30 dias de ofensiva' },
+        unstoppable: { label: 'Inabalável', desc: '100 dias de ofensiva' },
+        centurion: { label: 'Centurião', desc: '100 commits' },
+        ascendant: { label: 'Ascendente', desc: '1000 XP acumulado' },
+      },
+    },
   },
   en: {
     common: {
@@ -135,6 +147,18 @@ export const strings = {
       members: 'members',
       you: 'you',
       empty: 'No data yet.',
+    },
+    achievements: {
+      title: 'achievements',
+      unlocked: 'unlocked',
+      locked: 'locked',
+      items: {
+        spark: { label: 'Spark', desc: '7-day streak' },
+        consistent: { label: 'Consistent', desc: '30-day streak' },
+        unstoppable: { label: 'Unstoppable', desc: '100-day streak' },
+        centurion: { label: 'Centurion', desc: '100 commits' },
+        ascendant: { label: 'Ascendant', desc: '1000 total XP' },
+      },
     },
   },
 } as const;

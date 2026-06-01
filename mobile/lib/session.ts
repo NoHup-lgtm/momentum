@@ -340,6 +340,29 @@ export async function getTopSquads(): Promise<RankSquad[]> {
   }
 }
 
+// ── Achievements ──────────────────────────────────────────────────────────────
+export interface AchievementItem {
+  id: string;
+  key: string;
+  category: string;
+  rarity: string;
+  target: number;
+  currentValue: number;
+  unlocked: boolean;
+  rewardXp: number;
+  rewardCoins: number;
+}
+
+export async function getAchievements(): Promise<AchievementItem[]> {
+  try {
+    const res = await apiFetch('/me/achievements', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as AchievementItem[];
+  } catch {
+    return [];
+  }
+}
+
 export async function logout() {
   await clearTokens();
 }

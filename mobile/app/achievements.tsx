@@ -1,204 +1,134 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Modal, Dimensions,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { C } from '../constants/design';
 import {
-  LightningIcon, TrophyIcon, IceIcon, ShieldIcon, ProcessorIcon,
-  InfinityPixelIcon, StarburstIcon, SunriseIcon, MoonIcon, CrownIcon,
-  FlameIcon, SpiralIcon, LockIcon,
+  LightningIcon, FlameIcon, IceIcon, StarburstIcon, ProcessorIcon,
 } from '../components/icons';
+import { useT } from '../lib/i18n';
+import { getAchievements, type AchievementItem } from '../lib/session';
 
-const ACHIEVEMENTS = [
-  { id: 'faisca',     label: 'Faisca',      desc: '7 dias seguidos',          icon: 'lightning', earned: true,  progress: 7,   goal: 7   },
-  { id: 'centuriao',  label: 'Centuriao',   desc: '100 commits realizados',   icon: 'star',      earned: true,  progress: 100, goal: 100 },
-  { id: 'constante',  label: 'Constante',   desc: '30 dias de streak',        icon: 'flame',     earned: true,  progress: 30,  goal: 30  },
-  { id: 'top1',       label: 'Top 1',       desc: 'Semana #1 na liga',        icon: 'trophy',    earned: true,  progress: 1,   goal: 1   },
-  { id: 'pioneiro',   label: 'Pioneiro',    desc: 'Primeiro commit da semana',icon: 'sunrise',   earned: true,  progress: 1,   goal: 1   },
-  { id: 'fundador',   label: 'Fundador',    desc: 'Criou uma squad',          icon: 'shield',    earned: true,  progress: 1,   goal: 1   },
-  { id: 'madrugador', label: 'Madrugador',  desc: 'Commit antes das 7h',      icon: 'moon',      earned: true,  progress: 1,   goal: 1   },
-  { id: 'arquiteto',  label: 'Arquiteto',   desc: 'Alcancou rank Architect',  icon: 'processor', earned: true,  progress: 1,   goal: 1   },
-  { id: 'inabalavelx',label: 'Inabalavel',  desc: '100 dias de streak',       icon: 'ice',       earned: false, progress: 14,  goal: 100, how: 'Mantenha 100 dias seguidos sem quebrar a ofensiva' },
-  { id: 'infinito',   label: 'Infinito',    desc: '365 dias de streak',       icon: 'infinity',  earned: false, progress: 14,  goal: 365, how: 'Um ano inteiro. Possivel, mas raro' },
-  { id: 'eletrico',   label: 'Eletrico',    desc: '10 commits em um dia',     icon: 'lightning', earned: false, progress: 4,   goal: 10,  how: 'Faca 10 commits em um unico dia' },
-  { id: 'lenda',      label: 'Lenda Viva',  desc: 'Alcance o rank Legend',    icon: 'spiral',    earned: false, progress: 0,   goal: 1,   how: 'Chegue ao topo do ranking semanal por 4 semanas consecutivas' },
-  { id: 'mestre',     label: 'Mestre',      desc: '1000 commits totais',      icon: 'crown',     earned: false, progress: 284, goal: 1000, how: 'Acumule 1000 commits no app' },
-  { id: 'noturno',    label: 'Noturno',     desc: 'Commit entre 0h-4h',       icon: 'moon',      earned: false, progress: 0,   goal: 1,   how: 'Faca um commit entre meia-noite e 4h da manha' },
-];
+const RARITY_COLOR: Record<string, string> = {
+  COMMON: C.text3, RARE: '#3a82f7', EPIC: C.purple, LEGENDARY: C.gold,
+};
 
-function AchievementIcon({ id, size = 28, dim = false }: { id: string; size?: number; dim?: boolean }) {
-  const color = dim ? C.text3 + '70' : undefined;
-  const icons: Record<string, React.ReactNode> = {
-    lightning:  <LightningIcon size={size} color={color ?? '#ffd97a'} />,
-    star:       <StarburstIcon size={size} color={color ?? C.gold} />,
-    flame:      <FlameIcon size={size} glowing={!dim} />,
-    trophy:     <TrophyIcon size={size} color={color ?? C.gold} />,
-    sunrise:    <SunriseIcon size={size} color={color ?? C.accent} />,
-    shield:     <ShieldIcon size={size} color={color ?? C.purple} />,
-    moon:       <MoonIcon size={size} color={color ?? '#c8b8f0'} />,
-    processor:  <ProcessorIcon size={size} color={color ?? '#3a82f7'} />,
-    ice:        <IceIcon size={size} color={color ?? '#7ab4e8'} />,
-    infinity:   <InfinityPixelIcon size={size} color={color ?? C.text2} />,
-    spiral:     <SpiralIcon size={size} color={color ?? C.accent} />,
-    crown:      <CrownIcon size={size} color={color ?? C.gold} />,
-  };
-  return <>{icons[id] ?? <StarburstIcon size={size} color={color ?? C.gold} />}</>;
+function Icon({ keyName, dim }: { keyName: string; dim: boolean }) {
+  const c = dim ? C.text3 : undefined;
+  switch (keyName) {
+    case 'spark': return <LightningIcon size={26} color={c ?? '#ffd97a'} />;
+    case 'consistent': return <FlameIcon size={26} glowing={!dim} />;
+    case 'unstoppable': return <IceIcon size={26} color={c ?? '#7ab4e8'} />;
+    case 'centurion': return <StarburstIcon size={26} color={c ?? C.gold} />;
+    case 'ascendant': return <ProcessorIcon size={26} color={c ?? '#3a82f7'} />;
+    default: return <StarburstIcon size={26} color={c ?? C.gold} />;
+  }
 }
 
-export default function AchievementsScreen() {
-  const insets = useSafeAreaInsets();
-  const [selected, setSelected] = useState<typeof ACHIEVEMENTS[0] | null>(null);
-
-  const earned = ACHIEVEMENTS.filter(a => a.earned);
-  const locked  = ACHIEVEMENTS.filter(a => !a.earned);
+function Card({ a, t }: { a: AchievementItem; t: ReturnType<typeof useT>['achievements'] }) {
+  const item = t.items[a.key as keyof typeof t.items] ?? { label: a.key, desc: '' };
+  const dim = !a.unlocked;
+  const rarityColor = RARITY_COLOR[a.rarity] ?? C.text3;
+  const progress = Math.min(1, a.currentValue / a.target);
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={s.title}>conquistas</Text>
-        <Text style={s.count}>{earned.length}/{ACHIEVEMENTS.length}</Text>
+    <View style={[s.card, { borderColor: dim ? C.surface2 : rarityColor + '55' }]}>
+      <View style={[s.iconWrap, { backgroundColor: dim ? C.surface2 : rarityColor + '18', opacity: dim ? 0.6 : 1 }]}>
+        <Icon keyName={a.key} dim={dim} />
       </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-        {/* Earned */}
-        <Text style={s.sectionTitle}>conquistadas · {earned.length}</Text>
-        <View style={s.grid}>
-          {earned.map(a => (
-            <TouchableOpacity key={a.id} style={s.badge} onPress={() => setSelected(a)} activeOpacity={0.8}>
-              <AchievementIcon id={a.icon} size={28} />
-              <Text style={s.badgeLabel}>{a.label}</Text>
-              <Text style={s.badgeDesc} numberOfLines={2}>{a.desc}</Text>
-            </TouchableOpacity>
-          ))}
+      <View style={{ flex: 1 }}>
+        <View style={s.nameRow}>
+          <Text style={[s.name, dim && { color: C.text3 }]}>{item.label}</Text>
+          {a.unlocked && <Text style={[s.tag, { color: rarityColor }]}>✓</Text>}
         </View>
-
-        {/* Locked */}
-        <Text style={[s.sectionTitle, { marginTop: 8 }]}>bloqueadas · {locked.length}</Text>
-        {locked.map(a => (
-          <TouchableOpacity key={a.id} style={s.lockedRow} onPress={() => setSelected(a)} activeOpacity={0.8}>
-            <View style={s.lockedIconWrap}>
-              <AchievementIcon id={a.icon} size={28} dim />
-              <View style={s.lockOverlayIcon}><LockIcon size={12} color={C.text3} /></View>
+        <Text style={s.desc}>{item.desc}</Text>
+        {!a.unlocked && (
+          <View style={s.progressWrap}>
+            <View style={s.progressBar}>
+              <View style={[s.progressFill, { width: `${progress * 100}%` }]} />
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.badgeLabel, { opacity: 0.5 }]}>{a.label}</Text>
-              <Text style={[s.badgeDesc, { opacity: 0.45 }]}>{a.desc}</Text>
-              {/* Progress bar */}
-              <View style={s.progressTrack}>
-                <View style={[s.progressFill, { width: `${Math.min(100, (a.progress / a.goal) * 100)}%` as any }]} />
-              </View>
-              <Text style={s.progressText}>{a.progress} / {a.goal}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        <View style={{ height: 32 }} />
-      </ScrollView>
-
-      {/* Detail modal */}
-      <Modal visible={!!selected} transparent animationType="slide" onRequestClose={() => setSelected(null)}>
-        <TouchableOpacity style={s.modalBackdrop} activeOpacity={1} onPress={() => setSelected(null)}>
-          <View style={s.modalSheet}>
-            {selected && (
-              <>
-                <View style={{ marginBottom: 4 }}>
-                  <AchievementIcon id={selected.icon} size={52} dim={!selected.earned} />
-                </View>
-                <Text style={s.modalTitle}>{selected.label}</Text>
-                <Text style={s.modalDesc}>{selected.desc}</Text>
-                {selected.earned ? (
-                  <View style={s.earnedBadge}>
-                    <Text style={s.earnedBadgeText}>conquista desbloqueada</Text>
-                  </View>
-                ) : (
-                  <>
-                    <View style={s.progressTrack}>
-                      <View style={[s.progressFill, { width: `${Math.min(100, (selected.progress / selected.goal) * 100)}%` as any }]} />
-                    </View>
-                    <Text style={s.progressText}>{selected.progress} / {selected.goal}</Text>
-                    <Text style={s.howToText}>{(selected as any).how}</Text>
-                  </>
-                )}
-              </>
-            )}
+            <Text style={s.progressTxt}>{a.currentValue}/{a.target}</Text>
           </View>
-        </TouchableOpacity>
-      </Modal>
+        )}
+      </View>
     </View>
   );
 }
 
-const BADGE_W = (Dimensions.get('window').width - 18 * 2 - 10) / 2;
+export default function AchievementsScreen() {
+  const insets = useSafeAreaInsets();
+  const t = useT().achievements;
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [items, setItems] = useState<AchievementItem[]>([]);
+
+  const load = async () => setItems(await getAchievements());
+  useEffect(() => { (async () => { await load(); setLoading(false); })(); }, []);
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+
+  const unlocked = items.filter((a) => a.unlocked);
+  const locked = items.filter((a) => !a.unlocked);
+
+  return (
+    <View style={[s.screen, { paddingTop: insets.top }]}>
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={10} style={{ width: 24 }}>
+          <Text style={s.back}>←</Text>
+        </TouchableOpacity>
+        <Text style={s.title}>{t.title}</Text>
+        <Text style={s.count}>{unlocked.length}/{items.length}</Text>
+      </View>
+
+      {loading ? (
+        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={s.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        >
+          {unlocked.length > 0 && <Text style={s.section}>{t.unlocked}</Text>}
+          {unlocked.map((a) => <Card key={a.id} a={a} t={t} />)}
+          {locked.length > 0 && <Text style={s.section}>{t.locked}</Text>}
+          {locked.map((a) => <Card key={a.id} a={a} t={t} />)}
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      )}
+    </View>
+  );
+}
 
 const s = StyleSheet.create({
-  screen:  { flex: 1, backgroundColor: C.bg },
-  content: { paddingHorizontal: 18, gap: 12 },
-
+  screen: { flex: 1, backgroundColor: C.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 12,
   },
-  backBtn: { padding: 4, marginRight: 8 },
-  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, flex: 1 },
-  count:  { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
-
-  sectionTitle: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, textTransform: 'lowercase',
+  back: { fontSize: 24, color: C.text },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
+  count: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, width: 40, textAlign: 'right' },
+  content: { paddingHorizontal: 20 },
+  section: {
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, letterSpacing: 0.1,
+    textTransform: 'uppercase', color: C.text3, marginTop: 18, marginBottom: 10,
   },
-
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  badge: {
-    width: BADGE_W, backgroundColor: C.surface,
-    borderRadius: 12, borderWidth: 1, borderColor: C.surface2,
-    padding: 14, alignItems: 'center', gap: 4,
+  card: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: C.surface, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 8,
   },
-  badgeLabel: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text, textAlign: 'center' },
-  badgeDesc:  { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, textAlign: 'center' },
-
-  lockedRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2, padding: 12,
+  iconWrap: {
+    width: 48, height: 48, borderRadius: 10,
+    alignItems: 'center', justifyContent: 'center',
   },
-  lockedIconWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  lockOverlayIcon: { position: 'absolute', bottom: 0, right: 0 },
-
-  progressTrack: {
-    height: 3, backgroundColor: C.surface2, borderRadius: 2,
-    overflow: 'hidden', marginTop: 6,
-  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  name: { fontFamily: 'Lora_400Regular', fontSize: 16, color: C.text },
+  tag: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13 },
+  desc: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3, marginTop: 2 },
+  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  progressBar: { flex: 1, height: 4, backgroundColor: C.surface2, borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: '100%', backgroundColor: C.accent, borderRadius: 2 },
-  progressText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: 3 },
-
-  modalBackdrop: {
-    flex: 1, backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    borderWidth: 1, borderColor: C.surface2,
-    padding: 28, alignItems: 'center', gap: 10,
-  },
-  modalTitle: { fontFamily: 'Lora_400Regular', fontSize: 22, color: C.text },
-  modalDesc:  { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center' },
-  earnedBadge: {
-    backgroundColor: C.success + '20', borderRadius: 6,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderWidth: 1, borderColor: C.success + '40',
-  },
-  earnedBadgeText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.success },
-  howToText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text2, textAlign: 'center', lineHeight: 18,
-  },
+  progressTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
 });
