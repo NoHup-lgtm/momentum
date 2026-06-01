@@ -18,4 +18,9 @@ export class ShopController {
   buy(@AuthUser() user: AuthUserDto, @Param('id') id: string) {
     return this.shop.buy(user.id, id);
   }
+
+  @Post(':id/equip')
+  equip(@AuthUser() user: AuthUserDto, @Param('id') id: string) {
+    return this.shop.equip(user.id, id);
+  }
 }
