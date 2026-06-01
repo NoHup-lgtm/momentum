@@ -55,6 +55,7 @@ function RootNavigator() {
           <Stack.Screen name="user-profile" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="feed"         options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="subscription" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="settings"     options={{ animation: 'slide_from_right' }} />
         </Stack>
 
         {/* White flash on theme activation */}

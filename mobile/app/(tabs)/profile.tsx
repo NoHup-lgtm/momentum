@@ -182,7 +182,7 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={s.header}>
           <Text style={s.title}>perfil</Text>
-          <TouchableOpacity style={s.settingsBtn}>
+          <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
             <ProcessorIcon size={18} color={C.text3} />
           </TouchableOpacity>
         </View>

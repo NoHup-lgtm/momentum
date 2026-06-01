@@ -41,6 +41,17 @@ export const strings = {
       noActivity: 'Ainda sem atividade esta semana.',
       leave: 'Sair da squad',
     },
+    settings: {
+      title: 'configurações',
+      language: 'Idioma',
+      appearance: 'Aparência',
+      theme: 'Tema',
+      dark: 'Escuro',
+      lightSoon: 'modo claro em breve',
+      account: 'Conta',
+      logout: 'Sair da conta',
+      version: 'versão',
+    },
   },
   en: {
     common: {
@@ -79,6 +90,17 @@ export const strings = {
       copied: 'copied!',
       noActivity: 'No activity yet this week.',
       leave: 'Leave squad',
+    },
+    settings: {
+      title: 'settings',
+      language: 'Language',
+      appearance: 'Appearance',
+      theme: 'Theme',
+      dark: 'Dark',
+      lightSoon: 'light mode coming soon',
+      account: 'Account',
+      logout: 'Log out',
+      version: 'version',
     },
   },
 } as const;
