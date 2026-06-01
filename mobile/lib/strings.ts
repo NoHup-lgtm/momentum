@@ -81,6 +81,21 @@ export const strings = {
         ascendant: { label: 'Ascendente', desc: '1000 XP acumulado' },
       },
     },
+    shop: {
+      title: 'loja',
+      buy: 'comprar',
+      owned: 'adquirido',
+      insufficient: 'moedas insuficientes',
+      items: {
+        dev_cap: 'Boné Dev', hacker_beanie: 'Gorro Hacker', desk_plant: 'Planta de Mesa',
+        clone_hoodie: 'Hoodie Clone', hack_glasses: 'Óculos Hack', mech_keyboard: 'Teclado Mecânico',
+        space_helmet: 'Capacete Espacial', matrix_bg: 'Fundo Matrix',
+      },
+    },
+    chests: {
+      title: 'baús', open: 'abrir', empty: 'Sem baús no momento.',
+      youGot: 'você ganhou', close: 'fechar',
+    },
   },
   en: {
     common: {
@@ -159,6 +174,21 @@ export const strings = {
         centurion: { label: 'Centurion', desc: '100 commits' },
         ascendant: { label: 'Ascendant', desc: '1000 total XP' },
       },
+    },
+    shop: {
+      title: 'shop',
+      buy: 'buy',
+      owned: 'owned',
+      insufficient: 'not enough coins',
+      items: {
+        dev_cap: 'Dev Cap', hacker_beanie: 'Hacker Beanie', desk_plant: 'Desk Plant',
+        clone_hoodie: 'Clone Hoodie', hack_glasses: 'Hack Glasses', mech_keyboard: 'Mech Keyboard',
+        space_helmet: 'Space Helmet', matrix_bg: 'Matrix Background',
+      },
+    },
+    chests: {
+      title: 'chests', open: 'open', empty: 'No chests right now.',
+      youGot: 'you got', close: 'close',
     },
   },
 } as const;

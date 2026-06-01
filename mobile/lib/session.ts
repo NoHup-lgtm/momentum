@@ -363,6 +363,65 @@ export async function getAchievements(): Promise<AchievementItem[]> {
   }
 }
 
+// ── Shop ──────────────────────────────────────────────────────────────────────
+export interface ShopItem {
+  id: string;
+  key: string;
+  category: string;
+  rarity: string;
+  priceCoins: number;
+  owned: boolean;
+}
+export interface Shop {
+  coins: number;
+  gems: number;
+  items: ShopItem[];
+}
+
+export async function getShop(): Promise<Shop | null> {
+  try {
+    const res = await apiFetch('/me/shop', { method: 'GET' });
+    if (!res.ok) return null;
+    return (await res.json()) as Shop;
+  } catch {
+    return null;
+  }
+}
+
+export async function buyItem(id: string): Promise<Shop> {
+  const res = await apiFetch(`/me/shop/${id}/buy`, { method: 'POST' });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as Shop;
+}
+
+// ── Chests ────────────────────────────────────────────────────────────────────
+export interface PendingChest {
+  id: string;
+  rarity: string;
+  source: string;
+  earnedAt: string;
+}
+export interface ChestReward {
+  type: string;
+  amount: number;
+}
+
+export async function getChests(): Promise<PendingChest[]> {
+  try {
+    const res = await apiFetch('/me/chests', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as PendingChest[];
+  } catch {
+    return [];
+  }
+}
+
+export async function openChest(id: string): Promise<{ rarity: string; rewards: ChestReward[] } | null> {
+  const res = await apiFetch(`/me/chests/${id}/open`, { method: 'POST' });
+  if (!res.ok) return null;
+  return (await res.json()) as { rarity: string; rewards: ChestReward[] };
+}
+
 export async function logout() {
   await clearTokens();
 }
