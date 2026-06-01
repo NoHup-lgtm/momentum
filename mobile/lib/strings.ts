@@ -52,6 +52,15 @@ export const strings = {
       logout: 'Sair da conta',
       version: 'versão',
     },
+    challenges: {
+      section: 'desafios do dia',
+      claim: 'coletar',
+      items: {
+        commit_today: { label: 'Commit do dia', desc: 'Faça pelo menos 1 commit hoje' },
+        commit_marathon: { label: 'Maratona', desc: 'Faça 5 commits hoje' },
+        keep_streak: { label: 'Mantenha a chama', desc: 'Mantenha a ofensiva por 3 dias' },
+      },
+    },
   },
   en: {
     common: {
@@ -101,6 +110,15 @@ export const strings = {
       account: 'Account',
       logout: 'Log out',
       version: 'version',
+    },
+    challenges: {
+      section: "today's challenges",
+      claim: 'claim',
+      items: {
+        commit_today: { label: 'Daily commit', desc: 'Make at least 1 commit today' },
+        commit_marathon: { label: 'Marathon', desc: 'Make 5 commits today' },
+        keep_streak: { label: 'Keep the flame', desc: 'Keep a 3-day streak' },
+      },
     },
   },
 } as const;

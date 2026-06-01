@@ -268,6 +268,37 @@ export async function leaveSquad(): Promise<void> {
   await apiFetch('/squads/me/leave', { method: 'POST' });
 }
 
+// ── Daily challenges ──────────────────────────────────────────────────────────
+export interface DailyChallenge {
+  id: string;
+  key: string;
+  target: number;
+  rewardXp: number;
+  rewardCoins: number;
+  currentValue: number;
+  completed: boolean;
+  claimed: boolean;
+}
+
+export async function getChallenges(): Promise<DailyChallenge[]> {
+  try {
+    const res = await apiFetch('/me/challenges', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as DailyChallenge[];
+  } catch {
+    return [];
+  }
+}
+
+export async function claimChallenge(id: string): Promise<boolean> {
+  try {
+    const res = await apiFetch(`/me/challenges/${id}/claim`, { method: 'POST' });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function logout() {
   await clearTokens();
 }

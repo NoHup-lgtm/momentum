@@ -17,7 +17,12 @@ import ShareStreakCard from '../../components/home/ShareStreakCard';
 import PendingChestsCard from '../../components/home/PendingChestsCard';
 import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
 import { useAppStore } from '../../store/app';
-import { syncGithub, getGithubToday, meToStoreUser, type RepoCommits } from '../../lib/session';
+import {
+  syncGithub, getGithubToday, meToStoreUser, fetchMe,
+  getChallenges, claimChallenge,
+  type RepoCommits, type DailyChallenge,
+} from '../../lib/session';
+import { useT } from '../../lib/i18n';
 
 const { width: W } = Dimensions.get('window');
 
@@ -186,6 +191,7 @@ function DailyChallengeCard({
   onClaim: (id: string) => void;
 }) {
   const { colors } = useTheme();
+  const tc = useT().challenges;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim  = useRef(new Animated.Value(0)).current;
 
@@ -237,7 +243,7 @@ function DailyChallengeCard({
           onPress={handleClaim}
           activeOpacity={0.8}
         >
-          <Text style={s.claimBtnText}>coletar</Text>
+          <Text style={s.claimBtnText}>{tc.claim}</Text>
         </TouchableOpacity>
       )}
 
@@ -274,19 +280,30 @@ export default function HomeScreen() {
     : MOCK_USER;
 
   const setUser = useAppStore((s) => s.setUser);
+  const tc = useT().challenges;
   const [todayCommits, setTodayCommits] = useState<RepoCommits[]>([]);
-  const [challenges, setChallenges] = useState(MOCK_CHALLENGES);
+  const [rawChallenges, setRawChallenges] = useState<DailyChallenge[]>([]);
   const [showMilestone, setShowMilestone] = useState(false);
   const [showLevelUp, setShowLevelUp]     = useState(false);
   const [showFreeze, setShowFreeze]       = useState(false);
   const [freezesLeft, setFreezesLeft]     = useState(user.freezesLeft);
 
-  // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista de hoje.
+  // Desafios reais → formato do card (localizado pela chave).
+  const challenges = rawChallenges.map((c) => {
+    const item = tc.items[c.key as keyof typeof tc.items] ?? { label: c.key, desc: '' };
+    return {
+      id: c.id, label: item.label, desc: item.desc,
+      xp: c.rewardXp, coins: c.rewardCoins, done: c.completed, claimed: c.claimed,
+    };
+  });
+
+  // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista + desafios.
   React.useEffect(() => {
     (async () => {
       const me = await syncGithub();
       if (me) setUser(meToStoreUser(me));
       setTodayCommits(await getGithubToday());
+      setRawChallenges(await getChallenges());
     })();
   }, []);
 
@@ -299,10 +316,13 @@ export default function HomeScreen() {
     }
   }, []);
 
-  const claim = (id: string) => {
-    setChallenges(prev =>
-      prev.map(c => c.id === id ? { ...c, claimed: true } : c)
-    );
+  const claim = async (id: string) => {
+    const ok = await claimChallenge(id);
+    if (ok) {
+      setRawChallenges(await getChallenges());
+      const me = await fetchMe();
+      if (me) setUser(meToStoreUser(me));
+    }
   };
 
   const { colors } = useTheme();
@@ -352,7 +372,7 @@ export default function HomeScreen() {
 
         {/* Daily challenges */}
         <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>desafios do dia</Text>
+          <Text style={s.sectionTitle}>{tc.section}</Text>
           <Text style={s.sectionSub}>
             {challenges.filter(c => c.done || c.claimed).length}/{challenges.length}
           </Text>
