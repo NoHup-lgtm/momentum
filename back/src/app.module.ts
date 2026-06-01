@@ -5,9 +5,10 @@ import { AuthModule } from './auth/auth.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { UserModule } from './user/user.module.js';
 import { GithubModule } from './github/github.module.js';
+import { SquadModule } from './squad/squad.module.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, GithubModule],
+  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule],
   controllers: [AppController],
   providers: [AppService],
 })
