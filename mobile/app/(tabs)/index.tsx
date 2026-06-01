@@ -188,7 +188,8 @@ function DailyChallengeCard({
   const { colors } = useTheme();
   const tc = useT().challenges;
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim  = useRef(new Animated.Value(0)).current;
+  // já começa visível se o desafio veio coletado do servidor
+  const fadeAnim  = useRef(new Animated.Value(challenge.claimed ? 1 : 0)).current;
 
   const handleClaim = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
