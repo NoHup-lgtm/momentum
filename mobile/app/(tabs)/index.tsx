@@ -87,7 +87,7 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
 
       <View style={s.streakTop}>
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-          <FlameIcon size={36} />
+          <FlameIcon size={36} glowing={streak > 0} />
         </Animated.View>
 
         <View style={{ flex: 1, marginLeft: 16 }}>
@@ -317,12 +317,15 @@ export default function HomeScreen() {
   }, []);
 
   const claim = async (id: string) => {
+    // otimista: esconde o botão na hora
+    setRawChallenges((prev) => prev.map((c) => (c.id === id ? { ...c, claimed: true } : c)));
     const ok = await claimChallenge(id);
     if (ok) {
-      setRawChallenges(await getChallenges());
       const me = await fetchMe();
       if (me) setUser(meToStoreUser(me));
     }
+    // reconcilia com o servidor (reverte se falhou)
+    setRawChallenges(await getChallenges());
   };
 
   const { colors } = useTheme();
