@@ -177,6 +177,67 @@ export async function getHeatmap(): Promise<ContributionDay[]> {
   return (await res.json()) as ContributionDay[];
 }
 
+// ── Squad ─────────────────────────────────────────────────────────────────────
+export interface SquadMember {
+  userId: string;
+  githubLogin: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string;
+  level: number;
+  currentStreak: number;
+  role: string;
+  weeklyXp?: number;
+}
+export interface Squad {
+  id: string;
+  name: string;
+  description: string | null;
+  rank: string;
+  maxMembers: number;
+  isOwner: boolean;
+  memberCount: number;
+  members: SquadMember[];
+}
+
+export async function getMySquad(): Promise<Squad | null> {
+  const res = await apiFetch('/squads/me', { method: 'GET' });
+  if (!res.ok) return null;
+  return ((await res.json()) as Squad | null) ?? null;
+}
+
+export async function getSquadLeaderboard(): Promise<SquadMember[]> {
+  const res = await apiFetch('/squads/me/leaderboard', { method: 'GET' });
+  if (!res.ok) return [];
+  return (await res.json()) as SquadMember[];
+}
+
+export async function createSquad(name: string, description?: string): Promise<Squad> {
+  const res = await apiFetch('/squads', {
+    method: 'POST',
+    body: JSON.stringify({ name, description }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as Squad;
+}
+
+export async function joinSquad(code: string): Promise<Squad> {
+  const res = await apiFetch('/squads/join', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as Squad;
+}
+
+export async function createSquadInvite(): Promise<string> {
+  const res = await apiFetch('/squads/me/invite', { method: 'POST' });
+  if (!res.ok) throw new Error(await readError(res));
+  const data = (await res.json()) as { code: string };
+  return data.code;
+}
+
 export async function logout() {
   await clearTokens();
 }
