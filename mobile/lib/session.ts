@@ -370,7 +370,9 @@ export interface ShopItem {
   category: string;
   rarity: string;
   priceCoins: number;
+  priceGems: number;
   owned: boolean;
+  equipped: boolean;
 }
 export interface Shop {
   coins: number;
@@ -390,6 +392,12 @@ export async function getShop(): Promise<Shop | null> {
 
 export async function buyItem(id: string): Promise<Shop> {
   const res = await apiFetch(`/me/shop/${id}/buy`, { method: 'POST' });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as Shop;
+}
+
+export async function equipItem(id: string): Promise<Shop> {
+  const res = await apiFetch(`/me/shop/${id}/equip`, { method: 'POST' });
   if (!res.ok) throw new Error(await readError(res));
   return (await res.json()) as Shop;
 }
