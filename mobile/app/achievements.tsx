@@ -5,9 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { C } from '../constants/design';
-import {
-  LightningIcon, FlameIcon, IceIcon, StarburstIcon, ProcessorIcon,
-} from '../components/icons';
+import { FlameIcon, StarburstIcon, ProcessorIcon } from '../components/icons';
 import { useT } from '../lib/i18n';
 import { getAchievements, type AchievementItem } from '../lib/session';
 
@@ -15,14 +13,12 @@ const RARITY_COLOR: Record<string, string> = {
   COMMON: C.text3, RARE: '#3a82f7', EPIC: C.purple, LEGENDARY: C.gold,
 };
 
-function Icon({ keyName, dim }: { keyName: string; dim: boolean }) {
+function Icon({ category, dim }: { category: string; dim: boolean }) {
   const c = dim ? C.text3 : undefined;
-  switch (keyName) {
-    case 'spark': return <LightningIcon size={26} color={c ?? '#ffd97a'} />;
-    case 'consistent': return <FlameIcon size={26} glowing={!dim} />;
-    case 'unstoppable': return <IceIcon size={26} color={c ?? '#7ab4e8'} />;
-    case 'centurion': return <StarburstIcon size={26} color={c ?? C.gold} />;
-    case 'ascendant': return <ProcessorIcon size={26} color={c ?? '#3a82f7'} />;
+  switch (category) {
+    case 'STREAK': return <FlameIcon size={26} glowing={!dim} />;
+    case 'COMMIT': return <StarburstIcon size={26} color={c ?? C.gold} />;
+    case 'RANK': return <ProcessorIcon size={26} color={c ?? '#3a82f7'} />;
     default: return <StarburstIcon size={26} color={c ?? C.gold} />;
   }
 }
@@ -36,7 +32,7 @@ function Card({ a, t }: { a: AchievementItem; t: ReturnType<typeof useT>['achiev
   return (
     <View style={[s.card, { borderColor: dim ? C.surface2 : rarityColor + '55' }]}>
       <View style={[s.iconWrap, { backgroundColor: dim ? C.surface2 : rarityColor + '18', opacity: dim ? 0.6 : 1 }]}>
-        <Icon keyName={a.key} dim={dim} />
+        <Icon category={a.category} dim={dim} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={s.nameRow}>

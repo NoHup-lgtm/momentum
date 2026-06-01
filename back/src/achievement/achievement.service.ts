@@ -5,11 +5,23 @@ import { levelFromXp } from '../common/leveling.js';
 // Catálogo de conquistas. Chave estável em `title`; o mobile localiza pela chave.
 // metric: como o currentValue é computado (maxStreak | commits | xp).
 const CATALOG = [
-  { key: 'spark',       category: 'STREAK' as const, rarity: 'COMMON' as const,    metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,        target: 7,    xp: 100,  coins: 20 },
-  { key: 'consistent',  category: 'STREAK' as const, rarity: 'RARE' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,        target: 30,   xp: 300,  coins: 60 },
-  { key: 'unstoppable', category: 'STREAK' as const, rarity: 'EPIC' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,        target: 100,  xp: 1000, coins: 200 },
-  { key: 'centurion',   category: 'COMMIT' as const, rarity: 'RARE' as const,      metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const,  target: 100,  xp: 400,  coins: 80 },
-  { key: 'ascendant',   category: 'RANK' as const,   rarity: 'RARE' as const,      metric: 'xp' as const,        dbMetric: 'TOTAL_XP' as const,          target: 1000, xp: 200,  coins: 40 },
+  // ── Commits ──
+  { key: 'hello_world',  category: 'COMMIT' as const, rarity: 'COMMON' as const,    metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const, target: 1,    xp: 50,   coins: 10 },
+  { key: 'prolific',     category: 'COMMIT' as const, rarity: 'COMMON' as const,    metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const, target: 50,   xp: 150,  coins: 30 },
+  { key: 'centurion',    category: 'COMMIT' as const, rarity: 'RARE' as const,      metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const, target: 100,  xp: 400,  coins: 80 },
+  { key: 'machine',      category: 'COMMIT' as const, rarity: 'EPIC' as const,      metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const, target: 500,  xp: 1500, coins: 300 },
+  { key: 'code_legend',  category: 'COMMIT' as const, rarity: 'LEGENDARY' as const, metric: 'commits' as const,   dbMetric: 'DAILY_ACTIVITIES' as const, target: 1000, xp: 3000, coins: 600 },
+  // ── Streak ──
+  { key: 'spark',        category: 'STREAK' as const, rarity: 'COMMON' as const,    metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 7,    xp: 100,  coins: 20 },
+  { key: 'two_weeks',    category: 'STREAK' as const, rarity: 'RARE' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 14,   xp: 200,  coins: 40 },
+  { key: 'consistent',   category: 'STREAK' as const, rarity: 'RARE' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 30,   xp: 300,  coins: 60 },
+  { key: 'half_century', category: 'STREAK' as const, rarity: 'EPIC' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 50,   xp: 800,  coins: 150 },
+  { key: 'unstoppable',  category: 'STREAK' as const, rarity: 'EPIC' as const,      metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 100,  xp: 1500, coins: 300 },
+  { key: 'year_of_fire', category: 'STREAK' as const, rarity: 'LEGENDARY' as const, metric: 'maxStreak' as const, dbMetric: 'MAX_STREAK' as const,       target: 365,  xp: 5000, coins: 1000 },
+  // ── XP / Rank ──
+  { key: 'ascendant',    category: 'RANK' as const,   rarity: 'RARE' as const,      metric: 'xp' as const,        dbMetric: 'TOTAL_XP' as const,         target: 1000, xp: 200,  coins: 40 },
+  { key: 'veteran',      category: 'RANK' as const,   rarity: 'EPIC' as const,      metric: 'xp' as const,        dbMetric: 'TOTAL_XP' as const,         target: 5000, xp: 800,  coins: 150 },
+  { key: 'living_legend',category: 'RANK' as const,   rarity: 'LEGENDARY' as const, metric: 'xp' as const,        dbMetric: 'TOTAL_XP' as const,         target: 10000,xp: 2000, coins: 400 },
 ];
 
 export interface AchievementView {
