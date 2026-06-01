@@ -39,6 +39,7 @@ export const strings = {
       inviteHint: 'Compartilhe esse código — toque pra copiar.',
       copied: 'copiado!',
       noActivity: 'Ainda sem atividade esta semana.',
+      leave: 'Sair da squad',
     },
   },
   en: {
@@ -77,6 +78,7 @@ export const strings = {
       inviteHint: 'Share this code — tap to copy.',
       copied: 'copied!',
       noActivity: 'No activity yet this week.',
+      leave: 'Leave squad',
     },
   },
 } as const;

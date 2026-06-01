@@ -186,6 +186,16 @@ export class SquadService {
       .sort((a, b) => (b.weeklyXp ?? 0) - (a.weeklyXp ?? 0));
   }
 
+  async leaveSquad(userId: string): Promise<{ ok: true }> {
+    const m = await this.activeMembership(userId);
+    if (!m) throw new NotFoundException('Você não está em uma squad');
+    await this.prisma.squadMember.update({
+      where: { userId_squadId: { userId, squadId: m.squadId } },
+      data: { isActive: false },
+    });
+    return { ok: true };
+  }
+
   async createInvite(userId: string): Promise<{ code: string }> {
     const membership = await this.activeMembership(userId);
     if (!membership) throw new NotFoundException('Você não está em uma squad');

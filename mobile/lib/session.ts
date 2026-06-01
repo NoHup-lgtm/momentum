@@ -238,6 +238,10 @@ export async function createSquadInvite(): Promise<string> {
   return data.code;
 }
 
+export async function leaveSquad(): Promise<void> {
+  await apiFetch('/squads/me/leave', { method: 'POST' });
+}
+
 export async function logout() {
   await clearTokens();
 }

@@ -36,4 +36,9 @@ export class SquadController {
   invite(@AuthUser() user: AuthUserDto) {
     return this.squad.createInvite(user.id);
   }
+
+  @Post('me/leave')
+  leave(@AuthUser() user: AuthUserDto) {
+    return this.squad.leaveSquad(user.id);
+  }
 }

@@ -10,7 +10,7 @@ import { XPIcon, SpiralIcon } from '../../components/icons';
 import { AvatarRing } from '../../components/ui';
 import { useT } from '../../lib/i18n';
 import {
-  getMySquad, getSquadLeaderboard, createSquad, joinSquad, createSquadInvite,
+  getMySquad, getSquadLeaderboard, createSquad, joinSquad, createSquadInvite, leaveSquad,
   type Squad, type SquadMember,
 } from '../../lib/session';
 
@@ -63,6 +63,14 @@ export default function SquadScreen() {
       const c = await createSquadInvite();
       await Share.share({ message: `momentum · ${c}` });
     } catch (e) { setErr(e instanceof Error ? e.message : 'erro'); }
+  }
+
+  async function handleLeave() {
+    if (busy) return;
+    setBusy(true);
+    try { await leaveSquad(); await load(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'erro'); }
+    finally { setBusy(false); }
   }
 
   if (loading) {
@@ -159,6 +167,10 @@ export default function SquadScreen() {
                 </View>
               );
             })}
+
+            <TouchableOpacity style={s.leaveBtn} onPress={handleLeave} disabled={busy}>
+              <Text style={s.leaveTxt}>{t.leave}</Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -224,4 +236,6 @@ const s = StyleSheet.create({
   memberRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, marginTop: 3 },
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   xpTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text2 },
+  leaveBtn: { alignSelf: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 18 },
+  leaveTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.danger },
 });
