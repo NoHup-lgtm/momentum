@@ -19,10 +19,14 @@ import SubscriptionBanner from '../../components/subscription/SubscriptionBanner
 import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe,
-  getChallenges, claimChallenge,
-  type RepoCommits, type DailyChallenge,
+  getChallenges, claimChallenge, getMySquad,
+  type RepoCommits, type DailyChallenge, type Squad,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
+
+// SquadRank do backend (GARAGE, BIG_TECH…) → label legível.
+const prettyRank = (r: string) =>
+  r.split('_').map((w) => w[0] + w.slice(1).toLowerCase()).join(' ');
 
 const { width: W } = Dimensions.get('window');
 
@@ -40,17 +44,6 @@ const MOCK_USER = {
   avatarVariant: 0,
   freezesLeft: 2,
   committedToday: true,
-};
-
-const MOCK_SQUAD = {
-  name: 'Void Runners',
-  rank: 2,
-  members: [
-    { username: 'araujo', streak: 14, avatarVariant: 0, rankId: 'build' as const },
-    { username: 'moyza',  streak: 9,  avatarVariant: 1, rankId: 'init'  as const },
-    { username: 'dev_k',  streak: 21, avatarVariant: 2, rankId: 'deploy' as const },
-    { username: 'cata',   streak: 5,  avatarVariant: 3, rankId: 'init'  as const },
-  ],
 };
 
 const PENDING_CHESTS = { count: 3, topRarity: 'epico' as const };
@@ -146,7 +139,9 @@ function XPCard({ user }: { user: typeof MOCK_USER }) {
 }
 
 // ── Squad Mini Card ───────────────────────────────────────────────────────────
-function SquadMiniCard({ squad }: { squad: typeof MOCK_SQUAD }) {
+function SquadMiniCard({ squad }: {
+  squad: { name: string; rankLabel: string; members: { avatarVariant: number; rankId: RankId; streak: number }[] };
+}) {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
@@ -157,7 +152,7 @@ function SquadMiniCard({ squad }: { squad: typeof MOCK_SQUAD }) {
       <View style={s.squadHeader}>
         <Text style={s.squadName}>{squad.name}</Text>
         <View style={[s.squadRankBadge, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '30' }]}>
-          <Text style={[s.squadRankText, { color: colors.accent }]}>#{squad.rank}</Text>
+          <Text style={[s.squadRankText, { color: colors.accent }]}>{squad.rankLabel}</Text>
         </View>
       </View>
 
@@ -168,7 +163,7 @@ function SquadMiniCard({ squad }: { squad: typeof MOCK_SQUAD }) {
             <View key={i} style={s.squadMember}>
               <AvatarRing size={34} variant={m.avatarVariant} rankId={m.rankId} />
               <View style={s.memberStreak}>
-                <FlameIcon size={10} />
+                <FlameIcon size={10} glowing={m.streak > 0} />
                 <Text style={s.memberStreakText}>{m.streak}</Text>
               </View>
             </View>
@@ -283,6 +278,7 @@ export default function HomeScreen() {
   const tc = useT().challenges;
   const [todayCommits, setTodayCommits] = useState<RepoCommits[]>([]);
   const [rawChallenges, setRawChallenges] = useState<DailyChallenge[]>([]);
+  const [homeSquad, setHomeSquad] = useState<Squad | null>(null);
   const [showMilestone, setShowMilestone] = useState(false);
   const [showLevelUp, setShowLevelUp]     = useState(false);
   const [showFreeze, setShowFreeze]       = useState(false);
@@ -304,8 +300,22 @@ export default function HomeScreen() {
       if (me) setUser(meToStoreUser(me));
       setTodayCommits(await getGithubToday());
       setRawChallenges(await getChallenges());
+      setHomeSquad(await getMySquad());
     })();
   }, []);
+
+  // Squad real → formato do mini-card.
+  const squadMini = homeSquad
+    ? {
+        name: homeSquad.name,
+        rankLabel: prettyRank(homeSquad.rank),
+        members: homeSquad.members.map((m) => ({
+          avatarVariant: m.avatarVariant,
+          rankId: m.rank.toLowerCase() as RankId,
+          streak: m.currentStreak,
+        })),
+      }
+    : null;
 
   // Auto-show milestone on mount if streak is a milestone
   React.useEffect(() => {
@@ -371,7 +381,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         {/* Squad mini */}
-        <SquadMiniCard squad={MOCK_SQUAD} />
+        {squadMini && <SquadMiniCard squad={squadMini} />}
 
         {/* Daily challenges */}
         <View style={s.sectionHeader}>
