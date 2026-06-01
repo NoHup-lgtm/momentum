@@ -8,9 +8,10 @@ import { GithubModule } from './github/github.module.js';
 import { SquadModule } from './squad/squad.module.js';
 import { ChallengeModule } from './challenge/challenge.module.js';
 import { LeaderboardModule } from './leaderboard/leaderboard.module.js';
+import { AchievementModule } from './achievement/achievement.module.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule],
+  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule],
   controllers: [AppController],
   providers: [AppService],
 })
