@@ -15,7 +15,10 @@ import {
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 import { useAppStore } from '../../store/app';
-import { getHeatmap, logout, getAchievements, getEquipped, type AchievementItem } from '../../lib/session';
+import {
+  getHeatmap, logout, getAchievements, getEquipped, getFriends,
+  type AchievementItem, type FriendRow,
+} from '../../lib/session';
 import { useT } from '../../lib/i18n';
 
 // converte contagem de commits em intensidade 0–5 para o heatmap
@@ -39,13 +42,6 @@ const USER = {
   gems: 15,
   avatarVariant: 0,
 };
-
-const FRIENDS = [
-  { username: 'moyza',  streak: 9,  rankId: 'init'   as RankId, avatarVariant: 1, isOnline: false },
-  { username: 'dev_k',  streak: 21, rankId: 'deploy' as RankId, avatarVariant: 2, isOnline: true  },
-  { username: 'cata',   streak: 5,  rankId: 'init'   as RankId, avatarVariant: 3, isOnline: false },
-  { username: 'carol_v',streak: 12, rankId: 'build'  as RankId, avatarVariant: 4, isOnline: true  },
-];
 
 // 13-week heatmap (Mon–Sun × 13)
 const HEATMAP = Array.from({ length: 91 }, (_, i) => {
@@ -133,6 +129,7 @@ export default function ProfileScreen() {
   const [ghCommits, setGhCommits] = useState(USER.totalCommits);
   const [weekXP, setWeekXP] = useState(USER.weekXP);
   const [achs, setAchs] = useState<AchievementItem[]>([]);
+  const [friends, setFriends] = useState<FriendRow[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -150,7 +147,10 @@ export default function ProfileScreen() {
   // Recarrega os cosméticos equipados ao focar (reflete equip feito na loja).
   useFocusEffect(
     React.useCallback(() => {
-      (async () => setEquipped(await getEquipped()))();
+      (async () => {
+        setEquipped(await getEquipped());
+        setFriends((await getFriends()).friends);
+      })();
     }, [setEquipped]),
   );
 
@@ -308,25 +308,31 @@ export default function ProfileScreen() {
         <View style={s.section}>
           <View style={s.sectionRow}>
             <Text style={s.sectionTitle}>
-              amigos · {FRIENDS.filter(f => f.isOnline).length} online
+              amigos · {friends.length}
             </Text>
             <TouchableOpacity onPress={() => router.push('/friends')}>
               <Text style={s.seeAll}>ver todos →</Text>
             </TouchableOpacity>
           </View>
           <View style={s.friendsCard}>
-            <View style={s.friendAvatars}>
-              {FRIENDS.map((f, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={{ position: 'relative' }}
-                  onPress={() => router.push('/user-profile')}
-                >
-                  <AvatarRing size={40} variant={f.avatarVariant} rankId={f.rankId} />
-                  {f.isOnline && <View style={s.onlineDot} />}
-                </TouchableOpacity>
-              ))}
-            </View>
+            {friends.length > 0 && (
+              <View style={s.friendAvatars}>
+                {friends.slice(0, 6).map((f) => (
+                  <TouchableOpacity
+                    key={f.friendshipId}
+                    style={{ position: 'relative' }}
+                    onPress={() => router.push('/friends')}
+                  >
+                    <AvatarRing
+                      size={40}
+                      variant={f.avatarVariant}
+                      rankId={f.rank.toLowerCase() as RankId}
+                      equipped={f.equipped}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
             <TouchableOpacity
               style={s.addFriendBtn}
               onPress={() => router.push('/friend-invite')}
