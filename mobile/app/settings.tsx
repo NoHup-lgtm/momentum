@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
-import { C } from '../constants/design';
+import { useTheme, type ThemeColors, type ThemeMode } from '../contexts/ThemeContext';
 import { useT, useLang, useSetLang } from '../lib/i18n';
 import { logout } from '../lib/session';
 import { useAppStore } from '../store/app';
@@ -13,7 +13,9 @@ export default function SettingsScreen() {
   const t = useT().settings;
   const lang = useLang();
   const setLang = useSetLang();
-  const clearUser = useAppStore((s) => s.clearUser);
+  const clearUser = useAppStore((st) => st.clearUser);
+  const { colors: c, mode, setMode } = useTheme();
+  const s = makeStyles(c);
 
   async function handleLogout() {
     await logout();
@@ -56,11 +58,20 @@ export default function SettingsScreen() {
         {/* Aparência */}
         <Text style={s.section}>{t.appearance}</Text>
         <View style={s.card}>
-          <View style={s.row}>
-            <Text style={s.rowLabel}>{t.theme}</Text>
-            <Text style={s.rowValue}>{t.dark}</Text>
+          <Text style={s.rowLabel}>{t.theme}</Text>
+          <View style={[s.segment, { marginTop: 10 }]}>
+            {(['dark', 'light'] as const).map((m: ThemeMode) => (
+              <TouchableOpacity
+                key={m}
+                style={[s.segBtn, mode === m && s.segBtnOn]}
+                onPress={() => setMode(m)}
+              >
+                <Text style={[s.segTxt, mode === m && s.segTxtOn]}>
+                  {m === 'dark' ? t.dark : t.light}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
-          <Text style={s.hint}>{t.lightSoon}</Text>
         </View>
 
         {/* Conta */}
@@ -75,43 +86,40 @@ export default function SettingsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12,
   },
   backBtn: { width: 24 },
-  back: { fontSize: 24, color: C.text },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
+  back: { fontSize: 24, color: c.text },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   section: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, letterSpacing: 0.1,
-    textTransform: 'uppercase', color: C.text3, marginTop: 22, marginBottom: 10,
+    textTransform: 'uppercase', color: c.text3, marginTop: 22, marginBottom: 10,
   },
   card: {
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     borderRadius: 12, padding: 14,
   },
   segment: { flexDirection: 'row', gap: 6 },
   segBtn: {
     flex: 1, alignItems: 'center', paddingVertical: 11, borderRadius: 8,
-    backgroundColor: C.surface2,
+    backgroundColor: c.surface2,
   },
-  segBtnOn: { backgroundColor: C.accent },
-  segTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text3 },
+  segBtnOn: { backgroundColor: c.accent },
+  segTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text3 },
   segTxtOn: { color: '#f2e4cf' },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rowLabel: { fontSize: 14, color: C.text },
-  rowValue: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text2 },
-  hint: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3, marginTop: 8 },
+  rowLabel: { fontSize: 14, color: c.text },
   logoutBtn: {
     alignItems: 'center', paddingVertical: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: C.danger + '55', backgroundColor: C.danger + '12',
+    borderWidth: 1, borderColor: c.danger + '55', backgroundColor: c.danger + '12',
   },
-  logoutTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.danger },
+  logoutTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.danger },
   version: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3,
     textAlign: 'center', marginTop: 40,
   },
 });
