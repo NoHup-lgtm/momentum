@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { C, getRank, type RankId } from '../constants/design';
+import { getRank, type RankId } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
 import { getFeed, type FeedItem } from '../lib/session';
@@ -13,9 +14,9 @@ import { getFeed, type FeedItem } from '../lib/session';
 const rid = (r: string) => r.toLowerCase() as RankId;
 
 const TYPE_COLOR: Record<string, string> = {
-  ACHIEVEMENT: C.purple, CHALLENGE_COMPLETED: C.accent, LIGA_PROMOTED: C.gold,
-  STREAK_MILESTONE: C.accent, LEVEL_UP: C.success, RANK_UP: C.gold,
-  CHEST_LEGENDARY: C.gold, SQUAD_JOIN: C.success,
+  ACHIEVEMENT: '#8b5cf6', CHALLENGE_COMPLETED: '#d4673a', LIGA_PROMOTED: '#c08a00',
+  STREAK_MILESTONE: '#d4673a', LEVEL_UP: '#5a7a50', RANK_UP: '#c08a00',
+  CHEST_LEGENDARY: '#c08a00', SQUAD_JOIN: '#5a7a50',
 };
 
 export default function FeedScreen() {
@@ -23,6 +24,8 @@ export default function FeedScreen() {
   const t = useT().social;
   const ta = useT().achievements;
   const tl = useT().liga;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,26 +75,26 @@ export default function FeedScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
         >
           {items.length === 0 ? (
             <Text style={s.empty}>{t.feedEmpty}</Text>
           ) : (
             items.map((it) => {
               const rank = getRank(rid(it.user.rank));
-              const color = TYPE_COLOR[it.type] ?? C.accent;
+              const color = TYPE_COLOR[it.type] ?? c.accent;
               const name = it.user.isMe ? t.you : (it.user.displayName || it.user.githubLogin);
               return (
                 <View key={it.id} style={[s.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
                   <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={s.cardText}>
-                      <Text style={[s.cardName, it.user.isMe && { color: C.accent }]}>{name} </Text>
+                      <Text style={[s.cardName, it.user.isMe && { color: c.accent }]}>{name} </Text>
                       {eventText(it)}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -110,26 +113,26 @@ export default function FeedScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 18, gap: 10, paddingTop: 12 },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
   backBtn: { padding: 4, marginRight: 8 },
-  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
-  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 48, paddingHorizontal: 24, lineHeight: 18 },
+  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: c.text2 },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
+  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 48, paddingHorizontal: 24, lineHeight: 18 },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2, padding: 12,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2, padding: 12,
   },
-  cardText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text2, lineHeight: 18 },
-  cardName: { color: C.text },
+  cardText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text2, lineHeight: 18 },
+  cardName: { color: c.text },
   cardRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9 },
-  cardTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
+  cardTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3 },
 });
