@@ -143,6 +143,16 @@ export const strings = {
       equipped: 'equipado',
       insufficient: 'saldo insuficiente',
       cats: { all: 'tudo', HAT: 'chapéu', SHIRT: 'roupa', GLASSES: 'óculos', ACCESSORY: 'acessório', BACKGROUND: 'fundo' },
+      modes: { shop: 'loja', legendary: 'lendário', challenge: 'desafios' },
+      locked: 'bloqueado',
+      unlockedTag: 'desbloqueado',
+      cond: {
+        maxStreak: 'ofensiva de {x} dias',
+        commits: '{x} commits',
+        xp: '{x} XP acumulado',
+        achievements: '{x} conquistas',
+        challenges: '{x} desafios coletados',
+      },
       items: {
         c1: 'Boné Dev', c2: 'Hoodie Clone', c3: 'Gorro Hacker', c4: 'Óculos Hack',
         c5: 'Planta de Mesa', c6: 'Teclado Mecânico', c7: 'Bucket Hat', c8: 'Polo Corp',
@@ -154,6 +164,8 @@ export const strings = {
         g13: 'Escudo de Bits', g14: 'Bastão do Void',
         t1: 'Máscara Aracnídea', t2: 'Capuz do Cavaleiro', t3: 'Núcleo Arc', t4: 'Macacão 456',
         t5: 'Esfera de Captura', t6: 'Sabre Esmeralda', t7: 'Capacete Spartan', t8: 'Fundo Cidade Neon',
+        ch1: 'Kit do Iniciante', ch2: 'Pato Depurador', ch3: 'Troféu de Ouro',
+        ch4: 'Ampulheta Hacker', ch5: 'Robô de Batalha', ch6: 'Espada Binária',
       },
     },
     chests: {
@@ -301,6 +313,16 @@ export const strings = {
       equipped: 'equipped',
       insufficient: 'not enough balance',
       cats: { all: 'all', HAT: 'hat', SHIRT: 'shirt', GLASSES: 'glasses', ACCESSORY: 'accessory', BACKGROUND: 'background' },
+      modes: { shop: 'shop', legendary: 'legendary', challenge: 'challenges' },
+      locked: 'locked',
+      unlockedTag: 'unlocked',
+      cond: {
+        maxStreak: '{x}-day streak',
+        commits: '{x} commits',
+        xp: '{x} total XP',
+        achievements: '{x} achievements',
+        challenges: '{x} challenges claimed',
+      },
       items: {
         c1: 'Dev Cap', c2: 'Clone Hoodie', c3: 'Hacker Beanie', c4: 'Hack Glasses',
         c5: 'Desk Plant', c6: 'Mech Keyboard', c7: 'Bucket Hat', c8: 'Corp Polo',
@@ -312,6 +334,8 @@ export const strings = {
         g13: 'Bit Shield', g14: 'Void Staff',
         t1: 'Arachnid Mask', t2: 'Knight Cowl', t3: 'Arc Core', t4: 'Survival Suit 456',
         t5: 'Catch Sphere', t6: 'Emerald Saber', t7: 'Spartan Helmet', t8: 'Neon City Background',
+        ch1: 'Starter Kit', ch2: 'Debug Duck', ch3: 'Gold Trophy',
+        ch4: 'Hacker Hourglass', ch5: 'Battle Robot', ch6: 'Binary Sword',
       },
     },
     chests: {
