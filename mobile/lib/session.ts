@@ -460,6 +460,26 @@ export async function equipItem(id: string): Promise<Shop> {
   return (await res.json()) as Shop;
 }
 
+// Mapa categoria → key do cosmético equipado (pro avatar).
+export interface EquippedMap {
+  HAT?: string;
+  SHIRT?: string;
+  GLASSES?: string;
+  ACCESSORY?: string;
+  BACKGROUND?: string;
+}
+
+export async function getEquipped(): Promise<EquippedMap> {
+  try {
+    const res = await apiFetch('/me/shop/equipped', { method: 'GET' });
+    if (!res.ok) return {};
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as EquippedMap) : {};
+  } catch {
+    return {};
+  }
+}
+
 // ── Chests ────────────────────────────────────────────────────────────────────
 export interface PendingChest {
   id: string;

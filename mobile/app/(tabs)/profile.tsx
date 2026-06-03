@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { C, getRank, type RankId } from '../../constants/design';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -15,7 +15,7 @@ import {
 import { AvatarRing } from '../../components/ui';
 import RankEmblem from '../../components/rank/RankEmblem';
 import { useAppStore } from '../../store/app';
-import { getHeatmap, logout, getAchievements, type AchievementItem } from '../../lib/session';
+import { getHeatmap, logout, getAchievements, getEquipped, type AchievementItem } from '../../lib/session';
 import { useT } from '../../lib/i18n';
 
 // converte contagem de commits em intensidade 0–5 para o heatmap
@@ -114,6 +114,8 @@ export default function ProfileScreen() {
   // Usuário real do store (/me). Fallback no mock por campo enquanto carrega.
   const su = useAppStore((s) => s.user);
   const clearUser = useAppStore((s) => s.clearUser);
+  const equipped = useAppStore((s) => s.equipped);
+  const setEquipped = useAppStore((s) => s.setEquipped);
 
   async function handleLogout() {
     await logout(); // limpa os tokens do SecureStore
@@ -140,6 +142,13 @@ export default function ProfileScreen() {
       setAchs(await getAchievements());
     })();
   }, []);
+
+  // Recarrega os cosméticos equipados ao focar (reflete equip feito na loja).
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => setEquipped(await getEquipped()))();
+    }, [setEquipped]),
+  );
 
   // Conquistas pra prévia: desbloqueadas primeiro.
   const achPreview = [...achs].sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
@@ -180,7 +189,7 @@ export default function ProfileScreen() {
           </View>
 
           <View style={s.avatarWrap}>
-            <AvatarRing size={80} variant={user.avatarVariant} rankId={user.rankId} />
+            <AvatarRing size={80} variant={user.avatarVariant} rankId={user.rankId} equipped={equipped} />
           </View>
 
           <Text style={s.userName}>{user.name}</Text>

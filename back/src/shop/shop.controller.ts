@@ -14,6 +14,11 @@ export class ShopController {
     return this.shop.getShop(user.id);
   }
 
+  @Get('equipped')
+  equipped(@AuthUser() user: AuthUserDto) {
+    return this.shop.getEquipped(user.id);
+  }
+
   @Post(':id/buy')
   buy(@AuthUser() user: AuthUserDto, @Param('id') id: string) {
     return this.shop.buy(user.id, id);

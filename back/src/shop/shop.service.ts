@@ -161,6 +161,18 @@ export class ShopService {
     return this.getShop(userId);
   }
 
+  // Mapa dos cosméticos equipados do user: categoria → key (Cosmetic.name).
+  // Usado pelo avatar pra renderizar o que está equipado.
+  async getEquipped(userId: string): Promise<Record<string, string>> {
+    const rows = await this.prisma.userEquippedCosmetic.findMany({
+      where: { userId },
+      include: { cosmetic: { select: { name: true, category: true } } },
+    });
+    const out: Record<string, string> = {};
+    for (const r of rows) out[r.cosmetic.category] = r.cosmetic.name;
+    return out;
+  }
+
   // Equipa um cosmético que o user possui (1 por categoria).
   async equip(userId: string, cosmeticId: string): Promise<ShopView> {
     const cosmetic = await this.prisma.cosmetic.findUnique({ where: { id: cosmeticId } });

@@ -44,7 +44,7 @@ export function XPBar({ current, max, level }: XPBarProps) {
 }
 
 // ── Avatar Ring ───────────────────────────────────────────────────────────────
-import PixelAvatar from '../avatar/PixelAvatar';
+import PixelAvatar, { type EquippedMap } from '../avatar/PixelAvatar';
 import type { RankId } from '../../constants/design';
 import { getRank } from '../../constants/design';
 
@@ -52,9 +52,10 @@ interface AvatarRingProps {
   size?: number;
   variant?: number;
   rankId?: RankId;
+  equipped?: EquippedMap | null;
 }
 
-export function AvatarRing({ size = 34, variant = 0, rankId }: AvatarRingProps) {
+export function AvatarRing({ size = 34, variant = 0, rankId, equipped = null }: AvatarRingProps) {
   const rank = rankId ? getRank(rankId) : null;
   const borderColor = rank ? rank.color : C.surface2;
   return (
@@ -68,7 +69,7 @@ export function AvatarRing({ size = 34, variant = 0, rankId }: AvatarRingProps) 
         overflow: 'hidden',
       },
     ]}>
-      <PixelAvatar size={size - 4} variant={variant} />
+      <PixelAvatar size={size - 4} variant={variant} equipped={equipped} />
     </View>
   );
 }
