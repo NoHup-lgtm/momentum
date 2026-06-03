@@ -15,7 +15,6 @@ import TodayCard from '../../components/home/TodayCard';
 import LevelUpOverlay from '../../components/home/LevelUpOverlay';
 import ShareStreakCard from '../../components/home/ShareStreakCard';
 import PendingChestsCard from '../../components/home/PendingChestsCard';
-import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
 import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe, checkLevelUp,
@@ -434,11 +433,8 @@ export default function HomeScreen() {
         </View>
         <ShareStreakCard streak={user.streak} username={user.username} />
 
-        {/* Subscription banner */}
-        <View style={s.sectionHeader}>
-          <Text style={s.sectionTitle}>momentum pro · max</Text>
-        </View>
-        <SubscriptionBanner />
+        {/* Banner de assinatura escondido até a monetização ser definida
+            (mantido em components/subscription/SubscriptionBanner.tsx). */}
 
         <View style={{ height: 32 }} />
       </ScrollView>
