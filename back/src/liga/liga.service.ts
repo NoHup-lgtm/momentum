@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FeedService } from '../feed/feed.service.js';
 
 // ── Liga: competição individual por XP ganho em sprints de 2 semanas ───────────
 // Regras (Arthur): ciclo de 14 dias começando no DOMINGO. Cada user está num
@@ -51,7 +52,10 @@ export interface LigaView {
 
 @Injectable()
 export class LigaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feed: FeedService,
+  ) {}
 
   // Janela do sprint que contém `now`.
   private sprintInfo(now: Date): SprintInfo {
@@ -112,6 +116,14 @@ export class LigaService {
         where: { id: p.id },
         data: { finalRank, promoted, relegated, xpEarned: xp },
       });
+
+      if (promoted) {
+        await this.feed.emit(p.userId, 'LIGA_PROMOTED', {
+          fromTier: season.tier,
+          toTier: season.tier + 1,
+          finalRank,
+        });
+      }
 
       // Recompensa do pódio (gems) — creditada uma única vez na liquidação.
       const reward = REWARD_GEMS[finalRank];
