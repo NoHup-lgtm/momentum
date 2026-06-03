@@ -4,8 +4,8 @@ import {
   TextInput, ActivityIndicator, Share, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C, getRank, type RankId } from '../../constants/design';
-import { useTheme } from '../../contexts/ThemeContext';
+import { getRank, type RankId } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { XPIcon, SpiralIcon } from '../../components/icons';
 import { AvatarRing } from '../../components/ui';
 import { useT } from '../../lib/i18n';
@@ -18,7 +18,8 @@ const rid = (r: string) => r.toLowerCase() as RankId;
 
 export default function SquadScreen() {
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const t = useT().squad;
 
   const [loading, setLoading] = useState(true);
@@ -75,19 +76,19 @@ export default function SquadScreen() {
 
   if (loading) {
     return (
-      <View style={[s.screen, s.center, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
-        <ActivityIndicator color={C.accent} />
+      <View style={[s.screen, s.center, { paddingTop: insets.top, backgroundColor: c.bg }]}>
+        <ActivityIndicator color={c.accent} />
         <Text style={s.dim}>{t.loading}</Text>
       </View>
     );
   }
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: c.bg }]}>
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
       >
         <Text style={s.h1}>squad</Text>
 
@@ -97,7 +98,7 @@ export default function SquadScreen() {
           // ── Sem squad ──────────────────────────────────────────────
           <>
             <View style={s.heroCard}>
-              <SpiralIcon size={44} color={C.text3} />
+              <SpiralIcon size={44} color={c.text3} />
               <Text style={s.heroTitle}>{t.noSquadTitle}</Text>
               <Text style={s.heroSub}>{t.noSquadSubtitle}</Text>
             </View>
@@ -106,7 +107,7 @@ export default function SquadScreen() {
             <View style={s.row}>
               <TextInput
                 value={name} onChangeText={setName}
-                placeholder={t.namePlaceholder} placeholderTextColor={C.text3}
+                placeholder={t.namePlaceholder} placeholderTextColor={c.text3}
                 style={s.input} maxLength={30}
               />
               <TouchableOpacity style={[s.btn, (!name.trim() || busy) && s.btnOff]} onPress={handleCreate} disabled={!name.trim() || busy}>
@@ -118,7 +119,7 @@ export default function SquadScreen() {
             <View style={s.row}>
               <TextInput
                 value={code} onChangeText={setCode}
-                placeholder={t.codePlaceholder} placeholderTextColor={C.text3}
+                placeholder={t.codePlaceholder} placeholderTextColor={c.text3}
                 autoCapitalize="characters"
                 style={s.input} maxLength={10}
               />
@@ -151,7 +152,7 @@ export default function SquadScreen() {
               const rank = getRank(rid(m.rank));
               return (
                 <View key={m.userId} style={s.memberRow}>
-                  <Text style={[s.pos, { color: i < 3 ? C.accent : C.text3 }]}>#{i + 1}</Text>
+                  <Text style={[s.pos, { color: i < 3 ? c.accent : c.text3 }]}>#{i + 1}</Text>
                   <AvatarRing size={38} variant={m.avatarVariant} rankId={rid(m.rank)} equipped={m.equipped} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <View style={s.nameRow}>
@@ -180,62 +181,62 @@ export default function SquadScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   screen: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 20, paddingTop: 8 },
-  h1: { fontFamily: 'Lora_400Regular', fontSize: 28, color: C.text, marginBottom: 18 },
-  dim: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3, marginTop: 8 },
-  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.danger, marginBottom: 12 },
+  h1: { fontFamily: 'Lora_400Regular', fontSize: 28, color: c.text, marginBottom: 18 },
+  dim: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3, marginTop: 8 },
+  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.danger, marginBottom: 12 },
 
   heroCard: {
-    alignItems: 'center', backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2, padding: 28, marginBottom: 24,
+    alignItems: 'center', backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2, padding: 28, marginBottom: 24,
   },
-  heroTitle: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, marginTop: 14 },
-  heroSub: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 8, lineHeight: 18 },
+  heroTitle: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text, marginTop: 14 },
+  heroSub: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 8, lineHeight: 18 },
 
   section: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, letterSpacing: 0.1,
-    textTransform: 'uppercase', color: C.text3, marginTop: 18, marginBottom: 10,
+    textTransform: 'uppercase', color: c.text3, marginTop: 18, marginBottom: 10,
   },
   row: { flexDirection: 'row', gap: 8 },
   input: {
-    flex: 1, backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
+    flex: 1, backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12,
-    color: C.text, fontFamily: 'JetBrainsMono_400Regular', fontSize: 14,
+    color: c.text, fontFamily: 'JetBrainsMono_400Regular', fontSize: 14,
   },
   btn: {
-    backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 20,
+    backgroundColor: c.accent, borderRadius: 8, paddingHorizontal: 20,
     alignItems: 'center', justifyContent: 'center',
   },
   btnOff: { opacity: 0.45 },
   btnTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: '#f2e4cf' },
 
   squadHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  squadName: { fontFamily: 'Lora_400Regular', fontSize: 22, color: C.text },
+  squadName: { fontFamily: 'Lora_400Regular', fontSize: 22, color: c.text },
   inviteBtn: {
-    borderWidth: 1, borderColor: C.accent + '55', backgroundColor: C.accent + '12',
+    borderWidth: 1, borderColor: c.accent + '55', backgroundColor: c.accent + '12',
     borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9,
   },
-  inviteTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.accent },
+  inviteTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.accent },
 
   memberRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     borderRadius: 10, padding: 12, marginBottom: 8,
   },
   pos: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, width: 28 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  memberName: { fontSize: 14, color: C.text },
+  memberName: { fontSize: 14, color: c.text },
   ownerTag: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 8, letterSpacing: 0.08,
-    textTransform: 'uppercase', color: C.accent,
-    backgroundColor: C.accent + '18', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
+    textTransform: 'uppercase', color: c.accent,
+    backgroundColor: c.accent + '18', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
   },
   memberRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, marginTop: 3 },
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  xpTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text2 },
+  xpTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text2 },
   leaveBtn: { alignSelf: 'center', marginTop: 24, paddingVertical: 10, paddingHorizontal: 18 },
-  leaveTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.danger },
+  leaveTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.danger },
 });

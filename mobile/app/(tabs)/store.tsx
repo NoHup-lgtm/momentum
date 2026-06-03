@@ -4,7 +4,7 @@ import {
   ActivityIndicator, RefreshControl, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { CoinIcon, GemIcon } from '../../components/icons';
 import { PixelItem } from '../../components/store/PixelItem';
 import { useT } from '../../lib/i18n';
@@ -18,7 +18,7 @@ const { width: W } = Dimensions.get('window');
 const CARD_W = (W - 20 * 2 - 12) / 2;
 
 const RARITY: Record<string, string> = {
-  COMMON: C.text3, RARE: '#3a82f7', PREMIUM: C.purple, LEGENDARY: C.gold,
+  COMMON: '#9a876c', RARE: '#3a82f7', PREMIUM: '#8b5cf6', LEGENDARY: '#c08a00',
 };
 const CATS = ['all', 'HAT', 'SHIRT', 'GLASSES', 'ACCESSORY', 'BACKGROUND'] as const;
 const MODES = ['shop', 'legendary', 'challenge'] as const;
@@ -29,6 +29,8 @@ export default function StoreScreen() {
   const t = useT().shop;
   const setUser = useAppStore((s) => s.setUser);
   const setEquipped = useAppStore((s) => s.setEquipped);
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -85,7 +87,7 @@ export default function StoreScreen() {
   };
 
   if (loading) {
-    return <View style={[s.screen, s.center, { paddingTop: insets.top }]}><ActivityIndicator color={C.accent} /></View>;
+    return <View style={[s.screen, s.center, { paddingTop: insets.top }]}><ActivityIndicator color={c.accent} /></View>;
   }
 
   const items = (shop?.items ?? []).filter((i) => cat === 'all' || i.category === cat);
@@ -127,12 +129,12 @@ export default function StoreScreen() {
       <ScrollView
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
       >
         {mode === 'shop' ? (
           <View style={s.grid}>
             {items.map((item) => {
-              const color = RARITY[item.rarity] ?? C.text3;
+              const color = RARITY[item.rarity] ?? c.text3;
               const label = t.items[item.key as keyof typeof t.items] ?? item.key;
               const isGem = item.priceGems > 0;
               const afford = isGem ? (shop?.gems ?? 0) >= item.priceGems : (shop?.coins ?? 0) >= item.priceCoins;
@@ -147,7 +149,7 @@ export default function StoreScreen() {
                     <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
                   ) : item.owned ? (
                     <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => act(item, 'equip')} disabled={loadingThis}>
-                      {loadingThis ? <ActivityIndicator size="small" color={C.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
+                      {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity style={[s.btn, s.buyBtn, (!afford || loadingThis) && { opacity: 0.5 }]} onPress={() => act(item, 'buy')} disabled={!afford || loadingThis}>
@@ -166,7 +168,7 @@ export default function StoreScreen() {
         ) : (
           <View style={s.grid}>
             {unlockItems.map((item) => {
-              const color = RARITY[item.rarity] ?? C.text3;
+              const color = RARITY[item.rarity] ?? c.text3;
               const label = t.items[item.key as keyof typeof t.items] ?? item.key;
               const loadingThis = busy === item.id;
               const pct = Math.min(1, item.target ? item.current / item.target : 0);
@@ -180,7 +182,7 @@ export default function StoreScreen() {
 
                   {/* progress */}
                   <View style={s.barBg}>
-                    <View style={[s.barFill, { width: `${pct * 100}%`, backgroundColor: item.unlocked ? C.success : color }]} />
+                    <View style={[s.barFill, { width: `${pct * 100}%`, backgroundColor: item.unlocked ? c.success : color }]} />
                   </View>
                   <Text style={s.prog}>{Math.min(item.current, item.target)}/{item.target}</Text>
 
@@ -188,7 +190,7 @@ export default function StoreScreen() {
                     <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
                   ) : item.unlocked ? (
                     <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => equipUnlock(item)} disabled={loadingThis}>
-                      {loadingThis ? <ActivityIndicator size="small" color={C.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
+                      {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
                     </TouchableOpacity>
                   ) : (
                     <View style={[s.btn, s.lockedBtn]}><Text style={s.lockedTxt}>🔒 {t.locked}</Text></View>
@@ -204,45 +206,45 @@ export default function StoreScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   center: { alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10,
   },
-  h1: { fontFamily: 'Lora_400Regular', fontSize: 28, color: C.text },
+  h1: { fontFamily: 'Lora_400Regular', fontSize: 28, color: c.text },
   balance: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  coinTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: C.gold, marginRight: 6 },
-  gemTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: C.purple },
-  modes: { flexDirection: 'row', gap: 6, marginHorizontal: 20, marginBottom: 10, backgroundColor: C.surface, borderRadius: 8, padding: 4 },
+  coinTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: c.gold, marginRight: 6 },
+  gemTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: c.purple },
+  modes: { flexDirection: 'row', gap: 6, marginHorizontal: 20, marginBottom: 10, backgroundColor: c.surface, borderRadius: 8, padding: 4 },
   mode: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 6 },
-  modeOn: { backgroundColor: C.accent },
-  modeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
+  modeOn: { backgroundColor: c.accent },
+  modeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
   modeTxtOn: { color: '#f2e4cf' },
   tabsWrap: { maxHeight: 44, marginBottom: 4 },
   tabs: { paddingHorizontal: 20, gap: 8, alignItems: 'center' },
-  tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: C.surface2 },
-  tabOn: { backgroundColor: C.accent, borderColor: C.accent },
-  tabTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
+  tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.surface2 },
+  tabOn: { backgroundColor: c.accent, borderColor: c.accent },
+  tabTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
   tabTxtOn: { color: '#f2e4cf' },
-  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.danger, paddingHorizontal: 20, marginBottom: 6 },
+  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.danger, paddingHorizontal: 20, marginBottom: 6 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { width: CARD_W, backgroundColor: C.surface, borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 8 },
+  card: { width: CARD_W, backgroundColor: c.surface, borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 8 },
   art: { width: '100%', height: CARD_W - 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text },
-  cond: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
-  barBg: { width: '100%', height: 5, borderRadius: 3, backgroundColor: C.surface2, overflow: 'hidden' },
+  name: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text },
+  cond: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3 },
+  barBg: { width: '100%', height: 5, borderRadius: 3, backgroundColor: c.surface2, overflow: 'hidden' },
   barFill: { height: 5, borderRadius: 3 },
-  prog: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: -2 },
+  prog: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3, marginTop: -2 },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 6, paddingVertical: 8, width: '100%' },
-  buyBtn: { backgroundColor: C.accent },
+  buyBtn: { backgroundColor: c.accent },
   buyTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: '#f2e4cf' },
-  equipBtn: { borderWidth: 1, borderColor: C.accent },
-  equipTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.accent },
-  equipped: { backgroundColor: C.success + '18', borderWidth: 1, borderColor: C.success + '40' },
-  equippedTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.success },
-  lockedBtn: { borderWidth: 1, borderColor: C.surface2 },
-  lockedTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
+  equipBtn: { borderWidth: 1, borderColor: c.accent },
+  equipTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.accent },
+  equipped: { backgroundColor: c.success + '18', borderWidth: 1, borderColor: c.success + '40' },
+  equippedTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.success },
+  lockedBtn: { borderWidth: 1, borderColor: c.surface2 },
+  lockedTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
 });
