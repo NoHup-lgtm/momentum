@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShopService } from '../shop/shop.service.js';
 
 type FeedType =
   | 'STREAK_MILESTONE' | 'LEVEL_UP' | 'RANK_UP' | 'ACHIEVEMENT'
@@ -18,12 +19,16 @@ export interface FeedItem {
     avatarVariant: number;
     rank: string;
     isMe: boolean;
+    equipped: Record<string, string>;
   };
 }
 
 @Injectable()
 export class FeedService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shop: ShopService,
+  ) {}
 
   // Cria um evento de feed. Chamado pelos serviços quando algo notável acontece.
   // Tolerante a falha: nunca derruba a ação principal (ex: claim de desafio).
@@ -83,12 +88,13 @@ export class FeedService {
       },
     });
 
+    const equipped = await this.shop.equippedFor([...new Set(events.map((e) => e.userId))]);
     return events.map((e) => ({
       id: e.id,
       type: e.type,
       createdAt: e.createdAt.toISOString(),
       payload: (e.payload ?? {}) as Record<string, unknown>,
-      user: { ...e.user, isMe: e.userId === userId },
+      user: { ...e.user, isMe: e.userId === userId, equipped: equipped[e.userId] ?? {} },
     }));
   }
 }

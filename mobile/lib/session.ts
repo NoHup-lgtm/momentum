@@ -225,6 +225,7 @@ export interface SquadMember {
   currentStreak: number;
   role: string;
   weeklyXp?: number;
+  equipped?: EquippedMap;
 }
 export interface Squad {
   id: string;
@@ -331,6 +332,7 @@ export interface RankUser {
   rank: string;
   level: number;
   totalXp: number;
+  equipped?: EquippedMap;
 }
 export interface RankSquad {
   position: number;
@@ -491,6 +493,7 @@ export interface FriendRow {
   rank: string;
   level: number;
   currentStreak: number;
+  equipped?: EquippedMap;
 }
 export interface FriendsView {
   friends: FriendRow[];
@@ -545,6 +548,7 @@ export interface FeedItem {
     avatarVariant: number;
     rank: string;
     isMe: boolean;
+    equipped?: EquippedMap;
   };
 }
 
