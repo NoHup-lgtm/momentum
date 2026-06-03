@@ -19,7 +19,7 @@ import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe, checkLevelUp,
   getChallenges, claimChallenge, getMySquad, getChests, getEquipped,
-  type RepoCommits, type DailyChallenge, type Squad, type PendingChest, type MeUser,
+  type RepoCommits, type DailyChallenge, type Squad, type PendingChest, type MeUser, type EquippedMap,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
 
@@ -139,7 +139,7 @@ function XPCard({ user }: { user: typeof MOCK_USER }) {
 
 // ── Squad Mini Card ───────────────────────────────────────────────────────────
 function SquadMiniCard({ squad }: {
-  squad: { name: string; rankLabel: string; members: { avatarVariant: number; rankId: RankId; streak: number }[] };
+  squad: { name: string; rankLabel: string; members: { avatarVariant: number; rankId: RankId; streak: number; equipped?: EquippedMap }[] };
 }) {
   const { colors } = useTheme();
   return (
@@ -160,7 +160,7 @@ function SquadMiniCard({ squad }: {
           const rank = getRank(m.rankId);
           return (
             <View key={i} style={s.squadMember}>
-              <AvatarRing size={34} variant={m.avatarVariant} rankId={m.rankId} />
+              <AvatarRing size={34} variant={m.avatarVariant} rankId={m.rankId} equipped={m.equipped} />
               <View style={s.memberStreak}>
                 <FlameIcon size={10} glowing={m.streak > 0} />
                 <Text style={s.memberStreakText}>{m.streak}</Text>
@@ -345,6 +345,7 @@ export default function HomeScreen() {
         members: homeSquad.members.map((m) => ({
           avatarVariant: m.avatarVariant,
           rankId: m.rank.toLowerCase() as RankId,
+          equipped: m.equipped,
           streak: m.currentStreak,
         })),
       }

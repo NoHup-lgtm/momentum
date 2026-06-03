@@ -40,7 +40,7 @@ export default function FriendsScreen() {
     const loadingThis = busy === f.friendshipId;
     return (
       <View style={s.friendRow}>
-        <AvatarRing size={44} variant={f.avatarVariant} rankId={rid(f.rank)} />
+        <AvatarRing size={44} variant={f.avatarVariant} rankId={rid(f.rank)} equipped={f.equipped} />
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={s.friendName}>{f.displayName || f.githubLogin}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>

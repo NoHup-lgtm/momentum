@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShopService } from '../shop/shop.service.js';
 
 const userSelect = {
   id: true,
@@ -22,6 +23,7 @@ export interface FriendRow {
   rank: string;
   level: number;
   currentStreak: number;
+  equipped: Record<string, string>;
 }
 export interface FriendsView {
   friends: FriendRow[];
@@ -31,7 +33,10 @@ export interface FriendsView {
 
 @Injectable()
 export class FriendService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shop: ShopService,
+  ) {}
 
   async getFriends(userId: string): Promise<FriendsView> {
     const rows = await this.prisma.friendship.findMany({
@@ -39,6 +44,9 @@ export class FriendService {
       include: { requester: { select: userSelect }, addressee: { select: userSelect } },
       orderBy: { createdAt: 'desc' },
     });
+
+    const otherIds = rows.map((f) => (f.requesterId === userId ? f.addresseeId : f.requesterId));
+    const equipped = await this.shop.equippedFor(otherIds);
 
     const friends: FriendRow[] = [];
     const incoming: FriendRow[] = [];
@@ -57,6 +65,7 @@ export class FriendService {
         rank: other.rank,
         level: other.level,
         currentStreak: other.currentStreak,
+        equipped: equipped[other.id] ?? {},
       };
       if (f.status === 'ACCEPTED') friends.push(row);
       else if (iAmRequester) outgoing.push(row);

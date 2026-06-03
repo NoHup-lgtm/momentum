@@ -6,6 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShopService } from '../shop/shop.service.js';
 
 // Início da semana (segunda 00:00 UTC) — base do ranking semanal.
 function weekStart(): Date {
@@ -50,6 +51,7 @@ export interface SquadMemberView {
   currentStreak: number;
   role: string;
   weeklyXp?: number;
+  equipped: Record<string, string>;
 }
 
 export interface SquadView {
@@ -65,7 +67,10 @@ export interface SquadView {
 
 @Injectable()
 export class SquadService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shop: ShopService,
+  ) {}
 
   private async activeMembership(userId: string) {
     return this.prisma.squadMember.findFirst({
@@ -145,6 +150,8 @@ export class SquadService {
     });
     if (!squad) return null;
 
+    const equipped = await this.shop.equippedFor(squad.members.map((m) => m.userId));
+
     return {
       id: squad.id,
       name: squad.name,
@@ -163,6 +170,7 @@ export class SquadService {
         level: m.user.level,
         currentStreak: m.user.currentStreak,
         role: m.role,
+        equipped: equipped[m.userId] ?? {},
       })),
     };
   }

@@ -80,7 +80,7 @@ export default function FriendInviteScreen() {
               const rank = getRank(rid(f.rank));
               return (
                 <View key={f.friendshipId} style={s.userRow}>
-                  <AvatarRing size={40} variant={f.avatarVariant} rankId={rid(f.rank)} />
+                  <AvatarRing size={40} variant={f.avatarVariant} rankId={rid(f.rank)} equipped={f.equipped} />
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={s.userName}>{f.displayName || f.githubLogin}</Text>
                     <Text style={[s.userRank, { color: rank.color }]}>@{f.githubLogin} · {rank.label}</Text>

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ShopService } from '../shop/shop.service.js';
 
 export interface UserRankRow {
   position: number;
@@ -11,6 +12,7 @@ export interface UserRankRow {
   rank: string;
   level: number;
   totalXp: number;
+  equipped: Record<string, string>;
 }
 
 export interface SquadRankRow {
@@ -24,7 +26,10 @@ export interface SquadRankRow {
 
 @Injectable()
 export class LeaderboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly shop: ShopService,
+  ) {}
 
   // Top usuários por XP total (global).
   async topUsers(limit = 50): Promise<UserRankRow[]> {
@@ -42,7 +47,8 @@ export class LeaderboardService {
         totalXp: true,
       },
     });
-    return users.map((u, i) => ({ position: i + 1, ...u }));
+    const equipped = await this.shop.equippedFor(users.map((u) => u.id));
+    return users.map((u, i) => ({ position: i + 1, ...u, equipped: equipped[u.id] ?? {} }));
   }
 
   // Top squads por XP somado dos membros ativos (global).

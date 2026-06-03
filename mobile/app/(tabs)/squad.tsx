@@ -152,7 +152,7 @@ export default function SquadScreen() {
               return (
                 <View key={m.userId} style={s.memberRow}>
                   <Text style={[s.pos, { color: i < 3 ? C.accent : C.text3 }]}>#{i + 1}</Text>
-                  <AvatarRing size={38} variant={m.avatarVariant} rankId={rid(m.rank)} />
+                  <AvatarRing size={38} variant={m.avatarVariant} rankId={rid(m.rank)} equipped={m.equipped} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <View style={s.nameRow}>
                       <Text style={s.memberName}>{m.displayName || m.githubLogin}</Text>

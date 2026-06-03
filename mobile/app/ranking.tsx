@@ -80,7 +80,7 @@ export default function RankingScreen() {
               return (
                 <View key={u.id} style={[s.row, mine && s.rowMine]}>
                   <Text style={[s.pos, { color: posColor(u.position) }]}>#{u.position}</Text>
-                  <AvatarRing size={36} variant={u.avatarVariant} rankId={rid(u.rank)} />
+                  <AvatarRing size={36} variant={u.avatarVariant} rankId={rid(u.rank)} equipped={u.equipped} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={s.name}>
                       {u.displayName || u.githubLogin}{mine ? ` · ${t.you}` : ''}
