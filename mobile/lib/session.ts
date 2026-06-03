@@ -60,6 +60,27 @@ async function getRefreshToken() {
 export async function clearTokens() {
   await SecureStore.deleteItemAsync(ACCESS_KEY);
   await SecureStore.deleteItemAsync(REFRESH_KEY);
+  await SecureStore.deleteItemAsync(CELEBRATED_LEVEL_KEY);
+}
+
+// ── Detecção de level-up ──────────────────────────────────────────────────────
+// Guarda o último nível "comemorado" para disparar a animação só uma vez por
+// nível, sobrevivendo a reloads. Na 1ª vez (sem valor salvo) calibra no nível
+// atual e NÃO comemora (evita celebração espúria de quem já estava num nível).
+const CELEBRATED_LEVEL_KEY = 'momentum.celebrated_level';
+
+export async function checkLevelUp(level: number): Promise<number | null> {
+  const raw = await SecureStore.getItemAsync(CELEBRATED_LEVEL_KEY);
+  if (raw == null) {
+    await SecureStore.setItemAsync(CELEBRATED_LEVEL_KEY, String(level));
+    return null;
+  }
+  const prev = parseInt(raw, 10) || 0;
+  if (level > prev) {
+    await SecureStore.setItemAsync(CELEBRATED_LEVEL_KEY, String(level));
+    return level;
+  }
+  return null;
 }
 
 // ── Cliente HTTP ──────────────────────────────────────────────────────────────
