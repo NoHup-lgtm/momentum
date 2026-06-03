@@ -40,6 +40,15 @@ const CATALOG: Def[] = [
   { key: 'g12', category: 'ACCESSORY',  rarity: 'PREMIUM',   gems: 52 },
   { key: 'g13', category: 'ACCESSORY',  rarity: 'PREMIUM',   gems: 38 },
   { key: 'g14', category: 'ACCESSORY',  rarity: 'LEGENDARY', gems: 95 },
+  // ── Lendários temáticos (inspirados em filmes/séries, arte original) ──
+  { key: 't1', category: 'HAT',        rarity: 'LEGENDARY', gems: 90 },
+  { key: 't2', category: 'HAT',        rarity: 'LEGENDARY', gems: 85 },
+  { key: 't3', category: 'SHIRT',      rarity: 'LEGENDARY', gems: 100 },
+  { key: 't4', category: 'SHIRT',      rarity: 'PREMIUM',   gems: 60 },
+  { key: 't5', category: 'ACCESSORY',  rarity: 'PREMIUM',   gems: 45 },
+  { key: 't6', category: 'ACCESSORY',  rarity: 'LEGENDARY', gems: 88 },
+  { key: 't7', category: 'HAT',        rarity: 'LEGENDARY', gems: 92 },
+  { key: 't8', category: 'BACKGROUND', rarity: 'LEGENDARY', gems: 110 },
 ];
 
 export interface ShopItem {
