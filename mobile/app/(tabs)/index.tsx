@@ -18,9 +18,9 @@ import PendingChestsCard from '../../components/home/PendingChestsCard';
 import SubscriptionBanner from '../../components/subscription/SubscriptionBanner';
 import { useAppStore } from '../../store/app';
 import {
-  syncGithub, getGithubToday, meToStoreUser, fetchMe,
+  syncGithub, getGithubToday, meToStoreUser, fetchMe, checkLevelUp,
   getChallenges, claimChallenge, getMySquad, getChests,
-  type RepoCommits, type DailyChallenge, type Squad, type PendingChest,
+  type RepoCommits, type DailyChallenge, type Squad, type PendingChest, type MeUser,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
 
@@ -281,7 +281,7 @@ export default function HomeScreen() {
   const [homeSquad, setHomeSquad] = useState<Squad | null>(null);
   const [homeChests, setHomeChests] = useState<PendingChest[]>([]);
   const [showMilestone, setShowMilestone] = useState(false);
-  const [showLevelUp, setShowLevelUp]     = useState(false);
+  const [levelUpTo, setLevelUpTo]         = useState<number | null>(null);
   const [showFreeze, setShowFreeze]       = useState(false);
   const [freezesLeft, setFreezesLeft]     = useState(user.freezesLeft);
 
@@ -294,11 +294,19 @@ export default function HomeScreen() {
     };
   });
 
+  // Atualiza o store com o /me e dispara a animação de level-up se o nível subiu
+  // de verdade (comparado ao último nível comemorado, persistido no SecureStore).
+  const applyMe = React.useCallback(async (me: MeUser | null) => {
+    if (!me) return;
+    setUser(meToStoreUser(me));
+    const up = await checkLevelUp(me.level);
+    if (up != null) setLevelUpTo(up);
+  }, [setUser]);
+
   // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista + desafios.
   React.useEffect(() => {
     (async () => {
-      const me = await syncGithub();
-      if (me) setUser(meToStoreUser(me));
+      await applyMe(await syncGithub());
       setTodayCommits(await getGithubToday());
       setRawChallenges(await getChallenges());
       setHomeSquad(await getMySquad());
@@ -311,13 +319,12 @@ export default function HomeScreen() {
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
-        const me = await fetchMe();
-        if (me) setUser(meToStoreUser(me));
+        await applyMe(await fetchMe());
         setHomeChests(await getChests());
         setRawChallenges(await getChallenges());
         setHomeSquad(await getMySquad());
       })();
-    }, []),
+    }, [applyMe]),
   );
 
   // Baús pendentes → contagem + raridade mais alta (pro card da Home).
@@ -353,10 +360,7 @@ export default function HomeScreen() {
     // otimista: esconde o botão na hora
     setRawChallenges((prev) => prev.map((c) => (c.id === id ? { ...c, claimed: true } : c)));
     const ok = await claimChallenge(id);
-    if (ok) {
-      const me = await fetchMe();
-      if (me) setUser(meToStoreUser(me));
-    }
+    if (ok) await applyMe(await fetchMe());
     // reconcilia com o servidor (reverte se falhou)
     setRawChallenges(await getChallenges());
   };
@@ -401,9 +405,7 @@ export default function HomeScreen() {
         <TodayCard commits={todayCommits} username={user.username} />
 
         {/* XP */}
-        <TouchableOpacity activeOpacity={0.9} onLongPress={() => setShowLevelUp(true)}>
-          <XPCard user={user} />
-        </TouchableOpacity>
+        <XPCard user={user} />
 
         {/* Squad mini */}
         {squadMini && <SquadMiniCard squad={squadMini} />}
@@ -491,11 +493,11 @@ export default function HomeScreen() {
         onDismiss={() => setShowMilestone(false)}
       />
 
-      {/* Level up overlay */}
+      {/* Level up overlay — disparado pelo evento real de subir de nível */}
       <LevelUpOverlay
-        level={user.level + 1}
-        visible={showLevelUp}
-        onDismiss={() => setShowLevelUp(false)}
+        level={levelUpTo ?? user.level}
+        visible={levelUpTo != null}
+        onDismiss={() => setLevelUpTo(null)}
       />
     </View>
   );
