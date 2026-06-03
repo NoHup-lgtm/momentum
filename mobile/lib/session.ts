@@ -462,6 +462,30 @@ export async function equipItem(id: string): Promise<Shop> {
   return (await res.json()) as Shop;
 }
 
+// Cosméticos desbloqueáveis por condição (abas lendário/desafios).
+export interface UnlockItem {
+  id: string;
+  key: string;
+  category: string;
+  rarity: string;
+  track: 'LEGENDARY' | 'CHALLENGE' | string;
+  metric: string;
+  target: number;
+  current: number;
+  unlocked: boolean;
+  equipped: boolean;
+}
+
+export async function getUnlockables(): Promise<UnlockItem[]> {
+  try {
+    const res = await apiFetch('/me/shop/unlockables', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as UnlockItem[];
+  } catch {
+    return [];
+  }
+}
+
 // Mapa categoria → key do cosmético equipado (pro avatar).
 export interface EquippedMap {
   HAT?: string;

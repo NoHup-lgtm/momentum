@@ -51,6 +51,38 @@ const CATALOG: Def[] = [
   { key: 't8', category: 'BACKGROUND', rarity: 'LEGENDARY', gems: 110 },
 ];
 
+// Cosméticos DESBLOQUEÁVEIS por condição (não vendidos). Arte = ch1-ch6.
+// track LEGENDARY = grandes marcos · CHALLENGE = progresso de desafios/conquistas.
+// metric: maxStreak | commits | xp | achievements (qtd desbloqueadas) | challenges (qtd coletados).
+type UnlockMetric = 'maxStreak' | 'commits' | 'xp' | 'achievements' | 'challenges';
+type UnlockDef = {
+  key: string; category: Cat; rarity: Rar;
+  track: 'LEGENDARY' | 'CHALLENGE'; metric: UnlockMetric; target: number;
+};
+const UNLOCK_CATALOG: UnlockDef[] = [
+  // ── Lendário (grandes marcos) ──
+  { key: 'ch3', category: 'ACCESSORY', rarity: 'LEGENDARY', track: 'LEGENDARY', metric: 'maxStreak', target: 100 },
+  { key: 'ch5', category: 'ACCESSORY', rarity: 'LEGENDARY', track: 'LEGENDARY', metric: 'commits',   target: 500 },
+  { key: 'ch6', category: 'ACCESSORY', rarity: 'LEGENDARY', track: 'LEGENDARY', metric: 'xp',        target: 5000 },
+  // ── Desafios (progresso) ──
+  { key: 'ch1', category: 'ACCESSORY', rarity: 'COMMON',    track: 'CHALLENGE', metric: 'achievements', target: 1 },
+  { key: 'ch4', category: 'ACCESSORY', rarity: 'RARE',      track: 'CHALLENGE', metric: 'achievements', target: 5 },
+  { key: 'ch2', category: 'ACCESSORY', rarity: 'RARE',      track: 'CHALLENGE', metric: 'challenges',    target: 10 },
+];
+
+export interface UnlockItem {
+  id: string;
+  key: string;
+  category: string;
+  rarity: string;
+  track: string;
+  metric: string;
+  target: number;
+  current: number;
+  unlocked: boolean;
+  equipped: boolean;
+}
+
 export interface ShopItem {
   id: string;
   key: string;
@@ -198,5 +230,80 @@ export class ShopService {
       update: { cosmeticId },
     });
     return this.getShop(userId);
+  }
+
+  private async ensureUnlockCatalog() {
+    const out: { id: string; def: UnlockDef }[] = [];
+    for (const c of UNLOCK_CATALOG) {
+      let row = await this.prisma.cosmetic.findFirst({ where: { name: c.key } });
+      if (!row) {
+        row = await this.prisma.cosmetic.create({
+          data: { name: c.key, category: c.category, rarity: c.rarity, priceCoins: 0, priceGems: 0 },
+        });
+      }
+      out.push({ id: row.id, def: c });
+    }
+    return out;
+  }
+
+  // Cosméticos desbloqueáveis por condição. Auto-concede o UserCosmetic quando a
+  // condição é atingida (aí o user pode equipar pelo endpoint normal de equip).
+  async getUnlockables(userId: string): Promise<UnlockItem[]> {
+    const catalog = await this.ensureUnlockCatalog();
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { maxStreak: true, totalXp: true },
+    });
+    const commitsAgg = await this.prisma.dailyActivity.aggregate({
+      where: { userId, activityType: 'COMMIT' },
+      _sum: { count: true },
+    });
+    const achievements = await this.prisma.userAchievement.count({ where: { userId } });
+    const challenges = await this.prisma.userDailyChallenge.count({
+      where: { userId, claimedAt: { not: null } },
+    });
+    const metrics: Record<UnlockMetric, number> = {
+      maxStreak: user?.maxStreak ?? 0,
+      commits: commitsAgg._sum.count ?? 0,
+      xp: user?.totalXp ?? 0,
+      achievements,
+      challenges,
+    };
+
+    const owned = new Set(
+      (await this.prisma.userCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }))
+        .map((o) => o.cosmeticId),
+    );
+    const equipped = new Set(
+      (await this.prisma.userEquippedCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }))
+        .map((e) => e.cosmeticId),
+    );
+
+    const result: UnlockItem[] = [];
+    for (const { id, def } of catalog) {
+      const current = metrics[def.metric];
+      const unlocked = current >= def.target;
+      // Concede o item quando desbloqueia (uma vez).
+      if (unlocked && !owned.has(id)) {
+        await this.prisma.userCosmetic.create({
+          data: { userId, cosmeticId: id, obtainedSource: 'ACHIEVEMENT_REWARD' },
+        });
+        owned.add(id);
+      }
+      result.push({
+        id,
+        key: def.key,
+        category: def.category,
+        rarity: def.rarity,
+        track: def.track,
+        metric: def.metric,
+        target: def.target,
+        current,
+        unlocked,
+        equipped: equipped.has(id),
+      });
+    }
+    return result;
   }
 }
