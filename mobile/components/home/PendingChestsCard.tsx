@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { router } from 'expo-router';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { PixelChest } from '../chests/PixelChest';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const RARITY_COLOR: Record<string, string> = {
-  comum: C.text3, raro: '#3a82f7', epico: C.purple, lendario: C.gold,
+  comum: '#9a876c', raro: '#3a82f7', epico: '#8b5cf6', lendario: '#c08a00',
 };
 
 const RARITY_LABEL: Record<string, string> = {
@@ -19,7 +19,9 @@ const RARITY_LABEL: Record<string, string> = {
 
 export default function PendingChestsCard({ count, topRarity }: Props) {
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const color = RARITY_COLOR[topRarity] ?? C.accent;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
+  const color = RARITY_COLOR[topRarity] ?? c.accent;
 
   useEffect(() => {
     Animated.loop(
@@ -58,9 +60,9 @@ export default function PendingChestsCard({ count, topRarity }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: C.surface, borderRadius: 12,
+    backgroundColor: c.surface, borderRadius: 12,
     borderWidth: 1, padding: 12,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
@@ -72,6 +74,6 @@ const s = StyleSheet.create({
   row:   { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot:   { width: 6, height: 6, borderRadius: 3 },
   label: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12 },
-  sub:   { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
+  sub:   { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3 },
   arrow: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 18 },
 });

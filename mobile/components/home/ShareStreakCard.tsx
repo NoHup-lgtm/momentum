@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
 } from 'react-native';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { SpiralIcon } from '../icons';
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
 export default function ShareStreakCard({ streak, username }: Props) {
   const [copied, setCopied] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const handleShare = () => {
     // Simulate copy to clipboard
@@ -29,7 +31,7 @@ export default function ShareStreakCard({ streak, username }: Props) {
       {/* The card itself (visual representation of what'd be shared) */}
       <Animated.View style={[s.shareCard, { transform: [{ scale: scaleAnim }] }]}>
         <View style={s.spiralBg} pointerEvents="none">
-          <SpiralIcon size={80} color={C.accent} />
+          <SpiralIcon size={80} color={c.accent} />
         </View>
         <View style={s.cardContent}>
           <Text style={s.cardStreak}>{streak}</Text>
@@ -47,11 +49,11 @@ export default function ShareStreakCard({ streak, username }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   wrapper: { gap: 10 },
   shareCard: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.accent + '35',
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.accent + '35',
     padding: 18, flexDirection: 'row', alignItems: 'center',
     overflow: 'hidden',
   },
@@ -61,21 +63,21 @@ const s = StyleSheet.create({
   cardContent: { flex: 1 },
   cardStreak: {
     fontFamily: 'Lora_400Regular', fontSize: 38,
-    color: C.text, letterSpacing: -2, lineHeight: 42,
+    color: c.text, letterSpacing: -2, lineHeight: 42,
   },
   cardUnit: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, marginTop: 2,
+    color: c.text3, marginTop: 2,
   },
   cardUser: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.accent, marginTop: 8,
+    color: c.accent, marginTop: 8,
   },
   shareBtn: {
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent + '50',
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.accent + '50',
     borderRadius: 8, paddingVertical: 10, alignItems: 'center',
   },
   shareBtnText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.accent,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.accent,
   },
 });
