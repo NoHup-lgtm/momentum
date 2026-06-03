@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { C, getRank, type RankId } from '../constants/design';
+import { getRank, type RankId } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { FlameIcon, XPIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
 import RankEmblem from '../components/rank/RankEmblem';
@@ -44,6 +45,8 @@ export default function UserProfileScreen() {
   const insets = useSafeAreaInsets();
   const [isFriend, setFriend] = useState(OTHER_USER.isFriend);
   const rank = getRank(OTHER_USER.rankId);
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const cellSize = (W - 56) / 13;
 
   return (
@@ -95,7 +98,7 @@ export default function UserProfileScreen() {
             { label: 'ofensiva', value: `${OTHER_USER.streak}d` },
             { label: 'recorde', value: `${OTHER_USER.longestStreak}d` },
           ].map((st, i) => (
-            <View key={i} style={[s.statCell, i < 2 && { borderRightWidth: 1, borderRightColor: C.surface2 }]}>
+            <View key={i} style={[s.statCell, i < 2 && { borderRightWidth: 1, borderRightColor: c.surface2 }]}>
               <Text style={s.statValue}>{st.value}</Text>
               <Text style={s.statLabel}>{st.label}</Text>
             </View>
@@ -117,7 +120,7 @@ export default function UserProfileScreen() {
                         style={{
                           width: cellSize - 2, height: cellSize - 2, borderRadius: 2,
                           backgroundColor: val === 0
-                            ? C.surface2
+                            ? c.surface2
                             : `${rank.color}${Math.round((val / 5) * 200 + 55).toString(16).padStart(2, '0')}`,
                         }}
                       />
@@ -134,7 +137,7 @@ export default function UserProfileScreen() {
           <Text style={s.sectionTitle}>atividade recente</Text>
           <View style={s.activityCard}>
             {RECENT_ACTIVITY.map((item, i) => (
-              <View key={i} style={[s.activityRow, i > 0 && { borderTopWidth: 1, borderTopColor: C.surface2 }]}>
+              <View key={i} style={[s.activityRow, i > 0 && { borderTopWidth: 1, borderTopColor: c.surface2 }]}>
                 <View style={s.activityIcon}>
                   <Text style={{ fontSize: 14 }}>{TYPE_ICON[item.type]}</Text>
                 </View>
@@ -151,68 +154,68 @@ export default function UserProfileScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen:  { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen:  { flex: 1, backgroundColor: c.bg },
   content: { paddingHorizontal: 18, gap: 14 },
 
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
   backBtn:  { padding: 4, marginRight: 8 },
-  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title:    { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, flex: 1 },
+  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: c.text2 },
+  title:    { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text, flex: 1 },
   moreBtn:  { padding: 4 },
-  moreText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 16, color: C.text3, letterSpacing: 2 },
+  moreText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 16, color: c.text3, letterSpacing: 2 },
 
   heroCard: {
-    backgroundColor: C.surface, borderRadius: 14,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: c.surface2,
     alignItems: 'center', padding: 24, gap: 6,
   },
-  userName: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, letterSpacing: -0.3 },
-  userHandle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
+  userName: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text, letterSpacing: -0.3 },
+  userHandle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
   rankBadge: {
-    backgroundColor: C.surface2, borderRadius: 16,
+    backgroundColor: c.surface2, borderRadius: 16,
     paddingHorizontal: 12, paddingVertical: 4, marginTop: 2,
   },
   rankText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11 },
 
   actionRow: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
   friendBtn: {
-    flex: 1, backgroundColor: C.accent, borderRadius: 8,
+    flex: 1, backgroundColor: c.accent, borderRadius: 8,
     paddingVertical: 10, alignItems: 'center',
   },
-  friendBtnActive: { backgroundColor: C.success + '20', borderWidth: 1, borderColor: C.success + '50' },
+  friendBtnActive: { backgroundColor: c.success + '20', borderWidth: 1, borderColor: c.success + '50' },
   friendBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: '#f2e4cf' },
-  friendBtnTextActive: { color: C.success },
+  friendBtnTextActive: { color: c.success },
   squadBtn: {
-    flex: 1, backgroundColor: C.surface2, borderRadius: 8,
+    flex: 1, backgroundColor: c.surface2, borderRadius: 8,
     paddingVertical: 10, alignItems: 'center',
-    borderWidth: 1, borderColor: C.surface2,
+    borderWidth: 1, borderColor: c.surface2,
   },
-  squadBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text2 },
+  squadBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text2 },
 
   statsRow: {
-    flexDirection: 'row', backgroundColor: C.surface,
-    borderRadius: 12, borderWidth: 1, borderColor: C.surface2,
+    flexDirection: 'row', backgroundColor: c.surface,
+    borderRadius: 12, borderWidth: 1, borderColor: c.surface2,
   },
   statCell: { flex: 1, alignItems: 'center', padding: 16 },
-  statValue: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, letterSpacing: -0.3 },
-  statLabel: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: 2 },
+  statValue: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text, letterSpacing: -0.3 },
+  statLabel: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3, marginTop: 2 },
 
   section: { gap: 8 },
-  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3, textTransform: 'lowercase' },
+  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, textTransform: 'lowercase' },
 
   heatCard: {
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2, padding: 12,
+    backgroundColor: c.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: c.surface2, padding: 12,
   },
 
   activityCard: {
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2, overflow: 'hidden',
+    backgroundColor: c.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: c.surface2, overflow: 'hidden',
   },
   activityRow: {
     flexDirection: 'row', alignItems: 'center',
@@ -220,8 +223,8 @@ const s = StyleSheet.create({
   },
   activityIcon: {
     width: 28, height: 28, borderRadius: 14,
-    backgroundColor: C.surface2, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: c.surface2, alignItems: 'center', justifyContent: 'center',
   },
-  activityText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text, flex: 1 },
-  activityTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
+  activityText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text, flex: 1 },
+  activityTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3 },
 });

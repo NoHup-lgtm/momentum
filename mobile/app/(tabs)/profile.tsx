@@ -4,8 +4,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { C, getRank, type RankId } from '../../constants/design';
-import { useTheme } from '../../contexts/ThemeContext';
+import { getRank, type RankId } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import {
   FlameIcon, XPIcon, CoinIcon, GemIcon,
   LightningIcon, StarburstIcon, TrophyIcon, IceIcon,
@@ -57,6 +57,7 @@ const HEATMAP = Array.from({ length: 91 }, (_, i) => {
 
 // ── Heatmap ───────────────────────────────────────────────────────────────────
 function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) {
+  const { colors: c } = useTheme();
   const cellSize = (W - 56) / 13;
   const weeks = Array.from({ length: 13 }, (_, w) =>
     Array.from({ length: 7 }, (_, d) => data[w * 7 + d] ?? 0)
@@ -74,7 +75,7 @@ function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) 
                 height: cellSize - 2,
                 borderRadius: 2,
                 backgroundColor: val === 0
-                  ? C.surface2
+                  ? c.surface2
                   : `${color}${Math.round((val / 5) * 200 + 55).toString(16).padStart(2, '0')}`,
               }}
             />
@@ -87,21 +88,23 @@ function Heatmap({ color, data = HEATMAP }: { color: string; data?: number[] }) 
 
 // ── Achievement Icon (SVG, no emoji) ─────────────────────────────────────────
 function AchieveIcon({ category, size = 24, dim = false }: { category: string; size?: number; dim?: boolean }) {
-  const c = dim ? C.text3 : undefined;
+  const tint = dim ? '#9a876c' : undefined;
   switch (category) {
     case 'STREAK': return <FlameIcon size={size} glowing={!dim} />;
-    case 'COMMIT': return <StarburstIcon size={size} color={c ?? C.gold} />;
-    case 'RANK': return <ProcessorIcon size={size} color={c ?? '#3a82f7'} />;
-    default: return <StarburstIcon size={size} color={c ?? C.gold} />;
+    case 'COMMIT': return <StarburstIcon size={size} color={tint ?? '#c08a00'} />;
+    case 'RANK': return <ProcessorIcon size={size} color={tint ?? '#3a82f7'} />;
+    default: return <StarburstIcon size={size} color={tint ?? '#c08a00'} />;
   }
 }
 
 // ── Achievement Badge ─────────────────────────────────────────────────────────
 function AchievementBadge({ label, category, dim }: { label: string; category: string; dim: boolean }) {
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   return (
     <View style={[s.achieveBadge, dim && s.achieveLocked]}>
       <AchieveIcon category={category} size={24} dim={dim} />
-      <Text style={[s.achieveLabel, dim && { color: C.text3 }]}>{label}</Text>
+      <Text style={[s.achieveLabel, dim && { color: c.text3 }]}>{label}</Text>
     </View>
   );
 }
@@ -109,7 +112,8 @@ function AchievementBadge({ label, category, dim }: { label: string; category: s
 // ── Profile Screen ────────────────────────────────────────────────────────────
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { colors, plan } = useTheme();
+  const { colors: c, plan } = useTheme();
+  const s = makeStyles(c);
 
   // Usuário real do store (/me). Fallback no mock por campo enquanto carrega.
   const su = useAppStore((s) => s.user);
@@ -171,19 +175,19 @@ export default function ProfileScreen() {
   const rank = getRank(user.rankId);
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: c.bg }]}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
 
         {/* Header */}
         <View style={s.header}>
           <Text style={s.title}>perfil</Text>
           <TouchableOpacity style={s.settingsBtn} onPress={() => router.push('/settings')}>
-            <ProcessorIcon size={18} color={C.text3} />
+            <ProcessorIcon size={18} color={c.text3} />
           </TouchableOpacity>
         </View>
 
         {/* Avatar + rank */}
-        <View style={[s.heroCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
+        <View style={[s.heroCard, { backgroundColor: c.surface, borderColor: c.surface2 }]}>
           <View style={s.rankEmblemWrap}>
             <RankEmblem rankId={user.rankId} size={72} glowing />
           </View>
@@ -204,13 +208,13 @@ export default function ProfileScreen() {
             {/* Plan badge — only shown when subscribed */}
             {plan !== 'free' && (
               <View style={{
-                backgroundColor: colors.accent + '18',
-                borderWidth: 1, borderColor: colors.accent + '50',
+                backgroundColor: c.accent + '18',
+                borderWidth: 1, borderColor: c.accent + '50',
                 borderRadius: 4, paddingHorizontal: 7, paddingVertical: 2,
               }}>
                 <Text style={{
                   fontFamily: 'JetBrainsMono_400Regular',
-                  fontSize: 9, color: colors.accent, letterSpacing: 0.5,
+                  fontSize: 9, color: c.accent, letterSpacing: 0.5,
                 }}>
                   {plan.toUpperCase()}
                 </Text>
@@ -227,7 +231,7 @@ export default function ProfileScreen() {
             <View style={s.balanceDivider} />
             <View style={s.balanceItem}>
               <GemIcon size={14} />
-              <Text style={[s.balanceVal, { color: C.purple }]}>{user.gems}</Text>
+              <Text style={[s.balanceVal, { color: c.purple }]}>{user.gems}</Text>
             </View>
           </View>
         </View>
@@ -270,11 +274,11 @@ export default function ProfileScreen() {
           <Text style={s.sectionTitle}>atividade · 13 semanas</Text>
           <View style={s.heatmapCard}>
             <Heatmap color={rank.color} data={heatmap} />
-            <View style={{ height: 1, backgroundColor: C.surface2, marginVertical: 10 }} />
+            <View style={{ height: 1, backgroundColor: c.surface2, marginVertical: 10 }} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: C.success }} />
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.success }} />
               <Text style={{
-                fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+                fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3,
               }}>sincronizado há 2 min · github.com/{user.username}</Text>
             </View>
           </View>
@@ -341,7 +345,7 @@ export default function ProfileScreen() {
               { label: 'XP esta semana',   value: user.weekXP.toLocaleString()  },
               { label: 'maior ofensiva',   value: `${user.longestStreak} dias`  },
             ].map((st, i) => (
-              <View key={i} style={[s.allTimeRow, i > 0 && { borderTopWidth: 1, borderTopColor: C.surface2 }]}>
+              <View key={i} style={[s.allTimeRow, i > 0 && { borderTopWidth: 1, borderTopColor: c.surface2 }]}>
                 <Text style={s.allTimeLabel}>{st.label}</Text>
                 <Text style={s.allTimeValue}>{st.value}</Text>
               </View>
@@ -361,8 +365,8 @@ export default function ProfileScreen() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  screen:  { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen:  { flex: 1, backgroundColor: c.bg },
   content: { paddingHorizontal: 18, gap: 16 },
 
   header: {
@@ -371,28 +375,28 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: 'Lora_400Regular', fontSize: 22,
-    color: C.text, letterSpacing: -0.3,
+    color: c.text, letterSpacing: -0.3,
   },
   settingsBtn: { padding: 8 },
-  settingsIcon: { fontSize: 18, color: C.text3 },
+  settingsIcon: { fontSize: 18, color: c.text3 },
 
   heroCard: {
-    backgroundColor: C.surface, borderRadius: 14,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 14,
+    borderWidth: 1, borderColor: c.surface2,
     alignItems: 'center', padding: 24, paddingTop: 20,
   },
   rankEmblemWrap: { marginBottom: 8 },
   avatarWrap: { marginBottom: 12 },
   userName: {
     fontFamily: 'Lora_400Regular', fontSize: 22,
-    color: C.text, letterSpacing: -0.3,
+    color: c.text, letterSpacing: -0.3,
   },
   userHandle: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 12,
-    color: C.text3, marginTop: 2, marginBottom: 10,
+    color: c.text3, marginTop: 2, marginBottom: 10,
   },
   rankBadge: {
-    backgroundColor: C.surface2, borderRadius: 20,
+    backgroundColor: c.surface2, borderRadius: 20,
     paddingHorizontal: 14, paddingVertical: 5, marginBottom: 16,
   },
   rankBadgeText: {
@@ -400,109 +404,109 @@ const s = StyleSheet.create({
   },
   balances: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   balanceItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  balanceDivider: { width: 1, height: 14, backgroundColor: C.surface2 },
+  balanceDivider: { width: 1, height: 14, backgroundColor: c.surface2 },
   balanceVal: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.gold,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.gold,
   },
 
   statsRow: {
-    flexDirection: 'row', backgroundColor: C.surface,
-    borderRadius: 12, borderWidth: 1, borderColor: C.surface2,
+    flexDirection: 'row', backgroundColor: c.surface,
+    borderRadius: 12, borderWidth: 1, borderColor: c.surface2,
   },
   statCell: {
     flex: 1, alignItems: 'center', padding: 16,
-    borderRightWidth: 1, borderRightColor: C.surface2,
+    borderRightWidth: 1, borderRightColor: c.surface2,
   },
   statValue: {
     fontFamily: 'Lora_400Regular', fontSize: 20,
-    color: C.text, letterSpacing: -0.3,
+    color: c.text, letterSpacing: -0.3,
   },
   statLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.text3, marginTop: 2, textTransform: 'lowercase',
+    color: c.text3, marginTop: 2, textTransform: 'lowercase',
   },
 
   quickNav: { flexDirection: 'row', gap: 8 },
   quickNavBtn: {
-    flex: 1, backgroundColor: C.surface, borderRadius: 8,
-    borderWidth: 1, borderColor: C.surface2,
+    flex: 1, backgroundColor: c.surface, borderRadius: 8,
+    borderWidth: 1, borderColor: c.surface2,
     paddingVertical: 10, alignItems: 'center',
   },
   quickNavText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text2, textTransform: 'lowercase',
+    color: c.text2, textTransform: 'lowercase',
   },
 
   section: { gap: 10 },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   sectionTitle: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, textTransform: 'lowercase', letterSpacing: 0.05,
+    color: c.text3, textTransform: 'lowercase', letterSpacing: 0.05,
   },
   seeAll: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.accent,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.accent,
   },
 
   heatmapCard: {
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 14,
   },
 
   achieveBadge: {
     alignItems: 'center', gap: 4,
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: c.surface2,
     paddingHorizontal: 14, paddingVertical: 12, minWidth: 72,
   },
   achieveLocked: { opacity: 0.4 },
   achieveIcon:  { fontSize: 22 },
   achieveLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.text2, textAlign: 'center',
+    color: c.text2, textAlign: 'center',
   },
 
   friendsCard: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 14, gap: 12,
   },
   friendAvatars: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   onlineDot: {
     position: 'absolute', bottom: 0, right: 0,
     width: 9, height: 9, borderRadius: 4.5,
-    backgroundColor: C.success, borderWidth: 1.5, borderColor: C.bg,
+    backgroundColor: c.success, borderWidth: 1.5, borderColor: c.bg,
   },
   addFriendBtn: {
-    backgroundColor: C.surface2, borderRadius: 6,
+    backgroundColor: c.surface2, borderRadius: 6,
     paddingVertical: 8, alignItems: 'center',
-    borderWidth: 1, borderColor: C.accent + '40',
+    borderWidth: 1, borderColor: c.accent + '40',
   },
   addFriendText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.accent,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.accent,
   },
 
   allTimeCard: {
-    backgroundColor: C.surface, borderRadius: 10,
-    borderWidth: 1, borderColor: C.surface2, overflow: 'hidden',
+    backgroundColor: c.surface, borderRadius: 10,
+    borderWidth: 1, borderColor: c.surface2, overflow: 'hidden',
   },
   allTimeRow: {
     flexDirection: 'row', justifyContent: 'space-between',
     padding: 14, alignItems: 'center',
   },
   allTimeLabel: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3,
   },
   allTimeValue: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text2,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text2,
   },
   logoutBtn: {
     marginTop: 24, alignItems: 'center', justifyContent: 'center',
     paddingVertical: 14, borderRadius: 8,
-    borderWidth: 1, borderColor: C.danger + '55',
-    backgroundColor: C.danger + '12',
+    borderWidth: 1, borderColor: c.danger + '55',
+    backgroundColor: c.danger + '12',
   },
   logoutText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.danger,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.danger,
   },
 });

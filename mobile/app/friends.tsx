@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { C, getRank, type RankId } from '../constants/design';
+import { getRank, type RankId } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { FlameIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
@@ -19,6 +20,8 @@ const rid = (r: string) => r.toLowerCase() as RankId;
 export default function FriendsScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().social;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [data, setData] = useState<FriendsView>({ friends: [], incoming: [], outgoing: [] });
   const [loading, setLoading] = useState(true);
@@ -52,7 +55,7 @@ export default function FriendsScreen() {
         {kind === 'incoming' ? (
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <TouchableOpacity style={[s.miniBtn, s.acceptBtn]} disabled={loadingThis} onPress={() => act(f.friendshipId, acceptFriend)}>
-              {loadingThis ? <ActivityIndicator size="small" color={C.success} /> : <Text style={s.acceptTxt}>{t.accept}</Text>}
+              {loadingThis ? <ActivityIndicator size="small" color={c.success} /> : <Text style={s.acceptTxt}>{t.accept}</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={[s.miniBtn, s.removeBtn]} disabled={loadingThis} onPress={() => act(f.friendshipId, removeFriend)}>
               <Text style={s.removeTxt}>✕</Text>
@@ -81,12 +84,12 @@ export default function FriendsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.content}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
         >
           {data.incoming.length > 0 && (
             <>
@@ -118,35 +121,35 @@ export default function FriendsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: 18, gap: 8 },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
   backBtn: { padding: 4, marginRight: 8 },
-  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text, flex: 1 },
-  addBtn: { backgroundColor: C.surface, borderWidth: 1, borderColor: C.accent, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
-  addBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.accent },
-  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3, textTransform: 'lowercase', paddingTop: 4 },
-  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 18 },
+  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: c.text2 },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text, flex: 1 },
+  addBtn: { backgroundColor: c.surface, borderWidth: 1, borderColor: c.accent, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 },
+  addBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.accent },
+  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, textTransform: 'lowercase', paddingTop: 4 },
+  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 24, paddingHorizontal: 20, lineHeight: 18 },
   friendRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderRadius: 10, borderWidth: 1, borderColor: C.surface2, padding: 12,
+    backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.surface2, padding: 12,
   },
-  friendName: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text },
-  friendHandle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3 },
+  friendName: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text },
+  friendHandle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3 },
   friendRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9 },
   friendStreak: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  friendStreakText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text2 },
+  friendStreakText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text2 },
   miniBtn: { borderRadius: 6, paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center', justifyContent: 'center', minWidth: 36 },
-  acceptBtn: { borderWidth: 1, borderColor: C.success + '60', backgroundColor: C.success + '15' },
-  acceptTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.success },
-  removeBtn: { borderWidth: 1, borderColor: C.surface2 },
-  removeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3 },
-  sentTag: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3 },
+  acceptBtn: { borderWidth: 1, borderColor: c.success + '60', backgroundColor: c.success + '15' },
+  acceptTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.success },
+  removeBtn: { borderWidth: 1, borderColor: c.surface2 },
+  removeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
+  sentTag: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3 },
 });

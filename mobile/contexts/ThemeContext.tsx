@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Animated } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 // ── Plan types ────────────────────────────────────────────────────────────────
 export type PlanType = 'free' | 'pro' | 'max';
+export type ThemeMode = 'dark' | 'light';
 
 // ── Color palette shape (matches C from design.ts) ────────────────────────────
 export interface ThemeColors {
@@ -22,50 +24,53 @@ export interface ThemeColors {
   bronze: string;
 }
 
-// ── Shared base (text, semantic colors unchanged across plans) ─────────────────
-const BASE: Pick<ThemeColors, 'text' | 'text2' | 'text3' | 'success' | 'danger' | 'gold' | 'purple' | 'silver' | 'bronze'> = {
-  text:    '#f2e4cf',
-  text2:   '#b8a898',
-  text3:   '#7a6a5a',
+// ── Semantic colors (iguais em claro/escuro) ──────────────────────────────────
+const SEMANTIC = {
   success: '#5a7a50',
   danger:  '#c0392b',
-  gold:    '#f0a500',
+  gold:    '#c08a00',
   purple:  '#8b5cf6',
   silver:  '#9aa0a8',
   bronze:  '#cd7f32',
 };
 
-// ── Three palettes ─────────────────────────────────────────────────────────────
+// ── Base por modo (fundo/superfícies/texto) ───────────────────────────────────
+// Claro = paleta da marca: Pergaminho/Creme/Sépia/Tinta/Poeira.
+const MODE_BASE: Record<ThemeMode, Pick<ThemeColors, 'bg' | 'surface' | 'surface2' | 'text' | 'text2' | 'text3'>> = {
+  dark: {
+    bg:       '#140e08',
+    surface:  '#1c1410',
+    surface2: '#2a1f17',
+    text:     '#f2e4cf',
+    text2:    '#b8a898',
+    text3:    '#7a6a5a',
+  },
+  light: {
+    bg:       '#faf5ec', // Pergaminho
+    surface:  '#ede4d2', // Creme
+    surface2: '#ddcfb6', // Creme escuro (bordas)
+    text:     '#1a1008', // Tinta
+    text2:    '#6a543c', // Sépia suave
+    text3:    '#9a876c', // Poeira
+  },
+};
+
+// ── Accent por plano (cor de destaque) ────────────────────────────────────────
+const PLAN_ACCENT: Record<PlanType, Pick<ThemeColors, 'accent' | 'accentGlow'>> = {
+  free: { accent: '#d4673a', accentGlow: 'rgba(212,103,58,0.35)' },
+  pro:  { accent: '#4a9eff', accentGlow: 'rgba(74,158,255,0.35)' },
+  max:  { accent: '#a370ff', accentGlow: 'rgba(163,112,255,0.38)' },
+};
+
+function buildColors(mode: ThemeMode, plan: PlanType): ThemeColors {
+  return { ...SEMANTIC, ...MODE_BASE[mode], ...PLAN_ACCENT[plan] };
+}
+
+// Compat: alguns lugares importavam THEMES (mapa por plano, modo escuro).
 export const THEMES: Record<PlanType, ThemeColors> = {
-  // Free — warm amber/brown, the original Momentum look
-  free: {
-    ...BASE,
-    bg:         '#140e08',
-    surface:    '#1c1410',
-    surface2:   '#2a1f17',
-    accent:     '#d4673a',
-    accentGlow: 'rgba(212,103,58,0.35)',
-  },
-
-  // Pro — cold deep blue, signals "professional" focus
-  pro: {
-    ...BASE,
-    bg:         '#07111e',
-    surface:    '#0e1c30',
-    surface2:   '#152742',
-    accent:     '#4a9eff',
-    accentGlow: 'rgba(74,158,255,0.35)',
-  },
-
-  // Max — void purple, signals "elite" power user
-  max: {
-    ...BASE,
-    bg:         '#0c0818',
-    surface:    '#150e28',
-    surface2:   '#1e1538',
-    accent:     '#a370ff',
-    accentGlow: 'rgba(163,112,255,0.38)',
-  },
+  free: buildColors('dark', 'free'),
+  pro:  buildColors('dark', 'pro'),
+  max:  buildColors('dark', 'max'),
 };
 
 // ── Plan display metadata ──────────────────────────────────────────────────────
@@ -78,26 +83,42 @@ export const PLAN_META: Record<PlanType, { label: string; badge: string; color: 
 // ── Context ────────────────────────────────────────────────────────────────────
 interface ThemeContextValue {
   plan: PlanType;
+  mode: ThemeMode;
   colors: ThemeColors;
   setPlan: (plan: PlanType) => void;
-  activationProgress: Animated.Value; // 0→1 flash on theme change
+  setMode: (mode: ThemeMode) => void;
+  toggleMode: () => void;
+  activationProgress: Animated.Value;
 }
+
+const MODE_KEY = 'momentum.theme_mode';
 
 const ThemeContext = createContext<ThemeContextValue>({
   plan: 'free',
-  colors: THEMES.free,
+  mode: 'dark',
+  colors: buildColors('dark', 'free'),
   setPlan: () => {},
+  setMode: () => {},
+  toggleMode: () => {},
   activationProgress: new Animated.Value(0),
 });
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [plan, setPlanState] = useState<PlanType>('free');
+  const [mode, setModeState] = useState<ThemeMode>('dark');
   const activationProgress = useRef(new Animated.Value(0)).current;
+
+  // Carrega o modo persistido no boot.
+  useEffect(() => {
+    (async () => {
+      const saved = await SecureStore.getItemAsync(MODE_KEY);
+      if (saved === 'light' || saved === 'dark') setModeState(saved);
+    })();
+  }, []);
 
   const setPlan = (newPlan: PlanType) => {
     if (newPlan === plan) return;
-    // Flash animation on theme change
     activationProgress.setValue(0);
     Animated.sequence([
       Animated.timing(activationProgress, { toValue: 1, duration: 180, useNativeDriver: true }),
@@ -106,8 +127,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setPlanState(newPlan);
   };
 
+  const setMode = (newMode: ThemeMode) => {
+    setModeState(newMode);
+    SecureStore.setItemAsync(MODE_KEY, newMode).catch(() => {});
+  };
+  const toggleMode = () => setMode(mode === 'dark' ? 'light' : 'dark');
+
   return (
-    <ThemeContext.Provider value={{ plan, colors: THEMES[plan], setPlan, activationProgress }}>
+    <ThemeContext.Provider
+      value={{ plan, mode, colors: buildColors(mode, plan), setPlan, setMode, toggleMode, activationProgress }}
+    >
       {children}
     </ThemeContext.Provider>
   );

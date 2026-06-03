@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { C, getRank, type RankId } from '../constants/design';
+import { getRank, type RankId } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
 import { getFriends, addFriend, removeFriend, type FriendRow } from '../lib/session';
@@ -15,6 +16,8 @@ const rid = (r: string) => r.toLowerCase() as RankId;
 export default function FriendInviteScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().social;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -55,7 +58,7 @@ export default function FriendInviteScreen() {
         <TextInput
           style={s.searchInput}
           placeholder={t.searchPlaceholder}
-          placeholderTextColor={C.text3}
+          placeholderTextColor={c.text3}
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
@@ -100,35 +103,35 @@ export default function FriendInviteScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   content: { paddingHorizontal: 18, gap: 8 },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
   backBtn: { padding: 4, marginRight: 8 },
-  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
+  backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: c.text2 },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
   searchWrap: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12, gap: 8,
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
-  at: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 16, color: C.text3 },
-  searchInput: { flex: 1, fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: C.text },
-  sendBtn: { backgroundColor: C.accent, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
+  at: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 16, color: c.text3 },
+  searchInput: { flex: 1, fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: c.text },
+  sendBtn: { backgroundColor: c.accent, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 },
   sendTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: '#f2e4cf' },
-  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.danger, paddingHorizontal: 18, paddingTop: 10 },
-  hint: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3, lineHeight: 17, paddingVertical: 8 },
-  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3, textTransform: 'lowercase', paddingTop: 4 },
+  err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.danger, paddingHorizontal: 18, paddingTop: 10 },
+  hint: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3, lineHeight: 17, paddingVertical: 8 },
+  sectionTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, textTransform: 'lowercase', paddingTop: 4 },
   userRow: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderRadius: 10, borderWidth: 1, borderColor: C.surface2, padding: 10,
+    backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.surface2, padding: 10,
   },
-  userName: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text },
+  userName: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text },
   userRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, marginTop: 2 },
-  cancelBtn: { borderWidth: 1, borderColor: C.surface2, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
-  cancelTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3 },
+  cancelBtn: { borderWidth: 1, borderColor: c.surface2, borderRadius: 6, paddingHorizontal: 10, paddingVertical: 6 },
+  cancelTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3 },
 });

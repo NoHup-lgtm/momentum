@@ -6,7 +6,7 @@ import {
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuthRequest, makeRedirectUri, type AuthSessionResult } from 'expo-auth-session';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { SpiralIcon, GitHubIcon, MomentumWordmark } from '../../components/icons';
 import PixelAvatar from '../../components/avatar/PixelAvatar';
 import { GITHUB_CLIENT_ID } from '../../lib/config';
@@ -36,6 +36,8 @@ export default function OnboardingScreen() {
   const [profile, setProfile] = useState<AuthUser | null>(null);
   const setUser = useAppStore((s) => s.setUser);
   const t = useT().auth;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [request, response, promptAsync] = useAuthRequest(
     {
@@ -108,12 +110,14 @@ function StepWelcome({ loading, error, disabled, onConnect }: {
   loading: boolean; error: string | null; disabled: boolean; onConnect: () => void;
 }) {
   const t = useT().auth;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   return (
     <View style={s.screen}>
       <LangToggle />
       {/* Watermark */}
       <View style={s.watermark} pointerEvents="none">
-        <SpiralIcon size={360} color={C.text} />
+        <SpiralIcon size={360} color={c.text} />
       </View>
 
       <View style={s.center}>
@@ -158,6 +162,8 @@ function StepConnected({ profile, onContinue }: {
   onContinue: () => void;
 }) {
   const t = useT().auth;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   return (
     <View style={s.screen}>
       <LangToggle />
@@ -195,6 +201,8 @@ function StepConnected({ profile, onContinue }: {
 function LangToggle() {
   const lang = useLang();
   const setLang = useSetLang();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   return (
     <View style={s.langToggle}>
       {(['pt', 'en'] as const).map((l) => (
@@ -207,21 +215,21 @@ function LangToggle() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   langToggle: {
     position: 'absolute', top: 58, right: 20, zIndex: 10,
     flexDirection: 'row', gap: 2,
-    borderWidth: 1, borderColor: C.surface2, borderRadius: 6, padding: 2,
+    borderWidth: 1, borderColor: c.surface2, borderRadius: 6, padding: 2,
   },
   langBtn: { paddingHorizontal: 9, paddingVertical: 5, borderRadius: 4 },
-  langBtnActive: { backgroundColor: C.surface2 },
+  langBtnActive: { backgroundColor: c.surface2 },
   langTxt: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    letterSpacing: 0.05, color: C.text3,
+    letterSpacing: 0.05, color: c.text3,
   },
-  langTxtActive: { color: C.text },
+  langTxtActive: { color: c.text },
   screen: {
-    flex: 1, backgroundColor: C.bg,
+    flex: 1, backgroundColor: c.bg,
     alignItems: 'center', justifyContent: 'center',
     paddingHorizontal: 28,
   },
@@ -233,20 +241,20 @@ const s = StyleSheet.create({
   center: { width: '100%', alignItems: 'center' },
   titleMd: {
     fontFamily: 'Lora_400Regular', fontSize: 24,
-    color: C.text, marginBottom: 6, textAlign: 'center',
+    color: c.text, marginBottom: 6, textAlign: 'center',
     letterSpacing: -0.3,
   },
   subtitle: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, marginBottom: 20, letterSpacing: 0.04,
+    color: c.text3, marginBottom: 20, letterSpacing: 0.04,
   },
   body: {
-    fontSize: 15, color: C.text2, textAlign: 'center',
+    fontSize: 15, color: c.text2, textAlign: 'center',
     lineHeight: 24, marginBottom: 40,
   },
   stepLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, letterSpacing: 0.1, textTransform: 'uppercase',
+    color: c.text3, letterSpacing: 0.1, textTransform: 'uppercase',
     marginBottom: 16,
   },
   btn: {
@@ -255,8 +263,8 @@ const s = StyleSheet.create({
     marginBottom: 14,
   },
   btnPrimary: {
-    backgroundColor: C.accent,
-    shadowColor: C.accent,
+    backgroundColor: c.accent,
+    shadowColor: c.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -268,20 +276,20 @@ const s = StyleSheet.create({
   },
   hint: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, textAlign: 'center', marginTop: 4,
+    color: c.text3, textAlign: 'center', marginTop: 4,
   },
   error: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.danger, textAlign: 'center', marginTop: 4, lineHeight: 16,
+    color: c.danger, textAlign: 'center', marginTop: 4, lineHeight: 16,
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   avatarWrap: { position: 'relative', marginBottom: 20 },
   avatarRing: {
     width: 88, height: 88, borderRadius: 44,
-    borderWidth: 2, borderColor: C.accent,
+    borderWidth: 2, borderColor: c.accent,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.surface, overflow: 'hidden',
-    shadowColor: C.accent,
+    backgroundColor: c.surface, overflow: 'hidden',
+    shadowColor: c.accent,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5, shadowRadius: 16,
   },
@@ -289,12 +297,12 @@ const s = StyleSheet.create({
   onlineDot: {
     position: 'absolute', bottom: 2, right: 2,
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: C.success,
-    borderWidth: 2.5, borderColor: C.bg,
+    backgroundColor: c.success,
+    borderWidth: 2.5, borderColor: c.bg,
   },
   ghSub: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.success, marginBottom: 28,
+    color: c.success, marginBottom: 28,
   },
   connectedBadge: {
     backgroundColor: 'rgba(90,122,80,0.12)',
@@ -304,6 +312,6 @@ const s = StyleSheet.create({
   },
   connectedText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.success,
+    color: c.success,
   },
 });

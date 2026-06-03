@@ -6,8 +6,8 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { C, RANKS, getRank, type RankId } from '../../constants/design';
-import { useTheme } from '../../contexts/ThemeContext';
+import { RANKS, getRank, type RankId } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon } from '../../components/icons';
 import { AvatarRing, XPBar } from '../../components/ui';
 import StreakMilestone from '../../components/home/StreakMilestone';
@@ -59,7 +59,8 @@ const MOCK_CHALLENGES: {
 function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: {
   streak: number; longest: number; freezes: number; commitedToday: boolean; onFreezePress: () => void;
 }) {
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -72,9 +73,9 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
   }, []);
 
   return (
-    <View style={[s.streakCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
+    <View style={[s.streakCard, { backgroundColor: c.surface, borderColor: c.surface2 }]}>
       {/* Glow blob */}
-      <View style={[s.streakGlow, { backgroundColor: colors.accent }]} />
+      <View style={[s.streakGlow, { backgroundColor: c.accent }]} />
 
       <View style={s.streakTop}>
         <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
@@ -92,11 +93,11 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
         </TouchableOpacity>
       </View>
 
-      <View style={[s.streakDivider, { backgroundColor: colors.surface2 }]} />
+      <View style={[s.streakDivider, { backgroundColor: c.surface2 }]} />
 
       {/* Today status pill */}
       <View style={[s.todayPill, commitedToday ? s.todayPillDone : s.todayPillMissing]}>
-        <Text style={[s.todayPillText, { color: commitedToday ? C.success : C.danger }]}>
+        <Text style={[s.todayPillText, { color: commitedToday ? c.success : c.danger }]}>
           {commitedToday ? '✓ commitou hoje' : '⚠ ainda não commitou hoje'}
         </Text>
       </View>
@@ -106,7 +107,7 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
           <Text style={s.streakStatValue}>{longest}</Text>
           {'  '}recorde pessoal
         </Text>
-        <Text style={[s.streakHint, { color: colors.accent }]}>não quebre a ofensiva</Text>
+        <Text style={[s.streakHint, { color: c.accent }]}>não quebre a ofensiva</Text>
       </View>
     </View>
   );
@@ -114,16 +115,17 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
 
 // ── XP Card ───────────────────────────────────────────────────────────────────
 function XPCard({ user }: { user: typeof MOCK_USER }) {
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const rank = getRank(user.rankId);
   const equipped = useAppStore((st) => st.equipped);
   return (
-    <View style={[s.xpCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
+    <View style={[s.xpCard, { backgroundColor: c.surface, borderColor: c.surface2 }]}>
       <View style={s.xpHeader}>
         <AvatarRing size={44} variant={user.avatarVariant} rankId={user.rankId} equipped={equipped} />
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={s.xpName}>{user.name}</Text>
-          <Text style={[s.xpRank, { color: rank?.color ?? C.text3 }]}>
+          <Text style={[s.xpRank, { color: rank?.color ?? c.text3 }]}>
             {rank?.label ?? 'Init'} · nível {user.level}
           </Text>
         </View>
@@ -141,17 +143,18 @@ function XPCard({ user }: { user: typeof MOCK_USER }) {
 function SquadMiniCard({ squad }: {
   squad: { name: string; rankLabel: string; members: { avatarVariant: number; rankId: RankId; streak: number; equipped?: EquippedMap }[] };
 }) {
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   return (
     <TouchableOpacity
-      style={[s.squadCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}
+      style={[s.squadCard, { backgroundColor: c.surface, borderColor: c.surface2 }]}
       activeOpacity={0.8}
       onPress={() => router.push('/(tabs)/squad')}
     >
       <View style={s.squadHeader}>
         <Text style={s.squadName}>{squad.name}</Text>
-        <View style={[s.squadRankBadge, { backgroundColor: colors.accent + '12', borderColor: colors.accent + '30' }]}>
-          <Text style={[s.squadRankText, { color: colors.accent }]}>{squad.rankLabel}</Text>
+        <View style={[s.squadRankBadge, { backgroundColor: c.accent + '12', borderColor: c.accent + '30' }]}>
+          <Text style={[s.squadRankText, { color: c.accent }]}>{squad.rankLabel}</Text>
         </View>
       </View>
 
@@ -169,7 +172,7 @@ function SquadMiniCard({ squad }: {
           );
         })}
         <TouchableOpacity style={s.viewSquadBtn} onPress={() => router.push('/(tabs)/squad')}>
-          <Text style={[s.viewSquadText, { color: colors.accent }]}>ver squad →</Text>
+          <Text style={[s.viewSquadText, { color: c.accent }]}>ver squad →</Text>
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -184,7 +187,8 @@ function DailyChallengeCard({
   challenge: typeof MOCK_CHALLENGES[0];
   onClaim: (id: string) => void;
 }) {
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const tc = useT().challenges;
   const scaleAnim = useRef(new Animated.Value(1)).current;
   // já começa visível se o desafio veio coletado do servidor
@@ -205,7 +209,7 @@ function DailyChallengeCard({
   return (
     <Animated.View style={[
       s.challengeCard,
-      { backgroundColor: colors.surface, borderColor: colors.surface2, transform: [{ scale: scaleAnim }] },
+      { backgroundColor: c.surface, borderColor: c.surface2, transform: [{ scale: scaleAnim }] },
     ]}>
       {/* Claimed overlay */}
       {isClaimed && (
@@ -234,7 +238,7 @@ function DailyChallengeCard({
 
       {challenge.done && !isClaimed && (
         <TouchableOpacity
-          style={[s.claimBtn, { backgroundColor: colors.accent, shadowColor: colors.accent }]}
+          style={[s.claimBtn, { backgroundColor: c.accent, shadowColor: c.accent }]}
           onPress={handleClaim}
           activeOpacity={0.8}
         >
@@ -243,8 +247,8 @@ function DailyChallengeCard({
       )}
 
       {!challenge.done && (
-        <View style={[s.progressBar, { backgroundColor: colors.surface2 }]}>
-          <View style={[s.progressFill, { backgroundColor: colors.accent }]} />
+        <View style={[s.progressBar, { backgroundColor: c.surface2 }]}>
+          <View style={[s.progressFill, { backgroundColor: c.accent }]} />
         </View>
       )}
     </Animated.View>
@@ -369,10 +373,12 @@ export default function HomeScreen() {
     setRawChallenges(await getChallenges());
   };
 
-  const { colors } = useTheme();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
+  const fz = makeFz(c);
 
   return (
-    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: colors.bg }]}>
+    <View style={[s.screen, { paddingTop: insets.top, backgroundColor: c.bg }]}>
       <ScrollView
         style={s.scroll}
         contentContainerStyle={s.content}
@@ -386,7 +392,7 @@ export default function HomeScreen() {
           </View>
           <TouchableOpacity onPress={() => router.push('/feed')}>
             <View style={s.feedBtn}>
-              <SpiralIcon size={20} color={C.text2} />
+              <SpiralIcon size={20} color={c.text2} />
             </View>
           </TouchableOpacity>
         </View>
@@ -505,8 +511,8 @@ export default function HomeScreen() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 18, gap: 14 },
 
@@ -517,61 +523,61 @@ const s = StyleSheet.create({
   },
   greeting: {
     fontFamily: 'Lora_400Regular', fontSize: 22,
-    color: C.text, letterSpacing: -0.3,
+    color: c.text, letterSpacing: -0.3,
   },
   date: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, marginTop: 3, textTransform: 'lowercase',
+    color: c.text3, marginTop: 3, textTransform: 'lowercase',
   },
   feedBtn: {
     width: 38, height: 38, borderRadius: 19,
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     alignItems: 'center', justifyContent: 'center',
   },
 
   // Streak
   streakCard: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 18, overflow: 'hidden',
   },
   streakGlow: {
     position: 'absolute', top: -30, left: -30,
     width: 120, height: 120, borderRadius: 60,
-    backgroundColor: C.accent, opacity: 0.07,
+    backgroundColor: c.accent, opacity: 0.07,
   },
   streakTop: { flexDirection: 'row', alignItems: 'center' },
   streakNumber: {
     fontFamily: 'Lora_400Regular', fontSize: 52,
-    color: C.text, lineHeight: 56, letterSpacing: -2,
+    color: c.text, lineHeight: 56, letterSpacing: -2,
   },
   streakLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, textTransform: 'lowercase',
+    color: c.text3, textTransform: 'lowercase',
   },
   todayPill: {
     alignSelf: 'flex-start', borderRadius: 6, borderWidth: 1,
     paddingHorizontal: 10, paddingVertical: 4, marginBottom: 12,
   },
-  todayPillDone:    { backgroundColor: C.success + '12', borderColor: C.success + '40' },
-  todayPillMissing: { backgroundColor: C.danger  + '12', borderColor: C.danger  + '40' },
+  todayPillDone:    { backgroundColor: c.success + '12', borderColor: c.success + '40' },
+  todayPillMissing: { backgroundColor: c.danger  + '12', borderColor: c.danger  + '40' },
   todayPillText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, letterSpacing: 0.02,
   },
   streakDivider: {
-    height: 1, backgroundColor: C.surface2,
+    height: 1, backgroundColor: c.surface2,
     marginVertical: 14,
   },
   streakBottom: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   streakStat: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3,
   },
-  streakStatValue: { color: C.text2 },
+  streakStatValue: { color: c.text2 },
   streakHint: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.accent, letterSpacing: 0.02,
+    color: c.accent, letterSpacing: 0.02,
   },
   freezeBtn: {
     alignItems: 'center', padding: 8,
@@ -585,14 +591,14 @@ const s = StyleSheet.create({
 
   // XP
   xpCard: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 16, gap: 12,
   },
   xpHeader: { flexDirection: 'row', alignItems: 'center' },
   xpName: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 13,
-    color: C.text, letterSpacing: 0.01,
+    color: c.text, letterSpacing: 0.01,
   },
   xpRank: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
@@ -606,13 +612,13 @@ const s = StyleSheet.create({
   },
   coinsText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 12,
-    color: C.gold,
+    color: c.gold,
   },
 
   // Squad
   squadCard: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 16,
   },
   squadHeader: {
@@ -621,7 +627,7 @@ const s = StyleSheet.create({
   },
   squadName: {
     fontFamily: 'Lora_400Regular', fontSize: 16,
-    color: C.text, letterSpacing: -0.2,
+    color: c.text, letterSpacing: -0.2,
   },
   squadRankBadge: {
     backgroundColor: 'rgba(212,103,58,0.12)',
@@ -630,7 +636,7 @@ const s = StyleSheet.create({
   },
   squadRankText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.accent,
+    color: c.accent,
   },
   squadMembers: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
@@ -640,12 +646,12 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 2,
   },
   memberStreakText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3,
   },
   viewSquadBtn: { marginLeft: 'auto' as any },
   viewSquadText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.accent,
+    color: c.accent,
   },
 
   // Section
@@ -655,10 +661,10 @@ const s = StyleSheet.create({
   },
   sectionTitle: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, textTransform: 'lowercase', letterSpacing: 0.05,
+    color: c.text3, textTransform: 'lowercase', letterSpacing: 0.05,
   },
   sectionSub: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3,
   },
 
   // Challenges
@@ -666,38 +672,38 @@ const s = StyleSheet.create({
     paddingRight: 18, gap: 10,
   },
   challengeCard: {
-    width: W * 0.56, backgroundColor: C.surface,
-    borderRadius: 12, borderWidth: 1, borderColor: C.surface2,
+    width: W * 0.56, backgroundColor: c.surface,
+    borderRadius: 12, borderWidth: 1, borderColor: c.surface2,
     padding: 14, gap: 8, overflow: 'hidden',
   },
   challengeTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   challengeDot: {
     width: 8, height: 8, borderRadius: 4,
-    backgroundColor: C.surface2, borderWidth: 1, borderColor: C.text3,
+    backgroundColor: c.surface2, borderWidth: 1, borderColor: c.text3,
   },
-  challengeDotDone: { backgroundColor: C.success, borderColor: C.success },
+  challengeDotDone: { backgroundColor: c.success, borderColor: c.success },
   challengeLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 12,
-    color: C.text, flex: 1,
+    color: c.text, flex: 1,
   },
   challengeDesc: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, lineHeight: 16,
+    color: c.text3, lineHeight: 16,
   },
   challengeRewards: { flexDirection: 'row', gap: 8, marginTop: 2 },
   rewardBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: C.surface2, borderRadius: 4,
+    backgroundColor: c.surface2, borderRadius: 4,
     paddingHorizontal: 8, paddingVertical: 4,
   },
   rewardText: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text2,
+    color: c.text2,
   },
   claimBtn: {
-    backgroundColor: C.accent, borderRadius: 6,
+    backgroundColor: c.accent, borderRadius: 6,
     paddingVertical: 8, alignItems: 'center', marginTop: 4,
-    shadowColor: C.accent, shadowOffset: { width: 0, height: 0 },
+    shadowColor: c.accent, shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
   claimBtnText: {
@@ -705,12 +711,12 @@ const s = StyleSheet.create({
     color: '#f2e4cf',
   },
   progressBar: {
-    height: 3, backgroundColor: C.surface2,
+    height: 3, backgroundColor: c.surface2,
     borderRadius: 2, marginTop: 4, overflow: 'hidden',
   },
   progressFill: {
     width: '30%', height: '100%',
-    backgroundColor: C.accent, borderRadius: 2,
+    backgroundColor: c.accent, borderRadius: 2,
   },
   claimedOverlay: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
@@ -721,30 +727,30 @@ const s = StyleSheet.create({
   claimedEmoji: { fontSize: 32 },
 });
 
-const fz = StyleSheet.create({
+const makeFz = (c: ThemeColors) => StyleSheet.create({
   backdrop: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.65)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 28, alignItems: 'center', gap: 12,
   },
   title: {
-    fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text,
+    fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text,
   },
   desc: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, textAlign: 'center', lineHeight: 18,
+    color: c.text3, textAlign: 'center', lineHeight: 18,
   },
   statsRow: { flexDirection: 'row', gap: 20, marginVertical: 4 },
   statBox: {
-    backgroundColor: C.surface2, borderRadius: 8,
+    backgroundColor: c.surface2, borderRadius: 8,
     paddingHorizontal: 20, paddingVertical: 12, alignItems: 'center',
   },
-  statVal: { fontFamily: 'Lora_400Regular', fontSize: 24, color: C.text },
-  statLbl: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: 2 },
+  statVal: { fontFamily: 'Lora_400Regular', fontSize: 24, color: c.text },
+  statLbl: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3, marginTop: 2 },
   activateBtn: {
     width: '100%', backgroundColor: '#7ab4e8', borderRadius: 8,
     paddingVertical: 13, alignItems: 'center',
@@ -754,14 +760,14 @@ const fz = StyleSheet.create({
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#0a1520',
   },
   noFreeze: {
-    width: '100%', backgroundColor: C.surface2, borderRadius: 8,
+    width: '100%', backgroundColor: c.surface2, borderRadius: 8,
     paddingVertical: 13, alignItems: 'center',
   },
   noFreezeText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3,
   },
   cancel: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3,
     paddingVertical: 8,
   },
 });

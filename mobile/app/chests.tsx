@@ -5,7 +5,7 @@ import {
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { C } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { PixelChest, type ChestRarity } from '../components/chests/PixelChest';
 import { CoinIcon, GemIcon } from '../components/icons';
 import { useT } from '../lib/i18n';
@@ -16,13 +16,15 @@ import {
 } from '../lib/session';
 
 const RARITY_COLOR: Record<string, string> = {
-  COMUM: C.text3, RARO: '#3a82f7', EPICO: C.purple, LENDARIO: C.gold,
+  COMUM: '#9a876c', RARO: '#3a82f7', EPICO: '#8b5cf6', LENDARIO: '#c08a00',
 };
 
 export default function ChestsScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().chests;
   const setUser = useAppStore((s) => s.setUser);
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [loading, setLoading] = useState(true);
   const [chests, setChests] = useState<PendingChest[]>([]);
@@ -57,13 +59,13 @@ export default function ChestsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : chests.length === 0 ? (
         <View style={s.center}><Text style={s.empty}>{t.empty}</Text></View>
       ) : (
         <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           {chests.map((c) => {
-            const color = RARITY_COLOR[c.rarity] ?? C.text3;
+            const color = RARITY_COLOR[c.rarity] ?? '#9a876c';
             return (
               <View key={c.id} style={[s.card, { borderColor: color + '40' }]}>
                 <PixelChest rarity={c.rarity.toLowerCase() as ChestRarity} size={56} />
@@ -109,37 +111,37 @@ export default function ChestsScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12,
   },
-  back: { fontSize: 24, color: C.text },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
-  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3 },
+  back: { fontSize: 24, color: c.text },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
+  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   card: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10,
+    backgroundColor: c.surface, borderWidth: 1, borderRadius: 12, padding: 14, marginBottom: 10,
   },
   rarity: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, textTransform: 'lowercase' },
-  source: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3, marginTop: 3 },
+  source: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, marginTop: 3 },
   openBtn: {
-    backgroundColor: C.accent, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10,
+    backgroundColor: c.accent, borderRadius: 8, paddingHorizontal: 20, paddingVertical: 10,
     alignItems: 'center', justifyContent: 'center', minWidth: 80,
   },
   openTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#f2e4cf' },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' },
   sheet: {
-    backgroundColor: C.surface, borderRadius: 20, borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 20, borderWidth: 1, borderColor: c.surface2,
     padding: 32, alignItems: 'center', gap: 16, width: '78%',
   },
-  youGot: { fontFamily: 'Lora_400Regular', fontSize: 18, color: C.text },
+  youGot: { fontFamily: 'Lora_400Regular', fontSize: 18, color: c.text },
   rewards: { flexDirection: 'row', gap: 20 },
   rewardRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  rewardAmount: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 18, color: C.text },
-  closeBtn: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 28, borderRadius: 8, backgroundColor: C.accent },
+  rewardAmount: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 18, color: c.text },
+  closeBtn: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 28, borderRadius: 8, backgroundColor: c.accent },
   closeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#f2e4cf' },
 });

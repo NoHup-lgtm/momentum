@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { C, getRank, type RankId } from '../constants/design';
+import { getRank, type RankId } from '../constants/design';
+import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { XPIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
@@ -22,6 +23,8 @@ export default function RankingScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().ranking;
   const myLogin = useAppStore((s) => s.user?.githubLogin);
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   const [tab, setTab] = useState<Tab>('users');
   const [loading, setLoading] = useState(true);
@@ -41,7 +44,7 @@ export default function RankingScreen() {
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
-  const posColor = (p: number) => (p === 1 ? C.gold : p === 2 ? C.silver : p === 3 ? C.bronze : C.text3);
+  const posColor = (p: number) => (p === 1 ? c.gold : p === 2 ? c.silver : p === 3 ? c.bronze : c.text3);
 
   return (
     <View style={[s.screen, { paddingTop: insets.top }]}>
@@ -65,12 +68,12 @@ export default function RankingScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : (
         <ScrollView
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
         >
           {tab === 'users' ? (
             users.length === 0 ? <Text style={s.empty}>{t.empty}</Text> :
@@ -117,34 +120,34 @@ export default function RankingScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.bg },
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
+  screen: { flex: 1, backgroundColor: c.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 12,
   },
-  back: { fontSize: 24, color: C.text },
-  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
+  back: { fontSize: 24, color: c.text },
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
   tabs: {
     flexDirection: 'row', gap: 6, marginHorizontal: 20, marginBottom: 10,
-    backgroundColor: C.surface, borderRadius: 8, padding: 4,
+    backgroundColor: c.surface, borderRadius: 8, padding: 4,
   },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 6 },
-  tabOn: { backgroundColor: C.accent },
-  tabTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3 },
+  tabOn: { backgroundColor: c.accent },
+  tabTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3 },
   tabTxtOn: { color: '#f2e4cf' },
   content: { paddingHorizontal: 20 },
-  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 40 },
+  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 40 },
   row: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: C.surface, borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     borderRadius: 10, padding: 12, marginBottom: 8,
   },
-  rowMine: { borderColor: C.accent + '66', backgroundColor: C.accent + '0d' },
+  rowMine: { borderColor: c.accent + '66', backgroundColor: c.accent + '0d' },
   pos: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, width: 34 },
-  name: { fontSize: 14, color: C.text },
-  sub: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, marginTop: 3, color: C.text3 },
+  name: { fontSize: 14, color: c.text },
+  sub: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, marginTop: 3, color: c.text3 },
   xpWrap: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  xp: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: C.text2 },
+  xp: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text2 },
 });

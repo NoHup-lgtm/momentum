@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions } from 'react-native';
 import { SpiralIcon } from '../icons';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import * as Haptics from 'expo-haptics';
 
 const { width: W } = Dimensions.get('window');
@@ -25,6 +25,8 @@ export default function StreakMilestone({ streak, visible, onDismiss }: Props) {
   const scale     = useRef(new Animated.Value(0.7)).current;
   const rotation  = useRef(new Animated.Value(0)).current;
   const numScale  = useRef(new Animated.Value(0.5)).current;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   useEffect(() => {
     if (!visible) return;
@@ -53,7 +55,7 @@ export default function StreakMilestone({ streak, visible, onDismiss }: Props) {
       <Animated.View style={[s.card, { transform: [{ scale }] }]}>
         {/* Spiral bg */}
         <Animated.View style={[s.spiralBg, { transform: [{ rotate: spin }] }]}>
-          <SpiralIcon size={300} color={C.accent} />
+          <SpiralIcon size={300} color={c.accent} />
         </Animated.View>
 
         <Text style={s.tag}>marco de ofensiva</Text>
@@ -72,7 +74,7 @@ export default function StreakMilestone({ streak, visible, onDismiss }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   backdrop: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(10,7,3,0.94)',
@@ -80,8 +82,8 @@ const s = StyleSheet.create({
   },
   card: {
     width: W * 0.82, alignItems: 'center',
-    backgroundColor: C.surface,
-    borderRadius: 20, borderWidth: 1, borderColor: C.accent + '40',
+    backgroundColor: c.surface,
+    borderRadius: 20, borderWidth: 1, borderColor: c.accent + '40',
     padding: 36, overflow: 'hidden',
   },
   spiralBg: {
@@ -90,26 +92,26 @@ const s = StyleSheet.create({
   },
   tag: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.accent, letterSpacing: 0.15, textTransform: 'lowercase',
+    color: c.accent, letterSpacing: 0.15, textTransform: 'lowercase',
     marginBottom: 16,
   },
   number: {
     fontFamily: 'Lora_400Regular', fontSize: 88,
-    color: C.text, letterSpacing: -4, lineHeight: 92,
+    color: c.text, letterSpacing: -4, lineHeight: 92,
   },
   unit: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 13,
-    color: C.text3, marginTop: 4, marginBottom: 20,
+    color: c.text3, marginTop: 4, marginBottom: 20,
   },
   label: {
     fontFamily: 'Lora_400Regular', fontSize: 17,
-    color: C.text2, textAlign: 'center', letterSpacing: -0.2,
+    color: c.text2, textAlign: 'center', letterSpacing: -0.2,
     marginBottom: 32, lineHeight: 24,
   },
   btn: {
-    backgroundColor: C.accent, borderRadius: 8,
+    backgroundColor: c.accent, borderRadius: 8,
     paddingHorizontal: 32, paddingVertical: 12,
-    shadowColor: C.accent, shadowOpacity: 0.4,
+    shadowColor: c.accent, shadowOpacity: 0.4,
     shadowOffset: { width: 0, height: 0 }, shadowRadius: 14,
   },
   btnText: {

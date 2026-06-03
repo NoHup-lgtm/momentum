@@ -119,9 +119,9 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
       >
         <View style={[
           barStyles.centerBtn,
-          { borderColor: colors.accent, shadowColor: colors.accent },
+          { borderColor: colors.accent, shadowColor: colors.accent, backgroundColor: colors.surface2 },
         ]}>
-          <SpiralIcon size={26} color={C.text} />
+          <SpiralIcon size={26} color={colors.text} />
         </View>
         <Text style={barStyles.centerLabel}>feed</Text>
       </TouchableOpacity>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 
 type Commit = { repo: string; count: number };
 
@@ -12,6 +12,8 @@ export default function TodayCard({
   username?: string;
 }) {
   const total = commits.reduce((sum, r) => sum + r.count, 0);
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   return (
     <View style={s.card}>
@@ -27,7 +29,7 @@ export default function TodayCard({
       ) : (
         commits.map((r, i) => (
           <View key={i} style={[s.row, i < commits.length - 1 && s.rowBorder]}>
-            <View style={[s.langDot, { backgroundColor: C.accent }]} />
+            <View style={[s.langDot, { backgroundColor: c.accent }]} />
             <Text style={s.repoName} numberOfLines={1}>{r.repo}</Text>
             <View style={s.commitPill}>
               <Text style={s.commitCount}>+{r.count}</Text>
@@ -46,10 +48,10 @@ export default function TodayCard({
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2,
+    backgroundColor: c.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: c.surface2,
     padding: 14,
   },
   header: {
@@ -58,52 +60,52 @@ const s = StyleSheet.create({
   },
   title: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
-    color: C.text3, textTransform: 'lowercase', letterSpacing: 0.05,
+    color: c.text3, textTransform: 'lowercase', letterSpacing: 0.05,
   },
   totalBadge: {
-    backgroundColor: C.success + '18', borderRadius: 4,
+    backgroundColor: c.success + '18', borderRadius: 4,
     paddingHorizontal: 8, paddingVertical: 3,
-    borderWidth: 1, borderColor: C.success + '35',
+    borderWidth: 1, borderColor: c.success + '35',
   },
   totalText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.success,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.success,
   },
   row: {
     flexDirection: 'row', alignItems: 'center',
     gap: 8, paddingVertical: 7,
   },
   rowBorder: {
-    borderBottomWidth: 1, borderBottomColor: C.surface2,
+    borderBottomWidth: 1, borderBottomColor: c.surface2,
   },
   langDot: {
     width: 8, height: 8, borderRadius: 4,
   },
   repoName: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text2, flex: 1,
+    color: c.text2, flex: 1,
   },
   time: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3,
   },
   commitPill: {
-    backgroundColor: C.accent + '15', borderRadius: 4,
+    backgroundColor: c.accent + '15', borderRadius: 4,
     paddingHorizontal: 6, paddingVertical: 2,
   },
   commitCount: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.accent,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.accent,
   },
   syncRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10,
   },
   syncDot: {
     width: 6, height: 6, borderRadius: 3,
-    backgroundColor: C.success,
+    backgroundColor: c.success,
   },
   syncText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3,
+    fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: c.text3,
   },
   empty: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, paddingVertical: 8,
+    color: c.text3, paddingVertical: 8,
   },
 });
