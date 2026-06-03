@@ -361,6 +361,43 @@ export async function getTopSquads(): Promise<RankSquad[]> {
   }
 }
 
+// ── Liga (sprint divisional) ──────────────────────────────────────────────────
+export interface LigaEntry {
+  position: number;
+  userId: string;
+  githubLogin: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string;
+  level: number;
+  xpEarned: number;
+  isMe: boolean;
+}
+export interface Liga {
+  tier: number;
+  maxTier: number;
+  sprintNumber: number;
+  startsAt: string;
+  endsAt: string;
+  daysLeft: number;
+  promoteCount: number;
+  relegateCount: number;
+  me: { position: number; xpEarned: number };
+  entries: LigaEntry[];
+}
+
+export async function getMyLiga(): Promise<Liga | null> {
+  try {
+    const res = await apiFetch('/me/liga', { method: 'GET' });
+    if (!res.ok) return null;
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as Liga) : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Achievements ──────────────────────────────────────────────────────────────
 export interface AchievementItem {
   id: string;
