@@ -21,18 +21,30 @@ export interface User {
   committedToday: boolean;
 }
 
+export interface EquippedMap {
+  HAT?: string;
+  SHIRT?: string;
+  GLASSES?: string;
+  ACCESSORY?: string;
+  BACKGROUND?: string;
+}
+
 interface AppState {
   user: User | null;
+  equipped: EquippedMap | null;
   isLoading: boolean;
   setUser: (user: User) => void;
+  setEquipped: (equipped: EquippedMap | null) => void;
   setLoading: (v: boolean) => void;
   clearUser: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
+  equipped: null,
   isLoading: true,
   setUser: (user) => set({ user }),
+  setEquipped: (equipped) => set({ equipped }),
   setLoading: (isLoading) => set({ isLoading }),
-  clearUser: () => set({ user: null }),
+  clearUser: () => set({ user: null, equipped: null }),
 }));

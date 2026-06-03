@@ -10,7 +10,7 @@ import { PixelItem } from '../../components/store/PixelItem';
 import { useT } from '../../lib/i18n';
 import { useAppStore } from '../../store/app';
 import {
-  getShop, buyItem, equipItem, fetchMe, meToStoreUser,
+  getShop, buyItem, equipItem, fetchMe, meToStoreUser, getEquipped,
   type Shop, type ShopItem,
 } from '../../lib/session';
 
@@ -26,6 +26,7 @@ export default function StoreScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().shop;
   const setUser = useAppStore((s) => s.setUser);
+  const setEquipped = useAppStore((s) => s.setEquipped);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,6 +48,9 @@ export default function StoreScreen() {
       if (kind === 'buy') {
         const me = await fetchMe();
         if (me) setUser(meToStoreUser(me));
+      } else {
+        // Equipou → atualiza o avatar (store global) na hora.
+        setEquipped(await getEquipped());
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'erro');

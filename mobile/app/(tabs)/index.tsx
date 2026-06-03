@@ -18,7 +18,7 @@ import PendingChestsCard from '../../components/home/PendingChestsCard';
 import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe, checkLevelUp,
-  getChallenges, claimChallenge, getMySquad, getChests,
+  getChallenges, claimChallenge, getMySquad, getChests, getEquipped,
   type RepoCommits, type DailyChallenge, type Squad, type PendingChest, type MeUser,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
@@ -116,10 +116,11 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
 function XPCard({ user }: { user: typeof MOCK_USER }) {
   const { colors } = useTheme();
   const rank = getRank(user.rankId);
+  const equipped = useAppStore((st) => st.equipped);
   return (
     <View style={[s.xpCard, { backgroundColor: colors.surface, borderColor: colors.surface2 }]}>
       <View style={s.xpHeader}>
-        <AvatarRing size={44} variant={user.avatarVariant} rankId={user.rankId} />
+        <AvatarRing size={44} variant={user.avatarVariant} rankId={user.rankId} equipped={equipped} />
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={s.xpName}>{user.name}</Text>
           <Text style={[s.xpRank, { color: rank?.color ?? C.text3 }]}>
@@ -274,6 +275,7 @@ export default function HomeScreen() {
     : MOCK_USER;
 
   const setUser = useAppStore((s) => s.setUser);
+  const setEquipped = useAppStore((s) => s.setEquipped);
   const tc = useT().challenges;
   const [todayCommits, setTodayCommits] = useState<RepoCommits[]>([]);
   const [rawChallenges, setRawChallenges] = useState<DailyChallenge[]>([]);
@@ -310,6 +312,7 @@ export default function HomeScreen() {
       setRawChallenges(await getChallenges());
       setHomeSquad(await getMySquad());
       setHomeChests(await getChests());
+      setEquipped(await getEquipped());
     })();
   }, []);
 
@@ -322,6 +325,7 @@ export default function HomeScreen() {
         setHomeChests(await getChests());
         setRawChallenges(await getChallenges());
         setHomeSquad(await getMySquad());
+        setEquipped(await getEquipped());
       })();
     }, [applyMe]),
   );
