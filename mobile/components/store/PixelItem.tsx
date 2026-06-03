@@ -82,6 +82,19 @@ const CY3 = '#108888'; // dark cyan
 const OR2 = '#e06020'; // orange
 const WH  = '#ffffff'; // pure white (unused but kept for completeness)
 
+// ── Vivid palettes (themed legendary items) ───────────────────────────────────
+// vivid green (tracksuit / spartan / emerald blade)
+const VG1 = '#4ade80';
+const VG2 = '#16a34a';
+const VG3 = '#0b5c2e';
+// hot magenta / pink (neon city, accents)
+const PK1 = '#ff8fd0';
+const PK2 = '#ff2d95';
+const PK3 = '#a30060';
+// near-black (cowl)
+const K1 = '#2c2c34';
+const K2 = '#16161c';
+
 // ── Pixel art grids (12×12) ───────────────────────────────────────────────────
 
 /** Boné Dev — baseball cap */
@@ -660,6 +673,136 @@ export const GRID_ESPADA: Grid = [
   [T,  T,  W3, W2, W2, W3, T,  T,  T,  T,  T,  T],
 ];
 
+// ── Themed legendary cosmetics (movie/series-inspired, original art) ──────────
+
+/** t1 - Máscara Aracnídea (web-slinger mask) */
+export const GRID_ARACNIDEA: Grid = [
+  [T,  T,  T,  R2, R2, R2, R2, R2, T,  T,  T,  T],
+  [T,  T,  R2, R2, R2, R2, R2, R2, R2, T,  T,  T],
+  [T,  R2, R3, R2, R2, R2, R2, R3, R2, T,  T,  T],
+  [R2, R2, R2, N1, N1, R2, N1, N1, R2, R2, T,  T],
+  [R2, R3, N1, N1, N1, R2, N1, N1, N1, R2, T,  T],
+  [R2, R2, R2, N1, N1, R2, N1, N1, R2, R2, T,  T],
+  [R2, R2, R3, R2, R2, R2, R2, R3, R2, R2, T,  T],
+  [T,  B2, B2, R2, R2, R2, R2, B2, B2, T,  T,  T],
+  [T,  B2, B3, B2, B2, B2, B2, B3, B2, T,  T,  T],
+  [T,  T,  B2, B2, B2, B2, B2, B2, T,  T,  T,  T],
+  [T,  T,  T,  B2, B2, B2, B2, T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+];
+
+/** t2 - Capuz do Cavaleiro (dark knight cowl) */
+export const GRID_CAVALEIRO: Grid = [
+  [T,  K1, T,  T,  T,  T,  T,  T,  K1, T,  T,  T],
+  [T,  K2, K1, T,  T,  T,  T,  K1, K2, T,  T,  T],
+  [T,  K2, K2, K1, T,  T,  K1, K2, K2, T,  T,  T],
+  [T,  K2, K2, K2, K2, K2, K2, K2, K2, T,  T,  T],
+  [K2, K2, K1, K2, K2, K2, K2, K1, K2, K2, T,  T],
+  [K2, K1, N1, N1, K2, K2, N1, N1, K1, K2, T,  T],
+  [K2, K2, K2, K2, K2, K2, K2, K2, K2, K2, T,  T],
+  [T,  K2, K2, K2, K2, K2, K2, K2, K2, T,  T,  T],
+  [T,  T,  K2, K2, N4, N4, K2, K2, T,  T,  T,  T],
+  [T,  T,  T,  K2, K2, K2, K2, T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+];
+
+/** t3 - Núcleo Arc (arc reactor armor chest) */
+export const GRID_ARC: Grid = [
+  [T,  R3, R2, R2, T,  T,  R2, R2, R3, T,  T,  T],
+  [R3, R2, R2, A2, R2, R2, A2, R2, R2, R3, T,  T],
+  [R2, R2, A2, R2, R2, R2, R2, A2, R2, R2, T,  T],
+  [R2, R2, R2, R2, CY1,CY1,R2, R2, R2, R2, T,  T],
+  [R2, A2, R2, CY1,CY2,CY2,CY1,R2, A2, R2, T,  T],
+  [R2, A2, R2, CY1,CY2,CY2,CY1,R2, A2, R2, T,  T],
+  [R2, R2, R2, R2, CY1,CY1,R2, R2, R2, R2, T,  T],
+  [R2, R2, A2, R2, R2, R2, R2, A2, R2, R2, T,  T],
+  [R3, R2, R2, R2, R2, R2, R2, R2, R2, R3, T,  T],
+  [R3, R2, R2, R2, R2, R2, R2, R2, R2, R3, T,  T],
+  [T,  R3, R2, R2, T,  T,  R2, R2, R3, T,  T,  T],
+  [T,  T,  R3, R3, T,  T,  R3, R3, T,  T,  T,  T],
+];
+
+/** t4 - Macacão 456 (green survival tracksuit) */
+export const GRID_MACACAO: Grid = [
+  [T,  T,  VG3,VG3,T,  T,  VG3,VG3,T,  T,  T,  T],
+  [T,  VG3,VG2,VG2,VG3,VG3,VG2,VG2,VG3,T,  T,  T],
+  [VG3,VG2,VG2,VG1,VG2,VG2,VG1,VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,VG2,VG2,VG2,VG2,VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,N1, N1, N1, N1, VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,N1, VG2,VG2,N1, VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,N1, VG2,VG2,N1, VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,N1, N1, N1, N1, VG2,VG2,VG3,T,  T],
+  [VG3,VG2,VG1,VG2,VG2,VG2,VG2,VG1,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,VG2,VG2,VG2,VG2,VG2,VG2,VG3,T,  T],
+  [T,  VG3,VG2,VG2,T,  T,  VG2,VG2,VG3,T,  T,  T],
+  [T,  T,  VG3,VG3,T,  T,  VG3,VG3,T,  T,  T,  T],
+];
+
+/** t5 - Esfera de Captura (catch sphere) */
+export const GRID_ESFERA: Grid = [
+  [T,  T,  T,  R3, R2, R2, R2, R3, T,  T,  T,  T],
+  [T,  R3, R2, R2, R2, R2, R2, R2, R3, T,  T,  T],
+  [T,  R2, R2, R2, R2, R2, R2, R2, R2, T,  T,  T],
+  [R3, R2, R2, R2, R2, R2, R2, R2, R2, R3, T,  T],
+  [N4, N4, N4, N4, GR1,GR1,N4, N4, N4, N4, T,  T],
+  [N4, N4, N4, GR1,N1, N1, GR1,N4, N4, N4, T,  T],
+  [N1, N1, N1, N1, GR1,GR1,N1, N1, N1, N1, T,  T],
+  [N1, N1, N1, N1, N1, N1, N1, N1, N1, N1, T,  T],
+  [T,  N1, N1, N1, N1, N1, N1, N1, N1, T,  T,  T],
+  [T,  N3, N1, N1, N1, N1, N1, N1, N3, T,  T,  T],
+  [T,  T,  T,  N3, N1, N1, N3, T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+];
+
+/** t6 - Sabre Esmeralda (emerald energy blade) */
+export const GRID_SABRE: Grid = [
+  [T,  T,  T,  T,  T,  VG1,T,  T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  VG1,VG2,VG1,T,  T,  T,  T,  T],
+  [T,  T,  T,  VG1,VG2,VG3,VG2,VG1,T,  T,  T,  T],
+  [T,  T,  VG1,VG2,VG2,VG3,VG2,VG2,VG1,T,  T,  T],
+  [T,  VG1,VG2,VG2,VG3,VG2,VG3,VG2,VG2,T,  T,  T],
+  [T,  T,  VG1,VG2,VG2,VG3,VG2,VG2,VG1,T,  T,  T],
+  [T,  T,  T,  VG1,VG2,VG2,VG2,VG1,T,  T,  T,  T],
+  [T,  T,  T,  T,  VG1,VG2,VG1,T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  GR2,GR1,GR2,T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  GR3,GR2,GR3,T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  GR3,A2, GR3,T,  T,  T,  T,  T],
+  [T,  T,  T,  W2, W3, W2, W3, W2, T,  T,  T,  T],
+];
+
+/** t7 - Capacete Spartan (armored visor helmet) */
+export const GRID_SPARTAN: Grid = [
+  [T,  T,  VG3,VG2,VG2,VG2,VG2,VG3,T,  T,  T,  T],
+  [T,  VG3,VG2,VG1,VG1,VG1,VG1,VG2,VG3,T,  T,  T],
+  [VG3,VG2,VG1,VG1,VG1,VG1,VG1,VG1,VG2,VG3,T,  T],
+  [VG3,VG2,VG1,A1, A2, A2, A1, VG1,VG2,VG3,T,  T],
+  [VG3,VG2,VG1,A2, A3, A3, A2, VG1,VG2,VG3,T,  T],
+  [VG3,VG2,VG1,A1, A2, A2, A1, VG1,VG2,VG3,T,  T],
+  [VG3,VG2,VG2,VG1,VG1,VG1,VG1,VG2,VG2,VG3,T,  T],
+  [T,  VG3,VG2,VG2,VG2,VG2,VG2,VG2,VG3,T,  T,  T],
+  [T,  T,  VG3,VG3,VG3,VG3,VG3,VG3,T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+  [T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T,  T],
+];
+
+/** t8 - Bg: Cidade Neon (cyberpunk neon skyline) */
+export const GRID_CIDADE_NEON: Grid = [
+  [N4, N4, N4, N4, N4, N4, PK1,N4, N4, N4, N4, N4],
+  [N4, N4, CY2,N4, N4, N4, N4, N4, N4, PK2,N4, N4],
+  [N4, N4, N4, N4, N4, PK2,N4, N4, N4, N4, N4, N4],
+  [N4, N4, N4, N4, N4, N4, N4, N4, CY2,N4, N4, N4],
+  [PK3,PK2,N4, CY3,CY2,N4, PK3,PK2,N4, N4, CY3,CY2],
+  [PK3,PK2,PK1,CY3,CY2,CY1,PK3,PK2,PK1,N4, CY3,CY2],
+  [PK3,N4, PK1,CY3,N4, CY1,PK3,N4, PK1,N4, CY3,N4],
+  [PK3,PK2,PK1,CY3,CY2,CY1,PK3,PK2,PK1,N4, CY3,CY2],
+  [PK3,N4, PK1,CY3,N4, CY1,PK3,N4, PK1,N4, CY3,N4],
+  [PK3,PK2,PK1,CY3,CY2,CY1,PK3,PK2,PK1,N4, CY3,CY2],
+  [PK3,PK2,PK1,CY3,CY2,CY1,PK3,PK2,PK1,N4, CY3,CY2],
+  [PK3,PK2,PK1,CY3,CY2,CY1,PK3,PK2,PK1,N4, CY3,CY2],
+];
+
 // ── Map item id → grid ────────────────────────────────────────────────────────
 const GRIDS: Record<string, Grid> = {
   // existing coin
@@ -677,6 +820,9 @@ const GRIDS: Record<string, Grid> = {
   // challenge
   ch1: GRID_KIT, ch2: GRID_PATO, ch3: GRID_TROFEU, ch4: GRID_AMPULHETA,
   ch5: GRID_ROBO_BATALHA, ch6: GRID_ESPADA,
+  // themed legendary (movie/series-inspired, original art)
+  t1: GRID_ARACNIDEA, t2: GRID_CAVALEIRO, t3: GRID_ARC, t4: GRID_MACACAO,
+  t5: GRID_ESFERA, t6: GRID_SABRE, t7: GRID_SPARTAN, t8: GRID_CIDADE_NEON,
 };
 
 // ── Export ────────────────────────────────────────────────────────────────────
