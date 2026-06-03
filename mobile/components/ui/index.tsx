@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ViewStyle, Text, StyleSheet } from 'react-native';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 
 // ── Card ──────────────────────────────────────────────────────────────────────
 interface CardProps {
@@ -10,6 +10,8 @@ interface CardProps {
 }
 
 export function Card({ children, elevated = false, style }: CardProps) {
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
   return (
     <View style={[
       styles.card,
@@ -30,6 +32,8 @@ interface XPBarProps {
 
 export function XPBar({ current, max, level }: XPBarProps) {
   const pct = Math.min(current / max, 1);
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
   return (
     <View>
       <View style={styles.xpRow}>
@@ -56,8 +60,10 @@ interface AvatarRingProps {
 }
 
 export function AvatarRing({ size = 34, variant = 0, rankId, equipped = null }: AvatarRingProps) {
+  const { colors: c } = useTheme();
+  const styles = makeStyles(c);
   const rank = rankId ? getRank(rankId) : null;
-  const borderColor = rank ? rank.color : C.surface2;
+  const borderColor = rank ? rank.color : c.surface2;
   return (
     <View style={[
       styles.avatarRing,
@@ -74,15 +80,15 @@ export function AvatarRing({ size = 34, variant = 0, rankId, equipped = null }: 
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: C.surface,
+    backgroundColor: c.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: C.surface2,
+    borderColor: c.surface2,
   },
   cardElevated: {
-    backgroundColor: C.surface,
+    backgroundColor: c.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -97,25 +103,25 @@ const styles = StyleSheet.create({
   xpLabel: {
     fontFamily: 'JetBrainsMono_400Regular',
     fontSize: 10,
-    color: C.text3,
+    color: c.text3,
     textTransform: 'lowercase',
     letterSpacing: 0.05,
   },
   xpCount: {
     fontFamily: 'JetBrainsMono_400Regular',
     fontSize: 10,
-    color: C.text3,
+    color: c.text3,
   },
   xpTrack: {
     height: 4,
-    backgroundColor: C.surface2,
+    backgroundColor: c.surface2,
     borderRadius: 2,
     overflow: 'hidden',
   },
   xpFill: {
     height: '100%',
     borderRadius: 2,
-    backgroundColor: C.gold,
+    backgroundColor: c.gold,
   },
   avatarRing: {
     borderWidth: 1.5,
