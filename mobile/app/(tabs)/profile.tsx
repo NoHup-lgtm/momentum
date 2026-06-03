@@ -242,7 +242,7 @@ export default function ProfileScreen() {
           {[
             { label: 'squad',    screen: '/(tabs)/squad'  },
             { label: 'loja',     screen: '/(tabs)/store'  },
-            { label: 'liga',     screen: '/ranking'       },
+            { label: 'liga',     screen: '/liga'          },
             { label: 'amigos',   screen: '/friends'       },
           ].map((item) => (
             <TouchableOpacity

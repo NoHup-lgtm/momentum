@@ -49,6 +49,7 @@ function RootNavigator() {
           <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="ranking"      options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="liga"         options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="achievements" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="friends"      options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="friend-invite" options={{ animation: 'slide_from_right' }} />

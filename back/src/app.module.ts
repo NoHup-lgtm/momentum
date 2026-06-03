@@ -10,9 +10,10 @@ import { ChallengeModule } from './challenge/challenge.module.js';
 import { LeaderboardModule } from './leaderboard/leaderboard.module.js';
 import { AchievementModule } from './achievement/achievement.module.js';
 import { ShopModule } from './shop/shop.module.js';
+import { LigaModule } from './liga/liga.module.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule],
+  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule],
   controllers: [AppController],
   providers: [AppService],
 })
