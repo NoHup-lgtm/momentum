@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FeedService } from '../feed/feed.service.js';
 import { levelFromXp } from '../common/leveling.js';
 
 // Catálogo de conquistas. Chave estável em `title`; o mobile localiza pela chave.
@@ -38,7 +39,10 @@ export interface AchievementView {
 
 @Injectable()
 export class AchievementService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feed: FeedService,
+  ) {}
 
   private async ensureCatalog() {
     const out: { id: string; def: (typeof CATALOG)[number] }[] = [];
@@ -126,5 +130,6 @@ export class AchievementService {
       select: { totalXp: true },
     });
     await this.prisma.user.update({ where: { id: userId }, data: { level: levelFromXp(updated.totalXp) } });
+    await this.feed.emit(userId, 'ACHIEVEMENT', { key, xp, coins });
   }
 }

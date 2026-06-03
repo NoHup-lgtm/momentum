@@ -480,6 +480,84 @@ export async function getEquipped(): Promise<EquippedMap> {
   }
 }
 
+// ── Amigos ────────────────────────────────────────────────────────────────────
+export interface FriendRow {
+  friendshipId: string;
+  userId: string;
+  githubLogin: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string;
+  level: number;
+  currentStreak: number;
+}
+export interface FriendsView {
+  friends: FriendRow[];
+  incoming: FriendRow[];
+  outgoing: FriendRow[];
+}
+const EMPTY_FRIENDS: FriendsView = { friends: [], incoming: [], outgoing: [] };
+
+export async function getFriends(): Promise<FriendsView> {
+  try {
+    const res = await apiFetch('/me/friends', { method: 'GET' });
+    if (!res.ok) return EMPTY_FRIENDS;
+    const txt = await res.text();
+    return txt ? (JSON.parse(txt) as FriendsView) : EMPTY_FRIENDS;
+  } catch {
+    return EMPTY_FRIENDS;
+  }
+}
+
+export async function addFriend(username: string): Promise<FriendsView> {
+  const res = await apiFetch('/me/friends/request', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as FriendsView;
+}
+
+export async function acceptFriend(id: string): Promise<FriendsView> {
+  const res = await apiFetch(`/me/friends/${id}/accept`, { method: 'POST' });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as FriendsView;
+}
+
+export async function removeFriend(id: string): Promise<FriendsView> {
+  const res = await apiFetch(`/me/friends/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()) as FriendsView;
+}
+
+// ── Feed ──────────────────────────────────────────────────────────────────────
+export interface FeedItem {
+  id: string;
+  type: string;
+  createdAt: string;
+  payload: Record<string, any>;
+  user: {
+    id: string;
+    githubLogin: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    avatarVariant: number;
+    rank: string;
+    isMe: boolean;
+  };
+}
+
+export async function getFeed(): Promise<FeedItem[]> {
+  try {
+    const res = await apiFetch('/feed', { method: 'GET' });
+    if (!res.ok) return [];
+    return (await res.json()) as FeedItem[];
+  } catch {
+    return [];
+  }
+}
+
 // ── Chests ────────────────────────────────────────────────────────────────────
 export interface PendingChest {
   id: string;

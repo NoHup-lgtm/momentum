@@ -207,6 +207,12 @@ enum FeedVisibility {
   GLOBAL  // Visível no feed público
 }
 
+// ── Status de amizade ─────────────────────────────────────────────────────────
+enum FriendshipStatus {
+  PENDING   // Convite enviado, aguardando aceite
+  ACCEPTED  // Amizade confirmada (mútua)
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MODELS
 // ══════════════════════════════════════════════════════════════════════════════
@@ -293,6 +299,8 @@ model User {
   chests              UserChest[]
   ligaParticipations  LigaParticipant[]
   feedEvents          FeedEvent[]
+  friendshipsSent     Friendship[]        @relation("FriendshipsSent")
+  friendshipsReceived Friendship[]        @relation("FriendshipsReceived")
 
   @@map("users")
 }
@@ -807,4 +815,25 @@ model FeedEvent {
   @@index([createdAt])          // Feed global paginado por data
   @@index([visibility, createdAt]) // Filtrar por visibilidade
   @@map("feed_events")
+}
+
+// ── Amizades ──────────────────────────────────────────────────────────────────
+// Relação direcionada com aceite: requester envia, addressee aceita. Quando
+// status = ACCEPTED a amizade é mútua. Par único independente da direção via
+// índice (a aplicação evita duplicar A→B / B→A).
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  respondedAt DateTime?
+
+  requester User @relation("FriendshipsSent", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipsReceived", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([addresseeId, status])
+  @@index([requesterId, status])
+  @@map("friendships")
 }

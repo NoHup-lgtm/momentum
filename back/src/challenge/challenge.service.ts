@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { FeedService } from '../feed/feed.service.js';
 import { levelFromXp } from '../common/leveling.js';
 
 // Catálogo de desafios (chave estável em `title`; o mobile localiza pela chave).
@@ -22,7 +23,10 @@ export interface ChallengeView {
 
 @Injectable()
 export class ChallengeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feed: FeedService,
+  ) {}
 
   private todayDate(timezone: string): Date {
     const tz = timezone || 'America/Sao_Paulo';
@@ -122,6 +126,8 @@ export class ChallengeService {
       where: { id: userId },
       data: { level: levelFromXp(updated.totalXp) },
     });
+
+    await this.feed.emit(userId, 'CHALLENGE_COMPLETED', { key: ch.key, xp: ch.rewardXp });
 
     return { ...ch, claimed: true };
   }

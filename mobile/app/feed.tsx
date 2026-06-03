@@ -1,275 +1,135 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { C, getRank, type RankId } from '../constants/design';
 import { AvatarRing } from '../components/ui';
-import RankEmblem from '../components/rank/RankEmblem';
+import { useT } from '../lib/i18n';
+import { getFeed, type FeedItem } from '../lib/session';
 
-type EventType = 'rankup' | 'achievement' | 'streak' | 'top1' | 'milestone';
+const rid = (r: string) => r.toLowerCase() as RankId;
 
-interface FeedItem {
-  id: string;
-  username: string;
-  name: string;
-  avatarVariant: number;
-  rankId: RankId;
-  type: EventType;
-  text: string;
-  time: string;
-  likes: number;
-  liked: boolean;
-  meta?: { fromRank?: RankId; toRank?: RankId; achievement?: string };
-}
-
-const FEED_DATA: FeedItem[] = [
-  {
-    id: 'f1', username: 'dev_k', name: 'Kauã Dev', avatarVariant: 2, rankId: 'deploy',
-    type: 'rankup', text: 'subiu para rank Deploy',
-    time: '2h atrás', likes: 8, liked: false,
-    meta: { fromRank: 'build', toRank: 'deploy' },
-  },
-  {
-    id: 'f2', username: 'carol_v', name: 'Carol V.', avatarVariant: 4, rankId: 'build',
-    type: 'achievement', text: 'desbloqueou Centurião · 100 commits',
-    time: '4h atrás', likes: 12, liked: true,
-    meta: { achievement: '💯' },
-  },
-  {
-    id: 'f3', username: 'moyza', name: 'Moyza', avatarVariant: 1, rankId: 'init',
-    type: 'streak', text: 'chegou a 30 dias de ofensiva 🔥',
-    time: '6h atrás', likes: 5, liked: false,
-  },
-  {
-    id: 'f4', username: 'jota', name: 'João T.', avatarVariant: 5, rankId: 'build',
-    type: 'top1', text: 'foi Top 1 da liga essa semana 🏆',
-    time: '1d atrás', likes: 20, liked: false,
-  },
-  {
-    id: 'f5', username: 'cata', name: 'Catarina', avatarVariant: 3, rankId: 'init',
-    type: 'achievement', text: 'desbloqueou Pioneiro · primeiro commit da semana',
-    time: '1d atrás', likes: 3, liked: false,
-    meta: { achievement: '🌄' },
-  },
-  {
-    id: 'f6', username: 'dev_k', name: 'Kauã Dev', avatarVariant: 2, rankId: 'deploy',
-    type: 'streak', text: '21 dias consecutivos · sem pausar',
-    time: '2d atrás', likes: 9, liked: false,
-  },
-  {
-    id: 'f7', username: 'ana_lima', name: 'Ana Lima', avatarVariant: 0, rankId: 'init',
-    type: 'milestone', text: 'concluiu milestone "Setup inicial"',
-    time: '3d atrás', likes: 4, liked: false,
-  },
-  {
-    id: 'f8', username: 'carol_v', name: 'Carol V.', avatarVariant: 4, rankId: 'build',
-    type: 'rankup', text: 'subiu para rank Build',
-    time: '5d atrás', likes: 15, liked: false,
-    meta: { fromRank: 'init', toRank: 'build' },
-  },
-];
-
-const FILTER_TABS = ['tudo', 'ranks', 'conquistas', 'milestones'] as const;
-type Filter = typeof FILTER_TABS[number];
-
-const TYPE_FILTER: Record<Filter, EventType[] | null> = {
-  tudo: null,
-  ranks: ['rankup'],
-  conquistas: ['achievement'],
-  milestones: ['milestone', 'top1', 'streak'],
+const TYPE_COLOR: Record<string, string> = {
+  ACHIEVEMENT: C.purple, CHALLENGE_COMPLETED: C.accent, LIGA_PROMOTED: C.gold,
+  STREAK_MILESTONE: C.accent, LEVEL_UP: C.success, RANK_UP: C.gold,
+  CHEST_LEGENDARY: C.gold, SQUAD_JOIN: C.success,
 };
-
-const TYPE_COLOR: Record<EventType, string> = {
-  rankup:      C.gold,
-  achievement: C.purple,
-  streak:      C.accent,
-  top1:        C.gold,
-  milestone:   C.success,
-};
-
-const TYPE_LABEL: Record<EventType, string> = {
-  rankup:      'rank up',
-  achievement: 'conquista',
-  streak:      'streak',
-  top1:        'top 1',
-  milestone:   'milestone',
-};
-
-function FeedCard({ item, onLike }: { item: FeedItem; onLike: (id: string) => void }) {
-  const [copied, setCopied] = useState(false);
-  const rank = getRank(item.rankId);
-  const typeColor = TYPE_COLOR[item.type];
-
-  const share = () => {
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
-  };
-
-  return (
-    <View style={s.card}>
-      {/* Top: avatar + name + time */}
-      <View style={s.cardTop}>
-        <TouchableOpacity onPress={() => router.push('/user-profile')}>
-          <AvatarRing size={38} variant={item.avatarVariant} rankId={item.rankId} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={s.cardName}>{item.name}</Text>
-            <View style={[s.typePill, { backgroundColor: typeColor + '20', borderColor: typeColor + '40' }]}>
-              <Text style={[s.typeText, { color: typeColor }]}>{TYPE_LABEL[item.type]}</Text>
-            </View>
-          </View>
-          <Text style={s.cardTime}>{item.time}</Text>
-        </View>
-      </View>
-
-      {/* Event content */}
-      <View style={s.cardBody}>
-        {item.type === 'rankup' && item.meta?.toRank && (
-          <View style={s.rankupRow}>
-            {item.meta.fromRank && <RankEmblem rankId={item.meta.fromRank} size={32} />}
-            <Text style={s.rankupArrow}>→</Text>
-            <RankEmblem rankId={item.meta.toRank} size={40} glowing />
-          </View>
-        )}
-        {item.type === 'achievement' && item.meta?.achievement && (
-          <Text style={s.achieveEmoji}>{item.meta.achievement}</Text>
-        )}
-        <Text style={s.cardText}>
-          <Text style={s.cardNameInline}>{item.username} </Text>
-          {item.text}
-        </Text>
-      </View>
-
-      {/* Actions */}
-      <View style={s.cardActions}>
-        <TouchableOpacity style={s.actionBtn} onPress={() => onLike(item.id)}>
-          <Text style={[s.actionIcon, item.liked && { color: C.accent }]}>
-            {item.liked ? '♥' : '♡'}
-          </Text>
-          <Text style={[s.actionText, item.liked && { color: C.accent }]}>{item.likes}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.actionBtn} onPress={share}>
-          <Text style={s.actionIcon}>↗</Text>
-          <Text style={s.actionText}>{copied ? 'copiado' : 'compartilhar'}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<Filter>('tudo');
-  const [items, setItems] = useState(FEED_DATA);
+  const t = useT().social;
+  const ta = useT().achievements;
+  const tl = useT().liga;
 
-  const toggleLike = (id: string) => {
-    setItems(prev => prev.map(item =>
-      item.id === id
-        ? { ...item, liked: !item.liked, likes: item.liked ? item.likes - 1 : item.likes + 1 }
-        : item
-    ));
+  const [items, setItems] = useState<FeedItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = async () => setItems(await getFeed());
+  useFocusEffect(useCallback(() => { (async () => { await load(); setLoading(false); })(); }, []));
+  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+
+  // Texto localizado do evento a partir do type + payload.
+  const eventText = (it: FeedItem): string => {
+    const p = it.payload ?? {};
+    switch (it.type) {
+      case 'ACHIEVEMENT': {
+        const label = p.key ? ta.items[p.key as keyof typeof ta.items]?.label : null;
+        return label ? t.ev.achievement.replace('{x}', label) : t.ev.achievement_generic;
+      }
+      case 'CHALLENGE_COMPLETED': return t.ev.challenge;
+      case 'LIGA_PROMOTED': {
+        const name = tl.tiers[Number(p.toTier)] ?? `#${p.toTier}`;
+        return t.ev.liga.replace('{x}', name);
+      }
+      case 'STREAK_MILESTONE': return t.ev.streak.replace('{x}', String(p.streak ?? ''));
+      case 'LEVEL_UP': return t.ev.levelup;
+      case 'RANK_UP': return t.ev.rankup;
+      case 'CHEST_LEGENDARY': return t.ev.chest;
+      case 'SQUAD_JOIN': return t.ev.squad;
+      default: return '';
+    }
   };
 
-  const filtered = filter === 'tudo'
-    ? items
-    : items.filter(it => TYPE_FILTER[filter]?.includes(it.type));
+  const ago = (iso: string): string => {
+    const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return 'agora';
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
+  };
 
   return (
     <View style={[s.screen, { paddingTop: insets.top }]}>
       <View style={s.header}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Text style={s.backText}>←</Text>
-        </TouchableOpacity>
-        <Text style={s.title}>feed</Text>
+        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backText}>←</Text></TouchableOpacity>
+        <Text style={s.title}>{t.feedTitle}</Text>
       </View>
 
-      {/* Filter tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.tabRow} contentContainerStyle={{ paddingHorizontal: 18, gap: 6 }}>
-        {FILTER_TABS.map(f => (
-          <TouchableOpacity
-            key={f}
-            style={[s.tab, filter === f && s.tabActive]}
-            onPress={() => setFilter(f)}
-          >
-            <Text style={[s.tabText, filter === f && s.tabTextActive]}>{f}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-        {filtered.map(item => (
-          <FeedCard key={item.id} item={item} onLike={toggleLike} />
-        ))}
-        {filtered.length === 0 && (
-          <Text style={s.emptyText}>nenhuma novidade aqui ainda.</Text>
-        )}
-        <View style={{ height: 32 }} />
-      </ScrollView>
+      {loading ? (
+        <View style={s.center}><ActivityIndicator color={C.accent} /></View>
+      ) : (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.accent} />}
+        >
+          {items.length === 0 ? (
+            <Text style={s.empty}>{t.feedEmpty}</Text>
+          ) : (
+            items.map((it) => {
+              const rank = getRank(rid(it.user.rank));
+              const color = TYPE_COLOR[it.type] ?? C.accent;
+              const name = it.user.isMe ? t.you : (it.user.displayName || it.user.githubLogin);
+              return (
+                <View key={it.id} style={[s.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
+                  <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <Text style={s.cardText}>
+                      <Text style={[s.cardName, it.user.isMe && { color: C.accent }]}>{name} </Text>
+                      {eventText(it)}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                      <Text style={[s.cardRank, { color: rank.color }]}>{rank.label}</Text>
+                      <Text style={s.cardTime}>· {ago(it.createdAt)}</Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })
+          )}
+          <View style={{ height: 32 }} />
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  screen:  { flex: 1, backgroundColor: C.bg },
-  content: { paddingHorizontal: 18, gap: 12 },
-
+  screen: { flex: 1, backgroundColor: C.bg },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  content: { paddingHorizontal: 18, gap: 10, paddingTop: 12 },
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 18, paddingVertical: 12,
     borderBottomWidth: 1, borderBottomColor: C.surface2,
   },
-  backBtn:  { padding: 4, marginRight: 8 },
+  backBtn: { padding: 4, marginRight: 8 },
   backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: C.text2 },
-  title:    { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
-
-  tabRow: { marginBottom: 4, paddingVertical: 10 },
-  tab: {
-    paddingHorizontal: 12, paddingVertical: 5,
-    borderRadius: 6, backgroundColor: C.surface,
-    borderWidth: 1, borderColor: C.surface2,
-  },
-  tabActive: { borderColor: C.accent, backgroundColor: C.accent + '15' },
-  tabText:     { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3 },
-  tabTextActive: { color: C.accent },
-
+  title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: C.text },
+  empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text3, textAlign: 'center', marginTop: 48, paddingHorizontal: 24, lineHeight: 18 },
   card: {
-    backgroundColor: C.surface, borderRadius: 12,
-    borderWidth: 1, borderColor: C.surface2, overflow: 'hidden',
-  },
-  cardTop: {
     flexDirection: 'row', alignItems: 'center',
-    padding: 12, paddingBottom: 0,
+    backgroundColor: C.surface, borderRadius: 12,
+    borderWidth: 1, borderColor: C.surface2, padding: 12,
   },
-  cardName: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text },
-  cardTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3, marginTop: 2 },
-  typePill: {
-    paddingHorizontal: 6, paddingVertical: 2,
-    borderRadius: 4, borderWidth: 1,
-  },
-  typeText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 8 },
-
-  cardBody: { padding: 12, gap: 8 },
-  rankupRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  rankupArrow: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 18, color: C.text3 },
-  achieveEmoji: { fontSize: 32 },
   cardText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text2, lineHeight: 18 },
-  cardNameInline: { color: C.text, fontFamily: 'JetBrainsMono_400Regular' },
-
-  cardActions: {
-    flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.surface2,
-  },
-  actionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 5, paddingVertical: 10,
-  },
-  actionIcon: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 14, color: C.text3 },
-  actionText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: C.text3 },
-
-  emptyText: {
-    fontFamily: 'JetBrainsMono_400Regular', fontSize: 12,
-    color: C.text3, textAlign: 'center', marginTop: 48,
-  },
+  cardName: { color: C.text },
+  cardRank: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9 },
+  cardTime: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: C.text3 },
 });
