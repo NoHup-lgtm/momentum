@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Animated, Text, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 
 export type ToastHandle = { show: (msg: string, type?: 'success' | 'info') => void };
 
 export const Toast = forwardRef<ToastHandle>((_, ref) => {
   const insets = useSafeAreaInsets();
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
   const translateY = useRef(new Animated.Value(120)).current;
   const opacity    = useRef(new Animated.Value(0)).current;
   const [msg, setMsg] = React.useState('');
@@ -31,7 +33,7 @@ export const Toast = forwardRef<ToastHandle>((_, ref) => {
     },
   }));
 
-  const borderColor = type === 'success' ? C.success : C.accent;
+  const borderColor = type === 'success' ? c.success : c.accent;
   const icon        = type === 'success' ? '✓' : 'ℹ';
 
   return (
@@ -49,11 +51,11 @@ export const Toast = forwardRef<ToastHandle>((_, ref) => {
   );
 });
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   container: {
     position: 'absolute', alignSelf: 'center',
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: C.surface,
+    backgroundColor: c.surface,
     borderWidth: 1, borderRadius: 10,
     paddingHorizontal: 16, paddingVertical: 10,
     shadowColor: '#000', shadowOpacity: 0.35,
@@ -62,5 +64,5 @@ const s = StyleSheet.create({
     minWidth: 180, maxWidth: 300,
   },
   icon: { fontSize: 13, fontFamily: 'JetBrainsMono_400Regular' },
-  msg:  { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: C.text, flex: 1 },
+  msg:  { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text, flex: 1 },
 });

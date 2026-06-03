@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Animated, TouchableOpacity, Dimensions,
 } from 'react-native';
-import { C } from '../../constants/design';
+import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { SpiralIcon } from '../icons';
 import * as Haptics from 'expo-haptics';
 
@@ -18,6 +18,8 @@ export default function LevelUpOverlay({ level, visible, onDismiss }: Props) {
   const opacity  = useRef(new Animated.Value(0)).current;
   const scale    = useRef(new Animated.Value(1.4)).current;
   const barWidth = useRef(new Animated.Value(0)).current;
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
 
   useEffect(() => {
     if (!visible) return;
@@ -41,7 +43,7 @@ export default function LevelUpOverlay({ level, visible, onDismiss }: Props) {
     <Animated.View style={[s.backdrop, { opacity }]}>
       <Animated.View style={[s.card, { transform: [{ scale }] }]}>
         <View style={s.spiralWrap} pointerEvents="none">
-          <SpiralIcon size={160} color={C.accent} />
+          <SpiralIcon size={160} color={c.accent} />
         </View>
 
         <Text style={s.tag}>level up</Text>
@@ -63,7 +65,7 @@ export default function LevelUpOverlay({ level, visible, onDismiss }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const makeStyles = (c: ThemeColors) => StyleSheet.create({
   backdrop: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(10,7,3,0.9)',
@@ -71,8 +73,8 @@ const s = StyleSheet.create({
   },
   card: {
     width: W * 0.78, alignItems: 'center',
-    backgroundColor: C.surface,
-    borderRadius: 18, borderWidth: 1, borderColor: C.gold + '40',
+    backgroundColor: c.surface,
+    borderRadius: 18, borderWidth: 1, borderColor: c.gold + '40',
     padding: 32, overflow: 'hidden',
   },
   spiralWrap: {
@@ -80,30 +82,30 @@ const s = StyleSheet.create({
   },
   tag: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.gold, letterSpacing: 0.2, textTransform: 'uppercase',
+    color: c.gold, letterSpacing: 0.2, textTransform: 'uppercase',
     marginBottom: 12,
   },
   level: {
     fontFamily: 'Lora_400Regular', fontSize: 52,
-    color: C.text, letterSpacing: -2, lineHeight: 56,
+    color: c.text, letterSpacing: -2, lineHeight: 56,
   },
   sub: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 11,
-    color: C.text3, marginTop: 8, marginBottom: 24,
+    color: c.text3, marginTop: 8, marginBottom: 24,
   },
   barTrack: {
-    width: '100%', height: 4, backgroundColor: C.surface2,
+    width: '100%', height: 4, backgroundColor: c.surface2,
     borderRadius: 2, overflow: 'hidden', marginBottom: 8,
   },
   barFill: {
-    height: '100%', backgroundColor: C.gold, borderRadius: 2,
+    height: '100%', backgroundColor: c.gold, borderRadius: 2,
   },
   barLabel: {
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 9,
-    color: C.text3, marginBottom: 28,
+    color: c.text3, marginBottom: 28,
   },
   btn: {
-    backgroundColor: C.gold + 'ee', borderRadius: 8,
+    backgroundColor: c.gold + 'ee', borderRadius: 8,
     paddingHorizontal: 28, paddingVertical: 11,
   },
   btnText: {
