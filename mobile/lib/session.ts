@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 import { API_URL } from './config';
 import type { User } from '../store/app';
 import type { RankId } from '../constants/design';
@@ -44,23 +45,49 @@ export interface MeUser {
 const ACCESS_KEY = 'momentum.access_token';
 const REFRESH_KEY = 'momentum.refresh_token';
 
+async function setStoredItem(key: string, value: string) {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(key, value);
+    return;
+  }
+  await SecureStore.setItemAsync(key, value);
+}
+
+async function getStoredItem(key: string) {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(key);
+  }
+  return SecureStore.getItemAsync(key);
+}
+
+async function deleteStoredItem(key: string) {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.removeItem(key);
+    return;
+  }
+  await SecureStore.deleteItemAsync(key);
+}
+
 async function saveTokens(accessToken: string, refreshToken: string) {
-  await SecureStore.setItemAsync(ACCESS_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_KEY, refreshToken);
+  await setStoredItem(ACCESS_KEY, accessToken);
+  await setStoredItem(REFRESH_KEY, refreshToken);
 }
 
 async function getAccessToken() {
-  return SecureStore.getItemAsync(ACCESS_KEY);
+  return getStoredItem(ACCESS_KEY);
 }
 
 async function getRefreshToken() {
-  return SecureStore.getItemAsync(REFRESH_KEY);
+  return getStoredItem(REFRESH_KEY);
 }
 
 export async function clearTokens() {
-  await SecureStore.deleteItemAsync(ACCESS_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_KEY);
-  await SecureStore.deleteItemAsync(CELEBRATED_LEVEL_KEY);
+  await deleteStoredItem(ACCESS_KEY);
+  await deleteStoredItem(REFRESH_KEY);
+  await deleteStoredItem(CELEBRATED_LEVEL_KEY);
 }
 
 // ── Detecção de level-up ──────────────────────────────────────────────────────
@@ -70,14 +97,14 @@ export async function clearTokens() {
 const CELEBRATED_LEVEL_KEY = 'momentum.celebrated_level';
 
 export async function checkLevelUp(level: number): Promise<number | null> {
-  const raw = await SecureStore.getItemAsync(CELEBRATED_LEVEL_KEY);
+  const raw = await getStoredItem(CELEBRATED_LEVEL_KEY);
   if (raw == null) {
-    await SecureStore.setItemAsync(CELEBRATED_LEVEL_KEY, String(level));
+    await setStoredItem(CELEBRATED_LEVEL_KEY, String(level));
     return null;
   }
   const prev = parseInt(raw, 10) || 0;
   if (level > prev) {
-    await SecureStore.setItemAsync(CELEBRATED_LEVEL_KEY, String(level));
+    await setStoredItem(CELEBRATED_LEVEL_KEY, String(level));
     return level;
   }
   return null;
