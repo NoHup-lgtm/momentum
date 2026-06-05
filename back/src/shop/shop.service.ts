@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // Catálogo de cosméticos. A `key` é o id da pixel-art (PixelItem/GRIDS) e a
@@ -103,24 +104,48 @@ export interface ShopView {
 export class ShopService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private async ensureCatalog() {
-    const out: { id: string; def: Def }[] = [];
-    for (const c of CATALOG) {
-      let row = await this.prisma.cosmetic.findFirst({ where: { name: c.key } });
-      if (!row) {
-        row = await this.prisma.cosmetic.create({
-          data: {
-            name: c.key,
-            category: c.category,
-            rarity: c.rarity,
-            priceCoins: c.coins ?? 0,
-            priceGems: c.gems ?? 0,
-          },
+  // Cache key(name)→id dos cosméticos. As linhas são imutáveis após criadas,
+  // então depois do 1º seed o catálogo resolve sem tocar no banco.
+  private readonly cosmeticIds = new Map<string, string>();
+
+  // Resolve os ids do catálogo: usa o cache; pro que faltar, 1 findMany(in) +
+  // createMany dos ausentes. Estado estável = 0 queries.
+  private async resolveCosmetics<T extends { key: string }>(
+    defs: T[],
+    makeData: (d: T) => Prisma.CosmeticCreateManyInput,
+  ): Promise<{ id: string; def: T }[]> {
+    let pending = defs.filter((d) => !this.cosmeticIds.has(d.key));
+    if (pending.length) {
+      const rows = await this.prisma.cosmetic.findMany({
+        where: { name: { in: pending.map((d) => d.key) } },
+        select: { id: true, name: true },
+      });
+      for (const r of rows) this.cosmeticIds.set(r.name, r.id);
+
+      pending = defs.filter((d) => !this.cosmeticIds.has(d.key));
+      if (pending.length) {
+        await this.prisma.cosmetic.createMany({
+          data: pending.map(makeData),
+          skipDuplicates: true,
         });
+        const created = await this.prisma.cosmetic.findMany({
+          where: { name: { in: pending.map((d) => d.key) } },
+          select: { id: true, name: true },
+        });
+        for (const r of created) this.cosmeticIds.set(r.name, r.id);
       }
-      out.push({ id: row.id, def: c });
     }
-    return out;
+    return defs.map((d) => ({ id: this.cosmeticIds.get(d.key)!, def: d }));
+  }
+
+  private ensureCatalog() {
+    return this.resolveCosmetics(CATALOG, (c) => ({
+      name: c.key,
+      category: c.category,
+      rarity: c.rarity,
+      priceCoins: c.coins ?? 0,
+      priceGems: c.gems ?? 0,
+    }));
   }
 
   async getShop(userId: string): Promise<ShopView> {
@@ -232,18 +257,14 @@ export class ShopService {
     return this.getShop(userId);
   }
 
-  private async ensureUnlockCatalog() {
-    const out: { id: string; def: UnlockDef }[] = [];
-    for (const c of UNLOCK_CATALOG) {
-      let row = await this.prisma.cosmetic.findFirst({ where: { name: c.key } });
-      if (!row) {
-        row = await this.prisma.cosmetic.create({
-          data: { name: c.key, category: c.category, rarity: c.rarity, priceCoins: 0, priceGems: 0 },
-        });
-      }
-      out.push({ id: row.id, def: c });
-    }
-    return out;
+  private ensureUnlockCatalog() {
+    return this.resolveCosmetics(UNLOCK_CATALOG, (c) => ({
+      name: c.key,
+      category: c.category,
+      rarity: c.rarity,
+      priceCoins: 0,
+      priceGems: 0,
+    }));
   }
 
   // Cosméticos desbloqueáveis por condição. Auto-concede o UserCosmetic quando a
