@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Animated } from 'react-native';
+import { Animated, Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 // ── Plan types ────────────────────────────────────────────────────────────────
@@ -93,6 +93,23 @@ interface ThemeContextValue {
 
 const MODE_KEY = 'momentum.theme_mode';
 
+async function getStoredMode() {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return null;
+    return localStorage.getItem(MODE_KEY);
+  }
+  return SecureStore.getItemAsync(MODE_KEY);
+}
+
+async function setStoredMode(mode: ThemeMode) {
+  if (Platform.OS === 'web') {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem(MODE_KEY, mode);
+    return;
+  }
+  await SecureStore.setItemAsync(MODE_KEY, mode);
+}
+
 const ThemeContext = createContext<ThemeContextValue>({
   plan: 'free',
   mode: 'dark',
@@ -112,7 +129,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Carrega o modo persistido no boot.
   useEffect(() => {
     (async () => {
-      const saved = await SecureStore.getItemAsync(MODE_KEY);
+      const saved = await getStoredMode();
       if (saved === 'light' || saved === 'dark') setModeState(saved);
     })();
   }, []);
@@ -129,7 +146,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
-    SecureStore.setItemAsync(MODE_KEY, newMode).catch(() => {});
+    setStoredMode(newMode).catch(() => {});
   };
   const toggleMode = () => setMode(mode === 'dark' ? 'light' : 'dark');
 
