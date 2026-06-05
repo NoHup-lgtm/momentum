@@ -133,14 +133,14 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     (async () => {
-      const days = await getHeatmap();
+      const [days, achievements] = await Promise.all([getHeatmap(), getAchievements()]);
       if (days.length > 0) {
         setHeatmap(days.map((d) => toIntensity(d.count)));
         setGhCommits(days.reduce((sum, d) => sum + d.count, 0));
         const activeLast7 = days.slice(-7).filter((d) => d.count > 0).length;
         setWeekXP(activeLast7 * 50);
       }
-      setAchs(await getAchievements());
+      setAchs(achievements);
     })();
   }, []);
 
@@ -148,8 +148,9 @@ export default function ProfileScreen() {
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
-        setEquipped(await getEquipped());
-        setFriends((await getFriends()).friends);
+        const [eq, fr] = await Promise.all([getEquipped(), getFriends()]);
+        setEquipped(eq);
+        setFriends(fr.friends);
       })();
     }, [setEquipped]),
   );

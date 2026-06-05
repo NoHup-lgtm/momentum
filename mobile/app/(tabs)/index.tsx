@@ -311,12 +311,17 @@ export default function HomeScreen() {
   // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista + desafios.
   React.useEffect(() => {
     (async () => {
+      // sync pesado primeiro (challenges dependem dos commits de hoje)…
       await applyMe(await syncGithub());
-      setTodayCommits(await getGithubToday());
-      setRawChallenges(await getChallenges());
-      setHomeSquad(await getMySquad());
-      setHomeChests(await getChests());
-      setEquipped(await getEquipped());
+      // …depois as leituras independentes em paralelo
+      const [today, challenges, squad, chests, eq] = await Promise.all([
+        getGithubToday(), getChallenges(), getMySquad(), getChests(), getEquipped(),
+      ]);
+      setTodayCommits(today);
+      setRawChallenges(challenges);
+      setHomeSquad(squad);
+      setHomeChests(chests);
+      setEquipped(eq);
     })();
   }, []);
 
@@ -325,11 +330,14 @@ export default function HomeScreen() {
   useFocusEffect(
     React.useCallback(() => {
       (async () => {
-        await applyMe(await fetchMe());
-        setHomeChests(await getChests());
-        setRawChallenges(await getChallenges());
-        setHomeSquad(await getMySquad());
-        setEquipped(await getEquipped());
+        const [me, chests, challenges, squad, eq] = await Promise.all([
+          fetchMe(), getChests(), getChallenges(), getMySquad(), getEquipped(),
+        ]);
+        await applyMe(me);
+        setHomeChests(chests);
+        setRawChallenges(challenges);
+        setHomeSquad(squad);
+        setEquipped(eq);
       })();
     }, [applyMe]),
   );

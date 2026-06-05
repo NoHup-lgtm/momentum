@@ -149,19 +149,22 @@ export class ShopService {
   }
 
   async getShop(userId: string): Promise<ShopView> {
-    const catalog = await this.ensureCatalog();
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { coins: true, gems: true },
-    });
-    const owned = await this.prisma.userCosmetic.findMany({
-      where: { userId },
-      select: { cosmeticId: true },
-    });
-    const equipped = await this.prisma.userEquippedCosmetic.findMany({
-      where: { userId },
-      select: { cosmeticId: true },
-    });
+    // leituras independentes em paralelo
+    const [catalog, user, owned, equipped] = await Promise.all([
+      this.ensureCatalog(),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { coins: true, gems: true },
+      }),
+      this.prisma.userCosmetic.findMany({
+        where: { userId },
+        select: { cosmeticId: true },
+      }),
+      this.prisma.userEquippedCosmetic.findMany({
+        where: { userId },
+        select: { cosmeticId: true },
+      }),
+    ]);
     const ownedSet = new Set(owned.map((o) => o.cosmeticId));
     const equippedSet = new Set(equipped.map((e) => e.cosmeticId));
 
@@ -270,20 +273,25 @@ export class ShopService {
   // Cosméticos desbloqueáveis por condição. Auto-concede o UserCosmetic quando a
   // condição é atingida (aí o user pode equipar pelo endpoint normal de equip).
   async getUnlockables(userId: string): Promise<UnlockItem[]> {
-    const catalog = await this.ensureUnlockCatalog();
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { maxStreak: true, totalXp: true },
-    });
-    const commitsAgg = await this.prisma.dailyActivity.aggregate({
-      where: { userId, activityType: 'COMMIT' },
-      _sum: { count: true },
-    });
-    const achievements = await this.prisma.userAchievement.count({ where: { userId } });
-    const challenges = await this.prisma.userDailyChallenge.count({
-      where: { userId, claimedAt: { not: null } },
-    });
+    // catálogo + todas as métricas/posses em paralelo (leituras independentes)
+    const [catalog, user, commitsAgg, achievements, challenges, ownedRows, equippedRows] =
+      await Promise.all([
+        this.ensureUnlockCatalog(),
+        this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { maxStreak: true, totalXp: true },
+        }),
+        this.prisma.dailyActivity.aggregate({
+          where: { userId, activityType: 'COMMIT' },
+          _sum: { count: true },
+        }),
+        this.prisma.userAchievement.count({ where: { userId } }),
+        this.prisma.userDailyChallenge.count({
+          where: { userId, claimedAt: { not: null } },
+        }),
+        this.prisma.userCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }),
+        this.prisma.userEquippedCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }),
+      ]);
     const metrics: Record<UnlockMetric, number> = {
       maxStreak: user?.maxStreak ?? 0,
       commits: commitsAgg._sum.count ?? 0,
@@ -292,14 +300,8 @@ export class ShopService {
       challenges,
     };
 
-    const owned = new Set(
-      (await this.prisma.userCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }))
-        .map((o) => o.cosmeticId),
-    );
-    const equipped = new Set(
-      (await this.prisma.userEquippedCosmetic.findMany({ where: { userId }, select: { cosmeticId: true } }))
-        .map((e) => e.cosmeticId),
-    );
+    const owned = new Set(ownedRows.map((o) => o.cosmeticId));
+    const equipped = new Set(equippedRows.map((e) => e.cosmeticId));
 
     const result: UnlockItem[] = [];
     for (const { id, def } of catalog) {
