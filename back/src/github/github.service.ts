@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CryptoService } from '../core/services/crypto.service.js';
 import { levelFromXp } from '../common/leveling.js';
@@ -61,6 +62,7 @@ export class GithubService {
         accessToken: true,
         timezone: true,
         maxStreak: true,
+        totalXp: true,
       },
     });
     if (!user) throw new NotFoundException('User not found');
@@ -175,94 +177,105 @@ export class GithubService {
     const activeDays = days.filter((d) => d.count > 0);
 
     // Dedup: só credita XP/coins para dias ainda não registrados.
+    // Lê data + count de uma vez pra (a) saber o que já existe e
+    // (b) detectar quais dias mudaram de contagem (e pular os inalterados).
     const fromDate = new Date(Date.now() - HEATMAP_DAYS * 86_400_000);
     const existing = await this.prisma.dailyActivity.findMany({
       where: { userId, activityType: 'COMMIT', date: { gte: fromDate } },
-      select: { date: true },
+      select: { date: true, count: true },
     });
-    const existingSet = new Set(
-      existing.map((e) => e.date.toISOString().slice(0, 10)),
+    const existingCount = new Map(
+      existing.map((e) => [e.date.toISOString().slice(0, 10), e.count]),
     );
 
-    let addedXp = 0;
-    let addedCoins = 0;
+    // Particiona: dias novos (insere + credita) e dias existentes com
+    // contagem alterada (só atualiza o count). Dias inalterados são ignorados.
+    const toCreate = activeDays.filter((d) => !existingCount.has(d.date));
+    const toUpdate = activeDays.filter(
+      (d) => existingCount.has(d.date) && existingCount.get(d.date) !== d.count,
+    );
 
-    for (const day of activeDays) {
-      const date = new Date(`${day.date}T00:00:00.000Z`);
-      if (existingSet.has(day.date)) {
-        // dia já registrado — só atualiza a contagem
-        await this.prisma.dailyActivity.update({
-          where: {
-            userId_date_activityType: {
-              userId,
-              date,
-              activityType: 'COMMIT',
-            },
-          },
-          data: { count: day.count },
-        });
-        continue;
-      }
-
-      // dia novo — registra atividade, credita XP/coins e loga no ledger
-      await this.prisma.dailyActivity.create({
-        data: {
-          userId,
-          date,
-          activityType: 'COMMIT',
-          count: day.count,
-          xpGained: XP_PER_ACTIVE_DAY,
-          coinsGained: COINS_PER_ACTIVE_DAY,
-          keptStreak: true,
-        },
-      });
-      await this.prisma.xpTransaction.create({
-        data: {
-          userId,
-          amount: XP_PER_ACTIVE_DAY,
-          source: 'DAILY_ACTIVITY',
-          description: `Atividade no GitHub em ${day.date}`,
-        },
-      });
-      await this.prisma.coinTransaction.create({
-        data: {
-          userId,
-          amount: COINS_PER_ACTIVE_DAY,
-          source: 'DAILY_ACTIVITY',
-          description: `Atividade no GitHub em ${day.date}`,
-        },
-      });
-      addedXp += XP_PER_ACTIVE_DAY;
-      addedCoins += COINS_PER_ACTIVE_DAY;
-    }
+    const addedXp = toCreate.length * XP_PER_ACTIVE_DAY;
+    const addedCoins = toCreate.length * COINS_PER_ACTIVE_DAY;
 
     const { currentStreak, maxStreak } = this.computeStreaks(
       days,
       user.timezone,
     );
     const lastActive = activeDays.at(-1)?.date;
+    // nível derivado do novo totalXp — calculado local, sem reler o banco
+    const level = levelFromXp(user.totalXp + addedXp);
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        currentStreak,
-        maxStreak: Math.max(maxStreak, user.maxStreak),
-        lastActivityDate: lastActive
-          ? new Date(`${lastActive}T00:00:00.000Z`)
-          : undefined,
-        coins: { increment: addedCoins },
-        // totalXp recalculado a partir do ledger (fonte da verdade)
-        ...(addedXp > 0 ? { totalXp: { increment: addedXp } } : {}),
-      },
-    });
+    // Monta todas as escritas e executa num único batch atômico:
+    // 3 createMany (em vez de 3×N inserts) + N' updates (só os que mudaram)
+    // + 1 update do usuário (em vez de update→findUnique→update).
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
 
-    // nível derivado do totalXp (provisório: 1000 XP por nível)
-    const refreshed = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { totalXp: true },
-    });
-    const level = levelFromXp(refreshed?.totalXp ?? 0);
-    await this.prisma.user.update({ where: { id: userId }, data: { level } });
+    if (toCreate.length) {
+      ops.push(
+        this.prisma.dailyActivity.createMany({
+          skipDuplicates: true,
+          data: toCreate.map((d) => ({
+            userId,
+            date: new Date(`${d.date}T00:00:00.000Z`),
+            activityType: 'COMMIT' as const,
+            count: d.count,
+            xpGained: XP_PER_ACTIVE_DAY,
+            coinsGained: COINS_PER_ACTIVE_DAY,
+            keptStreak: true,
+          })),
+        }),
+        this.prisma.xpTransaction.createMany({
+          data: toCreate.map((d) => ({
+            userId,
+            amount: XP_PER_ACTIVE_DAY,
+            source: 'DAILY_ACTIVITY' as const,
+            description: `Atividade no GitHub em ${d.date}`,
+          })),
+        }),
+        this.prisma.coinTransaction.createMany({
+          data: toCreate.map((d) => ({
+            userId,
+            amount: COINS_PER_ACTIVE_DAY,
+            source: 'DAILY_ACTIVITY' as const,
+            description: `Atividade no GitHub em ${d.date}`,
+          })),
+        }),
+      );
+    }
+
+    for (const d of toUpdate) {
+      ops.push(
+        this.prisma.dailyActivity.update({
+          where: {
+            userId_date_activityType: {
+              userId,
+              date: new Date(`${d.date}T00:00:00.000Z`),
+              activityType: 'COMMIT',
+            },
+          },
+          data: { count: d.count },
+        }),
+      );
+    }
+
+    ops.push(
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          currentStreak,
+          maxStreak: Math.max(maxStreak, user.maxStreak),
+          lastActivityDate: lastActive
+            ? new Date(`${lastActive}T00:00:00.000Z`)
+            : undefined,
+          level,
+          ...(addedCoins > 0 ? { coins: { increment: addedCoins } } : {}),
+          ...(addedXp > 0 ? { totalXp: { increment: addedXp } } : {}),
+        },
+      }),
+    );
+
+    await this.prisma.$transaction(ops);
 
     return { addedXp, addedCoins, currentStreak, activeDays: activeDays.length };
   }
