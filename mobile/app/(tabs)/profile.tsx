@@ -321,7 +321,13 @@ export default function ProfileScreen() {
                   <TouchableOpacity
                     key={f.friendshipId}
                     style={{ position: 'relative' }}
-                    onPress={() => router.push('/friends')}
+                    onPress={() => router.push({
+                      pathname: '/user-profile',
+                      params: {
+                        userId: f.userId, name: f.displayName || f.githubLogin,
+                        username: f.githubLogin, variant: String(f.avatarVariant), rank: f.rank,
+                      },
+                    })}
                   >
                     <AvatarRing
                       size={40}

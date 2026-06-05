@@ -91,7 +91,19 @@ export default function FeedScreen() {
               const name = it.user.isMe ? t.you : (it.user.displayName || it.user.githubLogin);
               return (
                 <View key={it.id} style={[s.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
-                  <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
+                  <TouchableOpacity
+                    activeOpacity={it.user.isMe ? 1 : 0.7}
+                    disabled={it.user.isMe}
+                    onPress={() => router.push({
+                      pathname: '/user-profile',
+                      params: {
+                        userId: it.user.id, name: it.user.displayName || it.user.githubLogin,
+                        username: it.user.githubLogin, variant: String(it.user.avatarVariant), rank: it.user.rank,
+                      },
+                    })}
+                  >
+                    <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
+                  </TouchableOpacity>
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <Text style={s.cardText}>
                       <Text style={[s.cardName, it.user.isMe && { color: c.accent }]}>{name} </Text>

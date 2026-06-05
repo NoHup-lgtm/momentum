@@ -613,6 +613,37 @@ export async function getFeed(): Promise<FeedItem[]> {
   }
 }
 
+// ── Public profile (outro usuário) ─────────────────────────────────────────────
+export type FriendshipState = 'self' | 'friends' | 'incoming' | 'outgoing' | 'none';
+
+export interface PublicProfile {
+  id: string;
+  githubLogin: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  avatarVariant: number;
+  rank: string;
+  level: number;
+  totalXp: number;
+  currentStreak: number;
+  maxStreak: number;
+  totalCommits: number;
+  equipped: EquippedMap;
+  friendship: { state: FriendshipState; friendshipId: string | null };
+  heatmap: number[]; // 91 dias, intensidade 0..5 (antigo → hoje)
+  recentActivity: { type: string; payload: Record<string, any>; createdAt: string }[];
+}
+
+export async function getUserProfile(userId: string): Promise<PublicProfile | null> {
+  try {
+    const res = await apiFetch(`/users/${userId}`, { method: 'GET' });
+    if (!res.ok) return null;
+    return (await res.json()) as PublicProfile;
+  } catch {
+    return null;
+  }
+}
+
 // ── Chests ────────────────────────────────────────────────────────────────────
 export interface PendingChest {
   id: string;

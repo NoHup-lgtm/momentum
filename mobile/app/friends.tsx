@@ -43,14 +43,26 @@ export default function FriendsScreen() {
     const loadingThis = busy === f.friendshipId;
     return (
       <View style={s.friendRow}>
-        <AvatarRing size={44} variant={f.avatarVariant} rankId={rid(f.rank)} equipped={f.equipped} />
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={s.friendName}>{f.displayName || f.githubLogin}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-            <Text style={s.friendHandle}>@{f.githubLogin}</Text>
-            <Text style={[s.friendRank, { color: rank.color }]}>{rank.label} · lvl {f.level}</Text>
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+          activeOpacity={0.7}
+          onPress={() => router.push({
+            pathname: '/user-profile',
+            params: {
+              userId: f.userId, name: f.displayName || f.githubLogin,
+              username: f.githubLogin, variant: String(f.avatarVariant), rank: f.rank,
+            },
+          })}
+        >
+          <AvatarRing size={44} variant={f.avatarVariant} rankId={rid(f.rank)} equipped={f.equipped} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={s.friendName}>{f.displayName || f.githubLogin}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              <Text style={s.friendHandle}>@{f.githubLogin}</Text>
+              <Text style={[s.friendRank, { color: rank.color }]}>{rank.label} · lvl {f.level}</Text>
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {kind === 'incoming' ? (
           <View style={{ flexDirection: 'row', gap: 6 }}>
