@@ -34,26 +34,40 @@ export class ChallengeService {
     return new Date(`${str}T00:00:00.000Z`);
   }
 
+  // Cache title→id (linhas imutáveis) → estado estável resolve sem tocar no banco.
+  private readonly ids = new Map<string, string>();
+
   // Garante que os desafios do catálogo existam no banco (idempotente).
   private async ensureCatalog() {
-    const out: { id: string; key: string; target: number; xp: number; coins: number }[] = [];
-    for (const c of CATALOG) {
-      let row = await this.prisma.dailyChallenge.findFirst({ where: { title: c.key } });
-      if (!row) {
-        row = await this.prisma.dailyChallenge.create({
-          data: {
+    let pending = CATALOG.filter((c) => !this.ids.has(c.key));
+    if (pending.length) {
+      const rows = await this.prisma.dailyChallenge.findMany({
+        where: { title: { in: pending.map((c) => c.key) } },
+        select: { id: true, title: true },
+      });
+      for (const r of rows) this.ids.set(r.title, r.id);
+
+      pending = CATALOG.filter((c) => !this.ids.has(c.key));
+      if (pending.length) {
+        await this.prisma.dailyChallenge.createMany({
+          data: pending.map((c) => ({
             title: c.key,
             description: '',
             metricType: c.metric,
             targetValue: c.target,
             rewardXp: c.xp,
             rewardCoins: c.coins,
-          },
+          })),
+          skipDuplicates: true,
         });
+        const created = await this.prisma.dailyChallenge.findMany({
+          where: { title: { in: pending.map((c) => c.key) } },
+          select: { id: true, title: true },
+        });
+        for (const r of created) this.ids.set(r.title, r.id);
       }
-      out.push({ id: row.id, key: c.key, target: c.target, xp: c.xp, coins: c.coins });
     }
-    return out;
+    return CATALOG.map((c) => ({ id: this.ids.get(c.key)!, key: c.key, target: c.target, xp: c.xp, coins: c.coins }));
   }
 
   private async metrics(userId: string) {

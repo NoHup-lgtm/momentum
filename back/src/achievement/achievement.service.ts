@@ -44,13 +44,22 @@ export class AchievementService {
     private readonly feed: FeedService,
   ) {}
 
+  // Cache title→id (linhas imutáveis) → estado estável resolve sem tocar no banco.
+  private readonly ids = new Map<string, string>();
+
   private async ensureCatalog() {
-    const out: { id: string; def: (typeof CATALOG)[number] }[] = [];
-    for (const a of CATALOG) {
-      let row = await this.prisma.achievement.findFirst({ where: { title: a.key } });
-      if (!row) {
-        row = await this.prisma.achievement.create({
-          data: {
+    let pending = CATALOG.filter((a) => !this.ids.has(a.key));
+    if (pending.length) {
+      const rows = await this.prisma.achievement.findMany({
+        where: { title: { in: pending.map((a) => a.key) } },
+        select: { id: true, title: true },
+      });
+      for (const r of rows) this.ids.set(r.title, r.id);
+
+      pending = CATALOG.filter((a) => !this.ids.has(a.key));
+      if (pending.length) {
+        await this.prisma.achievement.createMany({
+          data: pending.map((a) => ({
             title: a.key,
             description: '',
             category: a.category,
@@ -59,12 +68,17 @@ export class AchievementService {
             targetValue: a.target,
             rewardXp: a.xp,
             rewardCoins: a.coins,
-          },
+          })),
+          skipDuplicates: true,
         });
+        const created = await this.prisma.achievement.findMany({
+          where: { title: { in: pending.map((a) => a.key) } },
+          select: { id: true, title: true },
+        });
+        for (const r of created) this.ids.set(r.title, r.id);
       }
-      out.push({ id: row.id, def: a });
     }
-    return out;
+    return CATALOG.map((a) => ({ id: this.ids.get(a.key)!, def: a }));
   }
 
   async getAll(userId: string): Promise<AchievementView[]> {
