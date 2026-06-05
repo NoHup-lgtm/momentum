@@ -82,26 +82,27 @@ export class AchievementService {
   }
 
   async getAll(userId: string): Promise<AchievementView[]> {
-    const catalog = await this.ensureCatalog();
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { maxStreak: true, totalXp: true },
-    });
-    const commitsAgg = await this.prisma.dailyActivity.aggregate({
-      where: { userId, activityType: 'COMMIT' },
-      _sum: { count: true },
-    });
+    const [catalog, user, commitsAgg, unlockedRows] = await Promise.all([
+      this.ensureCatalog(),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { maxStreak: true, totalXp: true },
+      }),
+      this.prisma.dailyActivity.aggregate({
+        where: { userId, activityType: 'COMMIT' },
+        _sum: { count: true },
+      }),
+      this.prisma.userAchievement.findMany({
+        where: { userId },
+        select: { achievementId: true },
+      }),
+    ]);
     const metrics = {
       maxStreak: user?.maxStreak ?? 0,
       commits: commitsAgg._sum.count ?? 0,
       xp: user?.totalXp ?? 0,
     };
 
-    const unlockedRows = await this.prisma.userAchievement.findMany({
-      where: { userId },
-      select: { achievementId: true },
-    });
     const unlockedSet = new Set(unlockedRows.map((r) => r.achievementId));
 
     const result: AchievementView[] = [];
