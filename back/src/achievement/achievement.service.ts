@@ -105,6 +105,10 @@ export class AchievementService {
 
     const unlockedSet = new Set(unlockedRows.map((r) => r.achievementId));
 
+    // totalXp corrente — acumula a cada unlock pra calcular o nível certo
+    // quando várias conquistas desbloqueiam na mesma chamada.
+    let runningXp = metrics.xp;
+
     const result: AchievementView[] = [];
     for (const { id, def } of catalog) {
       const currentValue = metrics[def.metric];
@@ -113,7 +117,8 @@ export class AchievementService {
 
       // Auto-desbloqueio + recompensa (uma vez só).
       if (reached && !already) {
-        await this.unlock(userId, id, def.xp, def.coins, def.key);
+        await this.unlock(userId, id, def.xp, def.coins, def.key, runningXp);
+        runningXp += def.xp;
       }
 
       result.push({
@@ -131,20 +136,28 @@ export class AchievementService {
     return result;
   }
 
-  private async unlock(userId: string, achievementId: string, xp: number, coins: number, key: string) {
-    await this.prisma.userAchievement.create({ data: { userId, achievementId } });
-    await this.prisma.xpTransaction.create({
-      data: { userId, amount: xp, source: 'ACHIEVEMENT', description: `Conquista: ${key}` },
-    });
-    await this.prisma.coinTransaction.create({
-      data: { userId, amount: coins, source: 'ACHIEVEMENT', description: `Conquista: ${key}` },
-    });
-    const updated = await this.prisma.user.update({
-      where: { id: userId },
-      data: { totalXp: { increment: xp }, coins: { increment: coins } },
-      select: { totalXp: true },
-    });
-    await this.prisma.user.update({ where: { id: userId }, data: { level: levelFromXp(updated.totalXp) } });
+  private async unlock(
+    userId: string,
+    achievementId: string,
+    xp: number,
+    coins: number,
+    key: string,
+    currentTotalXp: number,
+  ) {
+    const level = levelFromXp(currentTotalXp + xp);
+    await this.prisma.$transaction([
+      this.prisma.userAchievement.create({ data: { userId, achievementId } }),
+      this.prisma.xpTransaction.create({
+        data: { userId, amount: xp, source: 'ACHIEVEMENT', description: `Conquista: ${key}` },
+      }),
+      this.prisma.coinTransaction.create({
+        data: { userId, amount: coins, source: 'ACHIEVEMENT', description: `Conquista: ${key}` },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { totalXp: { increment: xp }, coins: { increment: coins }, level },
+      }),
+    ]);
     await this.feed.emit(userId, 'ACHIEVEMENT', { key, xp, coins });
   }
 }

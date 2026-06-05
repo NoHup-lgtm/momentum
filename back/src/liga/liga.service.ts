@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from '../feed/feed.service.js';
 
@@ -105,6 +106,12 @@ export class LigaService {
     const n = ranked.length;
     const canRelegate = n > PROMOTE_COUNT; // evita promover e rebaixar o mesmo
 
+    // Monta todas as escritas (em vez de até ~3 queries sequenciais por
+    // participante) e executa num único batch atômico. Os feeds (best-effort)
+    // ficam fora da transação e são emitidos depois.
+    const ops: Prisma.PrismaPromise<unknown>[] = [];
+    const promotedUsers: string[] = [];
+
     for (let i = 0; i < n; i++) {
       const finalRank = i + 1;
       const { p, xp } = ranked[i];
@@ -112,41 +119,51 @@ export class LigaService {
       const relegated =
         canRelegate && finalRank > n - RELEGATE_COUNT && season.tier > 1;
 
-      await this.prisma.ligaParticipant.update({
-        where: { id: p.id },
-        data: { finalRank, promoted, relegated, xpEarned: xp },
-      });
+      ops.push(
+        this.prisma.ligaParticipant.update({
+          where: { id: p.id },
+          data: { finalRank, promoted, relegated, xpEarned: xp },
+        }),
+      );
 
-      if (promoted) {
-        await this.feed.emit(p.userId, 'LIGA_PROMOTED', {
-          fromTier: season.tier,
-          toTier: season.tier + 1,
-          finalRank,
-        });
-      }
+      if (promoted) promotedUsers.push(p.userId);
 
       // Recompensa do pódio (gems) — creditada uma única vez na liquidação.
       const reward = REWARD_GEMS[finalRank];
       if (reward) {
-        await this.prisma.gemTransaction.create({
-          data: {
-            userId: p.userId,
-            amount: reward,
-            source: 'EVENT_REWARD',
-            description: `Liga: ${finalRank}º lugar (sprint #${season.sprintNumber})`,
-          },
-        });
-        await this.prisma.user.update({
-          where: { id: p.userId },
-          data: { gems: { increment: reward } },
-        });
+        ops.push(
+          this.prisma.gemTransaction.create({
+            data: {
+              userId: p.userId,
+              amount: reward,
+              source: 'EVENT_REWARD',
+              description: `Liga: ${finalRank}º lugar (sprint #${season.sprintNumber})`,
+            },
+          }),
+          this.prisma.user.update({
+            where: { id: p.userId },
+            data: { gems: { increment: reward } },
+          }),
+        );
       }
     }
 
-    await this.prisma.ligaSeason.update({
-      where: { id: seasonId },
-      data: { isActive: false },
-    });
+    ops.push(
+      this.prisma.ligaSeason.update({
+        where: { id: seasonId },
+        data: { isActive: false },
+      }),
+    );
+
+    await this.prisma.$transaction(ops);
+
+    // feeds best-effort após a liquidação (não bloqueiam nem revertem o batch)
+    for (const userId of promotedUsers) {
+      await this.feed.emit(userId, 'LIGA_PROMOTED', {
+        fromTier: season.tier,
+        toTier: season.tier + 1,
+      });
+    }
   }
 
   // Garante que o user participe do sprint atual, liquidando o passado e
