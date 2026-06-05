@@ -116,30 +116,32 @@ export class ChallengeService {
     if (!ch.completed) throw new BadRequestException('Desafio não concluído');
     if (ch.claimed) throw new BadRequestException('Recompensa já coletada');
 
-    const tz = (await this.prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }))?.timezone ?? '';
-    const date = this.todayDate(tz);
-
-    await this.prisma.userDailyChallenge.upsert({
-      where: { userId_challengeId_date: { userId, challengeId, date } },
-      create: { userId, challengeId, date, currentValue: ch.currentValue, isCompleted: true, completedAt: new Date(), claimedAt: new Date() },
-      update: { isCompleted: true, completedAt: new Date(), claimedAt: new Date() },
-    });
-
-    await this.prisma.xpTransaction.create({
-      data: { userId, amount: ch.rewardXp, source: 'DAILY_CHALLENGE', description: `Desafio: ${ch.key}` },
-    });
-    await this.prisma.coinTransaction.create({
-      data: { userId, amount: ch.rewardCoins, source: 'DAILY_CHALLENGE', description: `Desafio: ${ch.key}` },
-    });
-    const updated = await this.prisma.user.update({
+    // lê timezone + totalXp de uma vez (nível calculado local, sem reler depois)
+    const u = await this.prisma.user.findUnique({
       where: { id: userId },
-      data: { totalXp: { increment: ch.rewardXp }, coins: { increment: ch.rewardCoins } },
-      select: { totalXp: true },
+      select: { timezone: true, totalXp: true },
     });
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { level: levelFromXp(updated.totalXp) },
-    });
+    const date = this.todayDate(u?.timezone ?? '');
+    const level = levelFromXp((u?.totalXp ?? 0) + ch.rewardXp);
+
+    // todas as escritas num único batch atômico
+    await this.prisma.$transaction([
+      this.prisma.userDailyChallenge.upsert({
+        where: { userId_challengeId_date: { userId, challengeId, date } },
+        create: { userId, challengeId, date, currentValue: ch.currentValue, isCompleted: true, completedAt: new Date(), claimedAt: new Date() },
+        update: { isCompleted: true, completedAt: new Date(), claimedAt: new Date() },
+      }),
+      this.prisma.xpTransaction.create({
+        data: { userId, amount: ch.rewardXp, source: 'DAILY_CHALLENGE', description: `Desafio: ${ch.key}` },
+      }),
+      this.prisma.coinTransaction.create({
+        data: { userId, amount: ch.rewardCoins, source: 'DAILY_CHALLENGE', description: `Desafio: ${ch.key}` },
+      }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { totalXp: { increment: ch.rewardXp }, coins: { increment: ch.rewardCoins }, level },
+      }),
+    ]);
 
     await this.feed.emit(userId, 'CHALLENGE_COMPLETED', { key: ch.key, xp: ch.rewardXp });
 

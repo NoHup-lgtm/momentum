@@ -185,38 +185,41 @@ export class ShopService {
   }
 
   async buy(userId: string, cosmeticId: string): Promise<ShopView> {
-    const cosmetic = await this.prisma.cosmetic.findUnique({ where: { id: cosmeticId } });
+    // validações em paralelo (leituras independentes)
+    const [cosmetic, already, user] = await Promise.all([
+      this.prisma.cosmetic.findUnique({ where: { id: cosmeticId } }),
+      this.prisma.userCosmetic.findUnique({ where: { userId_cosmeticId: { userId, cosmeticId } } }),
+      this.prisma.user.findUnique({ where: { id: userId }, select: { coins: true, gems: true } }),
+    ]);
     if (!cosmetic) throw new NotFoundException('Item não encontrado');
-
-    const already = await this.prisma.userCosmetic.findUnique({
-      where: { userId_cosmeticId: { userId, cosmeticId } },
-    });
     if (already) throw new BadRequestException('Você já tem esse item');
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { coins: true, gems: true } });
     const useGems = cosmetic.priceGems > 0;
-
     if (useGems) {
       if ((user?.gems ?? 0) < cosmetic.priceGems) throw new BadRequestException('Gems insuficientes');
     } else {
       if ((user?.coins ?? 0) < cosmetic.priceCoins) throw new BadRequestException('Moedas insuficientes');
     }
 
-    await this.prisma.userCosmetic.create({
-      data: { userId, cosmeticId, obtainedSource: useGems ? 'PURCHASED_GEMS' : 'PURCHASED_COINS' },
-    });
-
-    if (useGems) {
-      await this.prisma.gemTransaction.create({
-        data: { userId, amount: -cosmetic.priceGems, source: 'PURCHASE_ITEM', description: `Loja: ${cosmetic.name}` },
-      });
-      await this.prisma.user.update({ where: { id: userId }, data: { gems: { decrement: cosmetic.priceGems } } });
-    } else {
-      await this.prisma.coinTransaction.create({
-        data: { userId, amount: -cosmetic.priceCoins, source: 'PURCHASE_ITEM', description: `Loja: ${cosmetic.name}` },
-      });
-      await this.prisma.user.update({ where: { id: userId }, data: { coins: { decrement: cosmetic.priceCoins } } });
-    }
+    // posse + débito (ledger) + saldo num único batch atômico
+    await this.prisma.$transaction([
+      this.prisma.userCosmetic.create({
+        data: { userId, cosmeticId, obtainedSource: useGems ? 'PURCHASED_GEMS' : 'PURCHASED_COINS' },
+      }),
+      useGems
+        ? this.prisma.gemTransaction.create({
+            data: { userId, amount: -cosmetic.priceGems, source: 'PURCHASE_ITEM', description: `Loja: ${cosmetic.name}` },
+          })
+        : this.prisma.coinTransaction.create({
+            data: { userId, amount: -cosmetic.priceCoins, source: 'PURCHASE_ITEM', description: `Loja: ${cosmetic.name}` },
+          }),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: useGems
+          ? { gems: { decrement: cosmetic.priceGems } }
+          : { coins: { decrement: cosmetic.priceCoins } },
+      }),
+    ]);
 
     return this.getShop(userId);
   }
