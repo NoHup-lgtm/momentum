@@ -3,6 +3,7 @@ import { AuthGuard } from '../core/guards/auth.guard.js';
 import { AuthUser } from '../core/decorators/auth-user.decorator.js';
 import type { AuthUserDto } from '../core/dto/auth-user.dto.js';
 import { SquadService } from './squad.service.js';
+import { CreateSquadDto, JoinSquadDto } from './dto/squad.dto.js';
 
 @Controller('squads')
 @UseGuards(AuthGuard)
@@ -10,16 +11,13 @@ export class SquadController {
   constructor(private readonly squad: SquadService) {}
 
   @Post()
-  create(
-    @AuthUser() user: AuthUserDto,
-    @Body() body: { name?: string; description?: string },
-  ) {
-    return this.squad.createSquad(user.id, body.name ?? '', body.description);
+  create(@AuthUser() user: AuthUserDto, @Body() body: CreateSquadDto) {
+    return this.squad.createSquad(user.id, body.name, body.description);
   }
 
   @Post('join')
-  join(@AuthUser() user: AuthUserDto, @Body() body: { code?: string }) {
-    return this.squad.joinByCode(user.id, body.code ?? '');
+  join(@AuthUser() user: AuthUserDto, @Body() body: JoinSquadDto) {
+    return this.squad.joinByCode(user.id, body.code);
   }
 
   @Get('me')
