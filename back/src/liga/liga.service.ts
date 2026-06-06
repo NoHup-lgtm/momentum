@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../generated/prisma/client.js';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from '../feed/feed.service.js';
 
@@ -58,6 +58,20 @@ export class LigaService {
     private readonly feed: FeedService,
   ) {}
 
+  // Liquidação PROATIVA: roda de hora em hora e liquida as seasons já encerradas
+  // que ainda não foram liquidadas. Assim o trabalho não cai no primeiro usuário
+  // que abre a liga no rollover do sprint (evita stampede e latência). É 1 query
+  // indexada que quase sempre volta vazia; settleSeason é concorrência-safe, e o
+  // caminho lazy do ensureParticipation segue como fallback.
+  @Cron(CronExpression.EVERY_HOUR)
+  async settleEndedSeasonsJob() {
+    const ended = await this.prisma.ligaSeason.findMany({
+      where: { isActive: true, endsAt: { lte: new Date() } },
+      select: { id: true },
+    });
+    for (const s of ended) await this.settleSeason(s.id);
+  }
+
   // Janela do sprint que contém `now`.
   private sprintInfo(now: Date): SprintInfo {
     const idx = Math.floor((now.getTime() - ANCHOR) / SPRINT_MS); // 0-based
@@ -87,15 +101,16 @@ export class LigaService {
   }
 
   // Liquida uma season encerrada: calcula posições finais, promove/rebaixa e
-  // credita gems do pódio. Idempotente (se já liquidada, não faz nada).
+  // credita gems do pódio. Concorrência-safe e idempotente: o claim atômico
+  // (updateMany isActive true→false) serializa via row-lock do Postgres — só um
+  // settler vence; os concorrentes bloqueiam até o commit, veem count=0 e
+  // abortam sem creditar (nada de gems em dobro no rollover do sprint).
   private async settleSeason(seasonId: string) {
     const season = await this.prisma.ligaSeason.findUnique({
       where: { id: seasonId },
       include: { participants: true },
     });
-    if (!season) return;
-    // Já liquidada? (qualquer participante com finalRank definido)
-    if (season.participants.some((p) => p.finalRank != null)) return;
+    if (!season || !season.isActive) return; // inexistente ou já liquidada
 
     const ids = season.participants.map((p) => p.userId);
     const xpMap = await this.xpEarnedMap(ids, season.startsAt, season.endsAt);
@@ -106,56 +121,47 @@ export class LigaService {
     const n = ranked.length;
     const canRelegate = n > PROMOTE_COUNT; // evita promover e rebaixar o mesmo
 
-    // Monta todas as escritas (em vez de até ~3 queries sequenciais por
-    // participante) e executa num único batch atômico. Os feeds (best-effort)
-    // ficam fora da transação e são emitidos depois.
-    const ops: Prisma.PrismaPromise<unknown>[] = [];
-    const promotedUsers: string[] = [];
+    // Claim + todas as escritas numa transação interativa (atômico).
+    const promotedUsers = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.ligaSeason.updateMany({
+        where: { id: seasonId, isActive: true },
+        data: { isActive: false },
+      });
+      if (claim.count === 0) return []; // outro settler já venceu
 
-    for (let i = 0; i < n; i++) {
-      const finalRank = i + 1;
-      const { p, xp } = ranked[i];
-      const promoted = finalRank <= PROMOTE_COUNT && season.tier < MAX_TIER;
-      const relegated =
-        canRelegate && finalRank > n - RELEGATE_COUNT && season.tier > 1;
+      const promoted: string[] = [];
+      for (let i = 0; i < n; i++) {
+        const finalRank = i + 1;
+        const { p, xp } = ranked[i];
+        const isPromoted = finalRank <= PROMOTE_COUNT && season.tier < MAX_TIER;
+        const relegated =
+          canRelegate && finalRank > n - RELEGATE_COUNT && season.tier > 1;
 
-      ops.push(
-        this.prisma.ligaParticipant.update({
+        await tx.ligaParticipant.update({
           where: { id: p.id },
-          data: { finalRank, promoted, relegated, xpEarned: xp },
-        }),
-      );
+          data: { finalRank, promoted: isPromoted, relegated, xpEarned: xp },
+        });
+        if (isPromoted) promoted.push(p.userId);
 
-      if (promoted) promotedUsers.push(p.userId);
-
-      // Recompensa do pódio (gems) — creditada uma única vez na liquidação.
-      const reward = REWARD_GEMS[finalRank];
-      if (reward) {
-        ops.push(
-          this.prisma.gemTransaction.create({
+        // Recompensa do pódio (gems) — creditada uma única vez na liquidação.
+        const reward = REWARD_GEMS[finalRank];
+        if (reward) {
+          await tx.gemTransaction.create({
             data: {
               userId: p.userId,
               amount: reward,
               source: 'EVENT_REWARD',
               description: `Liga: ${finalRank}º lugar (sprint #${season.sprintNumber})`,
             },
-          }),
-          this.prisma.user.update({
+          });
+          await tx.user.update({
             where: { id: p.userId },
             data: { gems: { increment: reward } },
-          }),
-        );
+          });
+        }
       }
-    }
-
-    ops.push(
-      this.prisma.ligaSeason.update({
-        where: { id: seasonId },
-        data: { isActive: false },
-      }),
-    );
-
-    await this.prisma.$transaction(ops);
+      return promoted;
+    });
 
     // feeds best-effort após a liquidação (não bloqueiam nem revertem o batch)
     for (const userId of promotedUsers) {
@@ -195,27 +201,60 @@ export class LigaService {
       targetTier = this.clampTier(last.season.tier + delta);
     }
 
-    // Garante a season do tier alvo no sprint atual.
-    const season = await this.prisma.ligaSeason.upsert({
-      where: { tier_sprintNumber: { tier: targetTier, sprintNumber: cur.sprintNumber } },
-      create: {
-        tier: targetTier,
-        sprintNumber: cur.sprintNumber,
-        startsAt: cur.startsAt,
-        endsAt: cur.endsAt,
-        isActive: true,
-      },
-      update: {},
-    });
+    // Garante a season do tier alvo no sprint atual. upsert do Prisma não é
+    // atômico → dois first-openers concorrentes no mesmo tier podem colidir
+    // (P2002). onConflictFind reidrata via findUnique nesse caso (sem 500).
+    const season = await this.onConflictFind(
+      () =>
+        this.prisma.ligaSeason.upsert({
+          where: { tier_sprintNumber: { tier: targetTier, sprintNumber: cur.sprintNumber } },
+          create: {
+            tier: targetTier,
+            sprintNumber: cur.sprintNumber,
+            startsAt: cur.startsAt,
+            endsAt: cur.endsAt,
+            isActive: true,
+          },
+          update: {},
+        }),
+      () =>
+        this.prisma.ligaSeason.findUnique({
+          where: { tier_sprintNumber: { tier: targetTier, sprintNumber: cur.sprintNumber } },
+        }),
+    );
 
-    // Garante o participante.
-    const participant = await this.prisma.ligaParticipant.upsert({
-      where: { seasonId_userId: { seasonId: season.id, userId } },
-      create: { seasonId: season.id, userId },
-      update: {},
-    });
+    // Garante o participante (mesma proteção contra corrida).
+    const participant = await this.onConflictFind(
+      () =>
+        this.prisma.ligaParticipant.upsert({
+          where: { seasonId_userId: { seasonId: season.id, userId } },
+          create: { seasonId: season.id, userId },
+          update: {},
+        }),
+      () =>
+        this.prisma.ligaParticipant.findUnique({
+          where: { seasonId_userId: { seasonId: season.id, userId } },
+        }),
+    );
 
     return { season, participant };
+  }
+
+  // Executa um upsert; se colidir com create concorrente (P2002), reidrata pelo
+  // find. Torna os upserts seguros sob concorrência (stampede do rollover).
+  private async onConflictFind<T>(
+    run: () => Promise<T>,
+    find: () => Promise<T | null>,
+  ): Promise<T> {
+    try {
+      return await run();
+    } catch (e) {
+      if (e && typeof e === 'object' && 'code' in e && (e as { code?: string }).code === 'P2002') {
+        const found = await find();
+        if (found) return found;
+      }
+      throw e;
+    }
   }
 
   // View da liga do user: classificação ao vivo do sprint atual.
