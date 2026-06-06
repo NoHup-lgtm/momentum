@@ -2,6 +2,11 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
 
+// Guardrail: nunca carrega mais que isso de amigos aceitos numa request.
+// Evita carga ilimitada se uma conta acumular milhares de amizades. (Quando
+// houver volume real, vira cursor/infinite-scroll.)
+const FRIENDS_PAGE = 200;
+
 const userSelect = {
   id: true,
   githubLogin: true,
@@ -38,12 +43,23 @@ export class FriendService {
     private readonly shop: ShopService,
   ) {}
 
-  async getFriends(userId: string): Promise<FriendsView> {
-    const rows = await this.prisma.friendship.findMany({
-      where: { OR: [{ requesterId: userId }, { addresseeId: userId }] },
-      include: { requester: { select: userSelect }, addressee: { select: userSelect } },
-      orderBy: { createdAt: 'desc' },
-    });
+  async getFriends(userId: string, limit = FRIENDS_PAGE): Promise<FriendsView> {
+    // Pendentes (convites) são poucos → sem cap. Amigos aceitos podem crescer
+    // muito → capados (guardrail). Os dois em paralelo.
+    const [pending, accepted] = await Promise.all([
+      this.prisma.friendship.findMany({
+        where: { status: 'PENDING', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+        include: { requester: { select: userSelect }, addressee: { select: userSelect } },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.friendship.findMany({
+        where: { status: 'ACCEPTED', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+        include: { requester: { select: userSelect }, addressee: { select: userSelect } },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+      }),
+    ]);
+    const rows = [...accepted, ...pending];
 
     const otherIds = rows.map((f) => (f.requesterId === userId ? f.addresseeId : f.requesterId));
     const equipped = await this.shop.equippedFor(otherIds);
