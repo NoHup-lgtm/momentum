@@ -51,16 +51,19 @@ export class FeedService {
   private async audience(userId: string): Promise<string[]> {
     const set = new Set<string>([userId]);
 
-    const friendships = await this.prisma.friendship.findMany({
-      where: { status: 'ACCEPTED', OR: [{ requesterId: userId }, { addresseeId: userId }] },
-      select: { requesterId: true, addresseeId: true },
-    });
+    // amigos e "minha squad" são independentes → em paralelo
+    const [friendships, mine] = await Promise.all([
+      this.prisma.friendship.findMany({
+        where: { status: 'ACCEPTED', OR: [{ requesterId: userId }, { addresseeId: userId }] },
+        select: { requesterId: true, addresseeId: true },
+      }),
+      this.prisma.squadMember.findFirst({
+        where: { userId, isActive: true },
+        select: { squadId: true },
+      }),
+    ]);
     for (const f of friendships) set.add(f.requesterId === userId ? f.addresseeId : f.requesterId);
 
-    const mine = await this.prisma.squadMember.findFirst({
-      where: { userId, isActive: true },
-      select: { squadId: true },
-    });
     if (mine) {
       const mates = await this.prisma.squadMember.findMany({
         where: { squadId: mine.squadId, isActive: true },
