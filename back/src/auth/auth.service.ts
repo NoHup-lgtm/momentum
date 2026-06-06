@@ -4,7 +4,7 @@ import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CookieService } from '../core/services/cookie.service.js';
 import { CryptoService } from '../core/services/crypto.service.js';
-import type { AuthUserDto } from './dto/auth-user.dto.js';
+import type { SessionUser } from './dto/auth-user.dto.js';
 import type {
   GithubEmailsResponseDto,
   GithubUserResponseDto,
@@ -71,7 +71,7 @@ export class AuthService {
     return user;
   }
 
-  async verifyAccessToken(token: string): Promise<AuthUserDto | null> {
+  async verifyAccessToken(token: string): Promise<SessionUser | null> {
     const payload = await this.verifyToken(token, 'access');
     return await this.prisma.user.findUnique({
       where: { id: payload.sub },
@@ -85,7 +85,7 @@ export class AuthService {
     });
   }
 
-  async refreshTokens(refreshToken: string): Promise<AuthUserDto | null> {
+  async refreshTokens(refreshToken: string): Promise<SessionUser | null> {
     const payload = await this.verifyToken(refreshToken, 'refresh');
     return await this.prisma.user.findUnique({
       where: { id: payload.sub },
