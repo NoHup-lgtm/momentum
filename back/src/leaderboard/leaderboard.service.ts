@@ -52,26 +52,23 @@ export class LeaderboardService {
   }
 
   // Top squads por XP somado dos membros ativos (global).
+  // Agregação feita no banco (JOIN + SUM + ORDER + LIMIT) em vez de carregar
+  // todas as squads e todos os membros na memória pra somar em JS — escala.
+  // COUNT/SUM são castados pra int p/ não voltarem como BigInt (quebra JSON).
   async topSquads(limit = 20): Promise<SquadRankRow[]> {
-    const squads = await this.prisma.squad.findMany({
-      include: {
-        members: {
-          where: { isActive: true },
-          include: { user: { select: { totalXp: true } } },
-        },
-      },
-    });
-
-    return squads
-      .map((sq) => ({
-        id: sq.id,
-        name: sq.name,
-        rank: sq.rank,
-        memberCount: sq.members.length,
-        totalXp: sq.members.reduce((sum, m) => sum + m.user.totalXp, 0),
-      }))
-      .sort((a, b) => b.totalXp - a.totalXp)
-      .slice(0, limit)
-      .map((s, i) => ({ position: i + 1, ...s }));
+    const rows = await this.prisma.$queryRaw<
+      { id: string; name: string; rank: string; memberCount: number; totalXp: number }[]
+    >`
+      SELECT s.id, s.name, s.rank,
+             COUNT(*)::int AS "memberCount",
+             COALESCE(SUM(u."totalXp"), 0)::int AS "totalXp"
+      FROM squads s
+      JOIN squad_members m ON m."squadId" = s.id AND m."isActive" = true
+      JOIN users u ON u.id = m."userId"
+      GROUP BY s.id, s.name, s.rank
+      ORDER BY "totalXp" DESC
+      LIMIT ${limit}
+    `;
+    return rows.map((r, i) => ({ position: i + 1, ...r }));
   }
 }

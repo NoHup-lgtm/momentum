@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type Rarity = 'COMUM' | 'RARO' | 'EPICO' | 'LENDARIO';
@@ -56,20 +57,29 @@ export class ChestService {
     const [gmin, gmax] = GEM_MAP[rarity];
     const gems = gmax > 0 ? rand(gmin, gmax) : 0;
 
-    // Audit das recompensas
-    await this.prisma.chestReward.create({ data: { chestId, rewardType: 'COINS', amount: coins } });
+    // Tudo num único batch atômico: audit + ledger + saldo + marcar aberto.
+    // Atomicidade garante que o baú nunca credita sem ser marcado como aberto
+    // (evita reabertura/crédito duplo se uma escrita falhar no meio).
+    const ops: Prisma.PrismaPromise<unknown>[] = [
+      this.prisma.chestReward.create({ data: { chestId, rewardType: 'COINS', amount: coins } }),
+    ];
     if (gems > 0) {
-      await this.prisma.chestReward.create({ data: { chestId, rewardType: 'GEMS', amount: gems } });
-      await this.prisma.gemTransaction.create({
-        data: { userId, amount: gems, source: 'CHEST', description: `Baú ${rarity}` },
-      });
+      ops.push(
+        this.prisma.chestReward.create({ data: { chestId, rewardType: 'GEMS', amount: gems } }),
+        this.prisma.gemTransaction.create({
+          data: { userId, amount: gems, source: 'CHEST', description: `Baú ${rarity}` },
+        }),
+      );
     }
+    ops.push(
+      this.prisma.user.update({
+        where: { id: userId },
+        data: { coins: { increment: coins }, ...(gems > 0 ? { gems: { increment: gems } } : {}) },
+      }),
+      this.prisma.userChest.update({ where: { id: chestId }, data: { openedAt: new Date() } }),
+    );
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { coins: { increment: coins }, ...(gems > 0 ? { gems: { increment: gems } } : {}) },
-    });
-    await this.prisma.userChest.update({ where: { id: chestId }, data: { openedAt: new Date() } });
+    await this.prisma.$transaction(ops);
 
     const rewards: ChestRewardView[] = [{ type: 'COINS', amount: coins }];
     if (gems > 0) rewards.push({ type: 'GEMS', amount: gems });
