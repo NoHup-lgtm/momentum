@@ -8,8 +8,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service.js';
-import type { LoginWithGithubDto } from './dto/login.dto.js';
+import { LoginWithGithubDto, RefreshTokenDto } from './dto/login.dto.js';
 
 // Extrai o token do header `Authorization: Bearer <token>` (clientes mobile)
 // caindo de volta para o cookie httpOnly (clientes web).
@@ -25,6 +26,7 @@ function bearerToken(req: Request): string | undefined {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post('login/github')
   async loginWithGithub(
     @Body() body: LoginWithGithubDto,
@@ -68,7 +70,7 @@ export class AuthController {
   @Post('refresh')
   @Post('refreshtoken')
   async refresh(
-    @Body() body: { refreshToken?: string },
+    @Body() body: RefreshTokenDto,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {

@@ -1,17 +1,33 @@
 import 'dotenv/config';
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Cabeçalhos de segurança. É uma API JSON: desliga a CSP padrão (sem HTML
+  // próprio) e o COEP (não bloquear recursos cross-origin do cliente).
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+
   app.use(cookieParser());
+
+  // Validação global: rejeita payload malformado, remove props não declaradas
+  // (whitelist) e impõe os caps de tamanho dos DTOs. transform converte tipos.
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
+  );
+
   // CORS: libera o front web (cookies via credentials). Mobile (RN) não passa
-  // por CORS, mas mantém o web funcionando. Em prod, restringir o origin.
+  // por CORS. Em PROD defina CORS_ORIGIN (lista por vírgula) — sem ela cai em
+  // reflexão de origin, que com credentials é inseguro publicamente.
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') ?? true,
     credentials: true,
   });
+
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();

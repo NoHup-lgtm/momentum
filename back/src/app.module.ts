@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -16,8 +18,18 @@ import { FeedModule } from './feed/feed.module.js';
 import { FriendModule } from './friend/friend.module.js';
 
 @Module({
-  imports: [ScheduleModule.forRoot(), PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule],
+  imports: [
+    // Rate limit global: 120 req/min por IP (generoso p/ uso legítimo — a Home
+    // dispara ~5 no load — mas corta brute-force/spam/abuso). Em prod atrás de
+    // proxy, habilitar trust proxy p/ o IP real.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    ScheduleModule.forRoot(),
+    PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule,
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule {}

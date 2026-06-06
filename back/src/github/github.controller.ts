@@ -1,4 +1,5 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthGuard } from '../core/guards/auth.guard.js';
 import { AuthUser } from '../core/decorators/auth-user.decorator.js';
 import type { AuthUserDto } from '../core/dto/auth-user.dto.js';
@@ -14,6 +15,8 @@ export class GithubController {
   ) {}
 
   // Roda a sincronização e devolve o /me já atualizado (1 round-trip pro mobile).
+  // Limite apertado: cada sync bate na API do GitHub — evita exaurir a quota.
+  @Throttle({ default: { limit: 12, ttl: 60_000 } })
   @Post('sync')
   async sync(@AuthUser() user: AuthUserDto) {
     await this.github.syncUser(user.id);

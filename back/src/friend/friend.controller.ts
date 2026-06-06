@@ -3,6 +3,7 @@ import { AuthGuard } from '../core/guards/auth.guard.js';
 import { AuthUser } from '../core/decorators/auth-user.decorator.js';
 import type { AuthUserDto } from '../core/dto/auth-user.dto.js';
 import { FriendService } from './friend.service.js';
+import { FriendRequestDto } from './dto/friend.dto.js';
 
 @Controller('me/friends')
 @UseGuards(AuthGuard)
@@ -15,8 +16,8 @@ export class FriendController {
   }
 
   @Post('request')
-  request(@AuthUser() user: AuthUserDto, @Body() body: { username?: string }) {
-    return this.friends.addByUsername(user.id, body.username ?? '');
+  request(@AuthUser() user: AuthUserDto, @Body() body: FriendRequestDto) {
+    return this.friends.addByUsername(user.id, body.username);
   }
 
   @Post(':id/accept')
