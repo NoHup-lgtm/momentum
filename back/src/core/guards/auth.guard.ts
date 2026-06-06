@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
-import { PrismaService } from '../../prisma/prisma.service.js';
 import type { AuthUserDto } from '../dto/auth-user.dto.js';
 
 type JwtPayload = {
@@ -17,10 +16,7 @@ type JwtPayload = {
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(
-    private readonly jwtService: JwtService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<Request>();
@@ -46,21 +42,9 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token type');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        githubId: true,
-        githubLogin: true,
-        avatarUrl: true,
-        email: true,
-      },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-
+    // Identidade vem do próprio JWT (assinado) — sem ida ao banco por request.
+    // Access token é curto, então um user removido com token válido expira logo.
+    const user: AuthUserDto = { id: payload.sub, githubId: payload.githubId };
     (request as Request & { user: AuthUserDto }).user = user;
     return true;
   }
