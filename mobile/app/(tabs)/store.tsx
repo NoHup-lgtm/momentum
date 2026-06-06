@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, ScrollView, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Dimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -94,6 +94,69 @@ export default function StoreScreen() {
   const track = mode === 'legendary' ? 'LEGENDARY' : 'CHALLENGE';
   const unlockItems = unlocks.filter((u) => u.track === track);
 
+  const renderShopCard = (item: ShopItem) => {
+    const color = RARITY[item.rarity] ?? c.text3;
+    const label = t.items[item.key as keyof typeof t.items] ?? item.key;
+    const isGem = item.priceGems > 0;
+    const afford = isGem ? (shop?.gems ?? 0) >= item.priceGems : (shop?.coins ?? 0) >= item.priceCoins;
+    const loadingThis = busy === item.id;
+    return (
+      <View style={[s.card, { borderColor: color + '40' }]}>
+        <View style={[s.art, { backgroundColor: color + '14' }]}>
+          <PixelItem id={item.key} size={CARD_W - 48} />
+        </View>
+        <Text style={s.name} numberOfLines={1}>{label}</Text>
+        {item.equipped ? (
+          <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
+        ) : item.owned ? (
+          <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => act(item, 'equip')} disabled={loadingThis}>
+            {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[s.btn, s.buyBtn, (!afford || loadingThis) && { opacity: 0.5 }]} onPress={() => act(item, 'buy')} disabled={!afford || loadingThis}>
+            {loadingThis ? <ActivityIndicator size="small" color="#f2e4cf" /> : (
+              <>
+                {isGem ? <GemIcon size={12} /> : <CoinIcon size={12} />}
+                <Text style={s.buyTxt}>{isGem ? item.priceGems : item.priceCoins}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const renderUnlockCard = (item: UnlockItem) => {
+    const color = RARITY[item.rarity] ?? c.text3;
+    const label = t.items[item.key as keyof typeof t.items] ?? item.key;
+    const loadingThis = busy === item.id;
+    const pct = Math.min(1, item.target ? item.current / item.target : 0);
+    return (
+      <View style={[s.card, { borderColor: color + '40' }, !item.unlocked && { opacity: 0.85 }]}>
+        <View style={[s.art, { backgroundColor: color + '14' }]}>
+          <PixelItem id={item.key} size={CARD_W - 48} />
+        </View>
+        <Text style={s.name} numberOfLines={1}>{label}</Text>
+        <Text style={s.cond} numberOfLines={1}>{condLabel(item)}</Text>
+
+        <View style={s.barBg}>
+          <View style={[s.barFill, { width: `${pct * 100}%`, backgroundColor: item.unlocked ? c.success : color }]} />
+        </View>
+        <Text style={s.prog}>{Math.min(item.current, item.target)}/{item.target}</Text>
+
+        {item.equipped ? (
+          <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
+        ) : item.unlocked ? (
+          <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => equipUnlock(item)} disabled={loadingThis}>
+            {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
+          </TouchableOpacity>
+        ) : (
+          <View style={[s.btn, s.lockedBtn]}><Text style={s.lockedTxt}>🔒 {t.locked}</Text></View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={[s.screen, { paddingTop: insets.top }]}>
       <View style={s.header}>
@@ -126,82 +189,20 @@ export default function StoreScreen() {
 
       {err && <Text style={s.err}>{err}</Text>}
 
-      <ScrollView
+      <FlatList
+        data={(mode === 'shop' ? items : unlockItems) as (ShopItem | UnlockItem)[]}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        extraData={`${mode}-${cat}-${busy}`}
+        columnWrapperStyle={s.column}
         contentContainerStyle={s.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
-      >
-        {mode === 'shop' ? (
-          <View style={s.grid}>
-            {items.map((item) => {
-              const color = RARITY[item.rarity] ?? c.text3;
-              const label = t.items[item.key as keyof typeof t.items] ?? item.key;
-              const isGem = item.priceGems > 0;
-              const afford = isGem ? (shop?.gems ?? 0) >= item.priceGems : (shop?.coins ?? 0) >= item.priceCoins;
-              const loadingThis = busy === item.id;
-              return (
-                <View key={item.id} style={[s.card, { borderColor: color + '40' }]}>
-                  <View style={[s.art, { backgroundColor: color + '14' }]}>
-                    <PixelItem id={item.key} size={CARD_W - 48} />
-                  </View>
-                  <Text style={s.name} numberOfLines={1}>{label}</Text>
-                  {item.equipped ? (
-                    <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
-                  ) : item.owned ? (
-                    <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => act(item, 'equip')} disabled={loadingThis}>
-                      {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={[s.btn, s.buyBtn, (!afford || loadingThis) && { opacity: 0.5 }]} onPress={() => act(item, 'buy')} disabled={!afford || loadingThis}>
-                      {loadingThis ? <ActivityIndicator size="small" color="#f2e4cf" /> : (
-                        <>
-                          {isGem ? <GemIcon size={12} /> : <CoinIcon size={12} />}
-                          <Text style={s.buyTxt}>{isGem ? item.priceGems : item.priceCoins}</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        ) : (
-          <View style={s.grid}>
-            {unlockItems.map((item) => {
-              const color = RARITY[item.rarity] ?? c.text3;
-              const label = t.items[item.key as keyof typeof t.items] ?? item.key;
-              const loadingThis = busy === item.id;
-              const pct = Math.min(1, item.target ? item.current / item.target : 0);
-              return (
-                <View key={item.id} style={[s.card, { borderColor: color + '40' }, !item.unlocked && { opacity: 0.85 }]}>
-                  <View style={[s.art, { backgroundColor: color + '14' }]}>
-                    <PixelItem id={item.key} size={CARD_W - 48} />
-                  </View>
-                  <Text style={s.name} numberOfLines={1}>{label}</Text>
-                  <Text style={s.cond} numberOfLines={1}>{condLabel(item)}</Text>
-
-                  {/* progress */}
-                  <View style={s.barBg}>
-                    <View style={[s.barFill, { width: `${pct * 100}%`, backgroundColor: item.unlocked ? c.success : color }]} />
-                  </View>
-                  <Text style={s.prog}>{Math.min(item.current, item.target)}/{item.target}</Text>
-
-                  {item.equipped ? (
-                    <View style={[s.btn, s.equipped]}><Text style={s.equippedTxt}>✓ {t.equipped}</Text></View>
-                  ) : item.unlocked ? (
-                    <TouchableOpacity style={[s.btn, s.equipBtn, loadingThis && { opacity: 0.5 }]} onPress={() => equipUnlock(item)} disabled={loadingThis}>
-                      {loadingThis ? <ActivityIndicator size="small" color={c.accent} /> : <Text style={s.equipTxt}>{t.equip}</Text>}
-                    </TouchableOpacity>
-                  ) : (
-                    <View style={[s.btn, s.lockedBtn]}><Text style={s.lockedTxt}>🔒 {t.locked}</Text></View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
-        )}
-        <View style={{ height: 32 }} />
-      </ScrollView>
+        ListFooterComponent={<View style={{ height: 32 }} />}
+        renderItem={({ item }) =>
+          mode === 'shop' ? renderShopCard(item as ShopItem) : renderUnlockCard(item as UnlockItem)
+        }
+      />
     </View>
   );
 }
@@ -230,7 +231,7 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   tabTxtOn: { color: '#f2e4cf' },
   err: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.danger, paddingHorizontal: 20, marginBottom: 6 },
   content: { paddingHorizontal: 20, paddingTop: 8 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  column: { gap: 12, marginBottom: 12 },
   card: { width: CARD_W, backgroundColor: c.surface, borderWidth: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 8 },
   art: { width: '100%', height: CARD_W - 24, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   name: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text },
