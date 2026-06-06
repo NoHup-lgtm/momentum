@@ -97,7 +97,7 @@ interface Props {
   equipped?: EquippedMap | null;
 }
 
-export default function PixelAvatar({
+function PixelAvatar({
   size = 64,
   variant = 0,
   equippedShirt = null,
@@ -150,3 +150,26 @@ export default function PixelAvatar({
     </View>
   );
 }
+
+// Compara o equipped por conteúdo (não por referência) — assim `?? {}` ou um
+// objeto novo com os mesmos itens não dispara re-render desnecessário.
+function sameEquipped(a?: EquippedMap | null, b?: EquippedMap | null): boolean {
+  if (a === b) return true;
+  const x = a ?? {};
+  const y = b ?? {};
+  return (
+    x.HAT === y.HAT &&
+    x.SHIRT === y.SHIRT &&
+    x.GLASSES === y.GLASSES &&
+    x.ACCESSORY === y.ACCESSORY &&
+    x.BACKGROUND === y.BACKGROUND
+  );
+}
+
+// memo: o avatar só re-renderiza se size/variant/camisa/equipados mudarem de fato.
+export default React.memo(PixelAvatar, (prev, next) =>
+  prev.size === next.size &&
+  prev.variant === next.variant &&
+  prev.equippedShirt === next.equippedShirt &&
+  sameEquipped(prev.equipped, next.equipped),
+);
