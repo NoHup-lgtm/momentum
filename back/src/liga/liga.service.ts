@@ -16,6 +16,10 @@ const SPRINT_MS = SPRINT_DAYS * 24 * 60 * 60 * 1000;
 const MAX_TIER = 6;
 const PROMOTE_COUNT = 3; // top 3 sobem
 const RELEGATE_COUNT = 3; // bottom 3 descem
+// Cada (tier, sprint) é dividido em "salas" de no máximo DIVISION_CAP pessoas.
+// Mantém o leaderboard pequeno (1 query carrega ~30, não milhares) e a
+// competição justa. Cada sala promove/rebaixa de forma independente.
+const DIVISION_CAP = 30;
 // Recompensa em gems por posição final (top 3).
 const REWARD_GEMS: Record<number, number> = { 1: 50, 2: 30, 3: 20 };
 
@@ -119,7 +123,9 @@ export class LigaService {
       .sort((a, b) => b.xp - a.xp);
 
     const n = ranked.length;
-    const canRelegate = n > PROMOTE_COUNT; // evita promover e rebaixar o mesmo
+    // só rebaixa se a sala for grande o bastante p/ as zonas de promoção (top 3)
+    // e rebaixamento (bottom 3) NÃO se sobreporem (ex: sala de overflow com 5).
+    const canRelegate = n > PROMOTE_COUNT + RELEGATE_COUNT;
 
     // Claim + todas as escritas numa transação interativa (atômico).
     const promotedUsers = await this.prisma.$transaction(async (tx) => {
@@ -201,27 +207,8 @@ export class LigaService {
       targetTier = this.clampTier(last.season.tier + delta);
     }
 
-    // Garante a season do tier alvo no sprint atual. upsert do Prisma não é
-    // atômico → dois first-openers concorrentes no mesmo tier podem colidir
-    // (P2002). onConflictFind reidrata via findUnique nesse caso (sem 500).
-    const season = await this.onConflictFind(
-      () =>
-        this.prisma.ligaSeason.upsert({
-          where: { tier_sprintNumber: { tier: targetTier, sprintNumber: cur.sprintNumber } },
-          create: {
-            tier: targetTier,
-            sprintNumber: cur.sprintNumber,
-            startsAt: cur.startsAt,
-            endsAt: cur.endsAt,
-            isActive: true,
-          },
-          update: {},
-        }),
-      () =>
-        this.prisma.ligaSeason.findUnique({
-          where: { tier_sprintNumber: { tier: targetTier, sprintNumber: cur.sprintNumber } },
-        }),
-    );
+    // Aloca o user numa sala (grupo) do tier alvo no sprint atual, com vaga.
+    const season = await this.assignToSeason(targetTier, cur);
 
     // Garante o participante (mesma proteção contra corrida).
     const participant = await this.onConflictFind(
@@ -255,6 +242,49 @@ export class LigaService {
       }
       throw e;
     }
+  }
+
+  // Acha uma sala (grupo) do tier/sprint com vaga (< DIVISION_CAP). Se todas
+  // estão cheias (ou não há nenhuma), cria a próxima. Concorrência-safe via
+  // onConflictFind; uma leve sobrelotação (~31) sob corrida é aceitável.
+  private async assignToSeason(tier: number, cur: SprintInfo) {
+    const groups = await this.prisma.ligaSeason.findMany({
+      where: { tier, sprintNumber: cur.sprintNumber },
+      orderBy: { groupNumber: 'asc' },
+      include: { _count: { select: { participants: true } } },
+    });
+
+    const open = groups.find((g) => g._count.participants < DIVISION_CAP);
+    if (open) {
+      const { _count, ...season } = open;
+      void _count;
+      return season;
+    }
+
+    const nextGroup = groups.length ? groups[groups.length - 1].groupNumber + 1 : 0;
+    return this.onConflictFind(
+      () =>
+        this.prisma.ligaSeason.create({
+          data: {
+            tier,
+            sprintNumber: cur.sprintNumber,
+            groupNumber: nextGroup,
+            startsAt: cur.startsAt,
+            endsAt: cur.endsAt,
+            isActive: true,
+          },
+        }),
+      () =>
+        this.prisma.ligaSeason.findUnique({
+          where: {
+            tier_sprintNumber_groupNumber: {
+              tier,
+              sprintNumber: cur.sprintNumber,
+              groupNumber: nextGroup,
+            },
+          },
+        }),
+    );
   }
 
   // View da liga do user: classificação ao vivo do sprint atual.

@@ -583,13 +583,15 @@ model LigaSeason {
   id           String   @id @default(uuid())
   tier         Int      // 1 = novato ... N = elite
   sprintNumber Int      // #1, #2, #3...
+  groupNumber  Int      @default(0) // Sala/divisão: cada (tier,sprint) é dividido em grupos de ~30
   startsAt     DateTime
   endsAt       DateTime
   isActive     Boolean  @default(false) // Apenas uma season por tier pode estar ativa
 
   participants LigaParticipant[]
 
-  @@unique([tier, sprintNumber])
+  @@unique([tier, sprintNumber, groupNumber])
+  @@index([tier, sprintNumber]) // achar grupos com vaga no sprint atual
   @@index([isActive])
   @@map("liga_seasons")
 }
