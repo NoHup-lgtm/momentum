@@ -5,7 +5,7 @@ import Svg, { Rect, G } from 'react-native-svg';
 // Each grid cell is a hex color string or null (transparent)
 type Grid = (string | null)[][];
 
-function PixelArt({ grid, size }: { grid: Grid; size: number }) {
+const PixelArt = React.memo(function PixelArt({ grid, size }: { grid: Grid; size: number }) {
   const rows = grid.length;
   const cols = grid[0]?.length ?? 1;
   const pw = size / cols;
@@ -28,7 +28,7 @@ function PixelArt({ grid, size }: { grid: Grid; size: number }) {
       )}
     </Svg>
   );
-}
+});
 
 // ── Color palettes ────────────────────────────────────────────────────────────
 const T = null; // transparent
@@ -826,8 +826,16 @@ const GRIDS: Record<string, Grid> = {
 };
 
 // ── Export ────────────────────────────────────────────────────────────────────
-export function PixelItem({ id, size = 80 }: { id: string; size?: number }) {
+// memo: props (id, size) são primitivas → não re-renderiza quando a tela pai
+// re-renderiza (filtro de categoria, busy de compra, etc.).
+export const PixelItem = React.memo(function PixelItem({
+  id,
+  size = 80,
+}: {
+  id: string;
+  size?: number;
+}) {
   const grid = GRIDS[id];
   if (!grid) return null;
   return <PixelArt grid={grid} size={size} />;
-}
+});
