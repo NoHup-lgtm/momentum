@@ -1,12 +1,17 @@
 import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Atrás do proxy do host (Railway/Render/Fly): confia no X-Forwarded-* para
+  // pegar o IP real (rate-limit) e o protocolo https (cookies Secure).
+  app.set('trust proxy', 1);
 
   // Cabeçalhos de segurança. É uma API JSON: desliga a CSP padrão (sem HTML
   // próprio) e o COEP (não bloquear recursos cross-origin do cliente).
