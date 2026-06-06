@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -15,7 +16,7 @@ import { FeedModule } from './feed/feed.module.js';
 import { FriendModule } from './friend/friend.module.js';
 
 @Module({
-  imports: [PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule],
+  imports: [ScheduleModule.forRoot(), PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule],
   controllers: [AppController],
   providers: [AppService],
 })
