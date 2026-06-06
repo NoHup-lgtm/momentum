@@ -88,11 +88,14 @@ export class SquadService {
       throw new ConflictException('Você já está em uma squad');
     }
 
-    const squad = await this.prisma.squad.create({
-      data: { name: name.trim(), description: description?.trim() || null, ownerId: userId },
-    });
-    await this.prisma.squadMember.create({
-      data: { userId, squadId: squad.id, role: 'OWNER', weekStartDate: weekStart() },
+    // squad + membro dono numa única escrita (nested write)
+    await this.prisma.squad.create({
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        ownerId: userId,
+        members: { create: { userId, role: 'OWNER', weekStartDate: weekStart() } },
+      },
     });
 
     return this.getMySquad(userId) as Promise<SquadView>;
@@ -122,15 +125,18 @@ export class SquadService {
       throw new BadRequestException('Squad cheia');
     }
 
-    await this.prisma.squadMember.upsert({
-      where: { userId_squadId: { userId, squadId: invite.squadId } },
-      create: { userId, squadId: invite.squadId, role: 'MEMBER', weekStartDate: weekStart() },
-      update: { isActive: true },
-    });
-    await this.prisma.squadInvite.update({
-      where: { id: invite.id },
-      data: { usedCount: { increment: 1 } },
-    });
+    // entra (ou reativa) + incrementa o uso do convite num único batch atômico
+    await this.prisma.$transaction([
+      this.prisma.squadMember.upsert({
+        where: { userId_squadId: { userId, squadId: invite.squadId } },
+        create: { userId, squadId: invite.squadId, role: 'MEMBER', weekStartDate: weekStart() },
+        update: { isActive: true },
+      }),
+      this.prisma.squadInvite.update({
+        where: { id: invite.id },
+        data: { usedCount: { increment: 1 } },
+      }),
+    ]);
 
     return this.getMySquad(userId) as Promise<SquadView>;
   }
