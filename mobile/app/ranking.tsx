@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +46,41 @@ export default function RankingScreen() {
 
   const posColor = (p: number) => (p === 1 ? c.gold : p === 2 ? c.silver : p === 3 ? c.bronze : c.text3);
 
+  const renderUser = (u: RankUser) => {
+    const rank = getRank(rid(u.rank));
+    const mine = u.githubLogin === myLogin;
+    return (
+      <View style={[s.row, mine && s.rowMine]}>
+        <Text style={[s.pos, { color: posColor(u.position) }]}>#{u.position}</Text>
+        <AvatarRing size={36} variant={u.avatarVariant} rankId={rid(u.rank)} equipped={u.equipped} />
+        <View style={{ flex: 1, marginLeft: 12 }}>
+          <Text style={s.name}>
+            {u.displayName || u.githubLogin}{mine ? ` · ${t.you}` : ''}
+          </Text>
+          <Text style={[s.sub, { color: rank.color }]}>{rank.label} · @{u.githubLogin}</Text>
+        </View>
+        <View style={s.xpWrap}>
+          <XPIcon size={13} />
+          <Text style={s.xp}>{u.totalXp.toLocaleString()}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderSquad = (sq: RankSquad) => (
+    <View style={s.row}>
+      <Text style={[s.pos, { color: posColor(sq.position) }]}>#{sq.position}</Text>
+      <View style={{ flex: 1, marginLeft: 4 }}>
+        <Text style={s.name}>{sq.name}</Text>
+        <Text style={s.sub}>{prettyRank(sq.rank)} · {sq.memberCount} {t.members}</Text>
+      </View>
+      <View style={s.xpWrap}>
+        <XPIcon size={13} />
+        <Text style={s.xp}>{sq.totalXp.toLocaleString()}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={[s.screen, { paddingTop: insets.top }]}>
       <View style={s.header}>
@@ -70,51 +105,19 @@ export default function RankingScreen() {
       {loading ? (
         <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={(tab === 'users' ? users : squads) as (RankUser | RankSquad)[]}
+          keyExtractor={(item) => item.id}
+          extraData={tab}
           contentContainerStyle={s.content}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
-        >
-          {tab === 'users' ? (
-            users.length === 0 ? <Text style={s.empty}>{t.empty}</Text> :
-            users.map((u) => {
-              const rank = getRank(rid(u.rank));
-              const mine = u.githubLogin === myLogin;
-              return (
-                <View key={u.id} style={[s.row, mine && s.rowMine]}>
-                  <Text style={[s.pos, { color: posColor(u.position) }]}>#{u.position}</Text>
-                  <AvatarRing size={36} variant={u.avatarVariant} rankId={rid(u.rank)} equipped={u.equipped} />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={s.name}>
-                      {u.displayName || u.githubLogin}{mine ? ` · ${t.you}` : ''}
-                    </Text>
-                    <Text style={[s.sub, { color: rank.color }]}>{rank.label} · @{u.githubLogin}</Text>
-                  </View>
-                  <View style={s.xpWrap}>
-                    <XPIcon size={13} />
-                    <Text style={s.xp}>{u.totalXp.toLocaleString()}</Text>
-                  </View>
-                </View>
-              );
-            })
-          ) : (
-            squads.length === 0 ? <Text style={s.empty}>{t.empty}</Text> :
-            squads.map((sq) => (
-              <View key={sq.id} style={s.row}>
-                <Text style={[s.pos, { color: posColor(sq.position) }]}>#{sq.position}</Text>
-                <View style={{ flex: 1, marginLeft: 4 }}>
-                  <Text style={s.name}>{sq.name}</Text>
-                  <Text style={s.sub}>{prettyRank(sq.rank)} · {sq.memberCount} {t.members}</Text>
-                </View>
-                <View style={s.xpWrap}>
-                  <XPIcon size={13} />
-                  <Text style={s.xp}>{sq.totalXp.toLocaleString()}</Text>
-                </View>
-              </View>
-            ))
-          )}
-          <View style={{ height: 32 }} />
-        </ScrollView>
+          ListEmptyComponent={<Text style={s.empty}>{t.empty}</Text>}
+          ListFooterComponent={<View style={{ height: 32 }} />}
+          renderItem={({ item }) =>
+            tab === 'users' ? renderUser(item as RankUser) : renderSquad(item as RankSquad)
+          }
+        />
       )}
     </View>
   );

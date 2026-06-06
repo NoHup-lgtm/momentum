@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -77,49 +77,47 @@ export default function FeedScreen() {
       {loading ? (
         <View style={s.center}><ActivityIndicator color={c.accent} /></View>
       ) : (
-        <ScrollView
+        <FlatList
+          data={items}
+          keyExtractor={(it) => it.id}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.content}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.accent} />}
-        >
-          {items.length === 0 ? (
-            <Text style={s.empty}>{t.feedEmpty}</Text>
-          ) : (
-            items.map((it) => {
-              const rank = getRank(rid(it.user.rank));
-              const color = TYPE_COLOR[it.type] ?? c.accent;
-              const name = it.user.isMe ? t.you : (it.user.displayName || it.user.githubLogin);
-              return (
-                <View key={it.id} style={[s.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
-                  <TouchableOpacity
-                    activeOpacity={it.user.isMe ? 1 : 0.7}
-                    disabled={it.user.isMe}
-                    onPress={() => router.push({
-                      pathname: '/user-profile',
-                      params: {
-                        userId: it.user.id, name: it.user.displayName || it.user.githubLogin,
-                        username: it.user.githubLogin, variant: String(it.user.avatarVariant), rank: it.user.rank,
-                      },
-                    })}
-                  >
-                    <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
-                  </TouchableOpacity>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <Text style={s.cardText}>
-                      <Text style={[s.cardName, it.user.isMe && { color: c.accent }]}>{name} </Text>
-                      {eventText(it)}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                      <Text style={[s.cardRank, { color: rank.color }]}>{rank.label}</Text>
-                      <Text style={s.cardTime}>· {ago(it.createdAt)}</Text>
-                    </View>
+          ListEmptyComponent={<Text style={s.empty}>{t.feedEmpty}</Text>}
+          ListFooterComponent={<View style={{ height: 32 }} />}
+          renderItem={({ item: it }) => {
+            const rank = getRank(rid(it.user.rank));
+            const color = TYPE_COLOR[it.type] ?? c.accent;
+            const name = it.user.isMe ? t.you : (it.user.displayName || it.user.githubLogin);
+            return (
+              <View style={[s.card, { borderLeftColor: color, borderLeftWidth: 3 }]}>
+                <TouchableOpacity
+                  activeOpacity={it.user.isMe ? 1 : 0.7}
+                  disabled={it.user.isMe}
+                  onPress={() => router.push({
+                    pathname: '/user-profile',
+                    params: {
+                      userId: it.user.id, name: it.user.displayName || it.user.githubLogin,
+                      username: it.user.githubLogin, variant: String(it.user.avatarVariant), rank: it.user.rank,
+                    },
+                  })}
+                >
+                  <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
+                </TouchableOpacity>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.cardText}>
+                    <Text style={[s.cardName, it.user.isMe && { color: c.accent }]}>{name} </Text>
+                    {eventText(it)}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <Text style={[s.cardRank, { color: rank.color }]}>{rank.label}</Text>
+                    <Text style={s.cardTime}>· {ago(it.createdAt)}</Text>
                   </View>
                 </View>
-              );
-            })
-          )}
-          <View style={{ height: 32 }} />
-        </ScrollView>
+              </View>
+            );
+          }}
+        />
       )}
     </View>
   );
