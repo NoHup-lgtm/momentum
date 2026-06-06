@@ -133,7 +133,20 @@ export async function apiFetch(
   return res;
 }
 
-async function tryRefresh(): Promise<boolean> {
+// Dedup de refresh: vários 401 concorrentes (ex: a Home dispara ~5 requests em
+// paralelo) compartilham UM único refresh em vez de cada um chamar /auth/refresh
+// e correr no saveTokens.
+let refreshInFlight: Promise<boolean> | null = null;
+
+function tryRefresh(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = doRefresh().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+async function doRefresh(): Promise<boolean> {
   const refreshToken = await getRefreshToken();
   if (!refreshToken) return false;
 
