@@ -5,8 +5,7 @@ import { useT } from '@/lib/i18n'
 
 export default function PricingSection() {
   const t = useT().pricing
-  const goToWaitlist = () =>
-    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth' })
+  const goToApp = () => { window.location.href = 'https://app.momentu.me' }
 
   return (
     <section id="precos" style={{
@@ -82,7 +81,7 @@ export default function PricingSection() {
                 </ul>
 
                 <button
-                  onClick={goToWaitlist}
+                  onClick={goToApp}
                   style={{
                     width: '100%', padding: '12px 20px', borderRadius: '5px',
                     fontFamily: 'var(--font-sans)', fontSize: '14px', fontWeight: '450',

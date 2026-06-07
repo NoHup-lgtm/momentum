@@ -3,10 +3,13 @@
 import { useState } from 'react'
 import FadeIn from '../FadeIn'
 import SpiralIcon from '../SpiralIcon'
-import { useT } from '@/lib/i18n'
+import { useT, useLang } from '@/lib/i18n'
+
+const APP_URL = 'https://app.momentu.me'
 
 export default function FinalCTASection() {
   const t = useT().finalCta
+  const lang = useLang()
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
 
@@ -48,6 +51,28 @@ export default function FinalCTASection() {
           }}>
             {t.sub}
           </p>
+
+          {/* CTA principal: abrir o app */}
+          <div style={{ marginBottom: '28px' }}>
+            <a
+              href={APP_URL}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '10px',
+                padding: '15px 38px', borderRadius: '8px', textDecoration: 'none',
+                background: 'var(--accent)', color: '#f2e4cf',
+                fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
+                boxShadow: '0 8px 30px rgba(212,103,58,0.25)',
+              }}
+            >
+              {lang === 'pt' ? 'abrir o app' : 'open the app'} →
+            </a>
+            <p style={{
+              marginTop: '12px', fontFamily: 'var(--font-mono)', fontSize: '11px',
+              color: 'var(--text-3)', letterSpacing: '0.03em',
+            }}>
+              {lang === 'pt' ? 'ou receba novidades por email' : 'or get updates by email'}
+            </p>
+          </div>
 
           {state === 'done' ? (
             <div style={{
