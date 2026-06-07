@@ -26,8 +26,10 @@ RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/prisma.config.ts ./
 COPY --from=build /app/package*.json ./
 
 EXPOSE 3000
-# Migrations rodam separado (release/deploy hook): `npx prisma migrate deploy`
-CMD ["node", "dist/src/main.js"]
+# Aplica migrations pendentes e sobe a API. migrate deploy é idempotente
+# (no-op quando nada pendente) e usa advisory lock (seguro com N instâncias).
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/src/main.js"]

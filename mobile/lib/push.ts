@@ -45,6 +45,24 @@ export async function registerServiceWorker(): Promise<void> {
   }
 }
 
+// Re-envia a inscrição existente pro backend (idempotente). Auto-cura o caso da
+// 1ª inscrição ter falhado (ex: backend sem a tabela ainda). Chamado no boot.
+export async function syncPushSubscription(): Promise<void> {
+  if (!isPushSupported() || pushState() !== 'granted') return;
+  try {
+    const reg = await w.navigator.serviceWorker.ready;
+    const sub = await reg?.pushManager?.getSubscription();
+    if (!sub) return;
+    const json = sub.toJSON();
+    await apiFetch('/me/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+    }).catch(() => {});
+  } catch {
+    // ignora
+  }
+}
+
 // Pede permissão + inscreve + manda pro backend. Retorna se ativou.
 export async function enablePush(): Promise<{ ok: boolean; reason?: string }> {
   if (!isPushSupported()) return { ok: false, reason: 'unsupported' };
