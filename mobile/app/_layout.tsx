@@ -5,12 +5,18 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts, Lora_400Regular } from '@expo-google-fonts/lora';
 import { JetBrainsMono_400Regular, JetBrainsMono_700Bold } from '@expo-google-fonts/jetbrains-mono';
 import * as SplashScreen from 'expo-splash-screen';
+import * as WebBrowser from 'expo-web-browser';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { useLangStore } from '../lib/i18n';
 
+// Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
+// p/ /auth?code=..., esta chamada detecta os params, devolve o code pra janela
+// que abriu e fecha o popup. Precisa rodar no layout RAIZ (roda em qualquer
+// rota, inclusive /auth, que não tem tela própria) — senão fica "Unmatched Route".
 SplashScreen.preventAutoHideAsync();
+WebBrowser.maybeCompleteAuthSession();
 
 const queryClient = new QueryClient();
 
