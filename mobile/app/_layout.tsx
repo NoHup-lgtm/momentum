@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { useLangStore } from '../lib/i18n';
+import InstallPrompt from '../components/InstallPrompt';
 
 // Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
 // p/ /auth?code=..., esta chamada detecta os params, devolve o code pra janela
@@ -74,6 +75,9 @@ function RootNavigator() {
             opacity: flashOpacity,
           }}
         />
+
+        {/* Banner "instalar como app" — só no web/PWA, dispensável */}
+        <InstallPrompt />
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
