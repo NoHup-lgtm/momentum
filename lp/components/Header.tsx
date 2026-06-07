@@ -84,18 +84,18 @@ export default function Header() {
           ))}
         </div>
 
-        <button
-          onClick={() => scrollTo('waitlist')}
+        <a
+          href="https://app.momentu.me"
           style={{
-            background: 'transparent', border: '1px solid var(--text-3)',
-            borderRadius: '5px', cursor: 'pointer',
-            fontSize: '13.5px', color: 'var(--text)',
+            background: 'var(--accent)', border: '1px solid var(--accent)',
+            borderRadius: '5px', cursor: 'pointer', textDecoration: 'none',
+            fontSize: '13.5px', color: '#f2e4cf', fontWeight: 600,
             padding: '7px 18px', fontFamily: 'var(--font-sans)',
-            transition: 'opacity 0.18s ease',
+            transition: 'opacity 0.18s ease', whiteSpace: 'nowrap',
           }}
         >
-          {t.nav.waitlist}
-        </button>
+          {lang === 'pt' ? 'abrir app' : 'open app'}
+        </a>
       </div>
     </nav>
   )
