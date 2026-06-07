@@ -63,6 +63,7 @@ export class GithubService {
         timezone: true,
         maxStreak: true,
         totalXp: true,
+        createdAt: true,
       },
     });
     if (!user) throw new NotFoundException('User not found');
@@ -173,7 +174,14 @@ export class GithubService {
   // ── Sync: contribuições → DailyActivity + streak + XP ─────────────────────────
   async syncUser(userId: string) {
     const user = await this.getUserWithToken(userId);
-    const days = await this.fetchCalendar(user.githubLogin, user.accessToken);
+
+    // "Começa do zero": a jornada do momentum (XP, coins, streak, conquistas)
+    // só conta atividade do GitHub A PARTIR do cadastro — não credita os 91 dias
+    // de histórico. Quem entra começa no nível 1, streak 0, e constrói daqui.
+    const signupDay = user.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+    const days = (
+      await this.fetchCalendar(user.githubLogin, user.accessToken)
+    ).filter((d) => d.date >= signupDay);
     const activeDays = days.filter((d) => d.count > 0);
 
     // Dedup: só credita XP/coins para dias ainda não registrados.
