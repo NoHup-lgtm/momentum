@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
@@ -7,6 +7,7 @@ import { useTheme, type ThemeColors, type ThemeMode } from '../contexts/ThemeCon
 import { useT, useLang, useSetLang } from '../lib/i18n';
 import { logout } from '../lib/session';
 import { useAppStore } from '../store/app';
+import { isPushSupported, pushState, enablePush, type PushState } from '../lib/push';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -16,6 +17,20 @@ export default function SettingsScreen() {
   const clearUser = useAppStore((st) => st.clearUser);
   const { colors: c, mode, setMode } = useTheme();
   const s = makeStyles(c);
+
+  const pt = lang === 'pt';
+  const [push, setPush] = useState<PushState>(() => pushState());
+  const [pushBusy, setPushBusy] = useState(false);
+
+  async function handleEnablePush() {
+    setPushBusy(true);
+    try {
+      const r = await enablePush();
+      setPush(r.ok ? 'granted' : pushState());
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function handleLogout() {
     await logout();
@@ -74,6 +89,42 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* Notificações (só no web/PWA) */}
+        {isPushSupported() && (
+          <>
+            <Text style={s.section}>{pt ? 'notificações' : 'notifications'}</Text>
+            <View style={s.card}>
+              <Text style={s.rowLabel}>
+                {pt ? 'lembrete de ofensiva e novidades' : 'streak reminder & updates'}
+              </Text>
+              <Text style={s.pushHint}>
+                {pt
+                  ? 'avisamos às 20h se você ainda não commitou, e quando algo acontece na sua squad/liga.'
+                  : "we ping you at 8pm if you haven't committed, and on squad/liga events."}
+              </Text>
+              {push === 'granted' ? (
+                <View style={[s.pushBtn, s.pushOn]}>
+                  <Text style={s.pushOnTxt}>{pt ? '✓ ativadas' : '✓ enabled'}</Text>
+                </View>
+              ) : push === 'denied' ? (
+                <Text style={s.pushDenied}>
+                  {pt
+                    ? 'bloqueadas — libere nas permissões do navegador'
+                    : 'blocked — allow in browser permissions'}
+                </Text>
+              ) : (
+                <TouchableOpacity style={s.pushBtn} onPress={handleEnablePush} disabled={pushBusy}>
+                  {pushBusy ? (
+                    <ActivityIndicator size="small" color="#f2e4cf" />
+                  ) : (
+                    <Text style={s.pushBtnTxt}>{pt ? 'ativar notificações' : 'enable notifications'}</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          </>
+        )}
+
         {/* Conta */}
         <Text style={s.section}>{t.account}</Text>
         <TouchableOpacity style={s.logoutBtn} onPress={handleLogout}>
@@ -113,6 +164,15 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   segTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text3 },
   segTxtOn: { color: '#f2e4cf' },
   rowLabel: { fontSize: 14, color: c.text },
+  pushHint: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, marginTop: 6, lineHeight: 15 },
+  pushBtn: {
+    marginTop: 12, alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 11, borderRadius: 8, backgroundColor: c.accent, minHeight: 40,
+  },
+  pushBtnTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#f2e4cf' },
+  pushOn: { backgroundColor: c.success + '20', borderWidth: 1, borderColor: c.success + '50' },
+  pushOnTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.success },
+  pushDenied: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3, marginTop: 12 },
   logoutBtn: {
     alignItems: 'center', paddingVertical: 14, borderRadius: 10,
     borderWidth: 1, borderColor: c.danger + '55', backgroundColor: c.danger + '12',
