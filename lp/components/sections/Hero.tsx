@@ -2,10 +2,13 @@
 
 import { useState } from 'react'
 import SpiralIcon from '../SpiralIcon'
-import { useT } from '@/lib/i18n'
+import { useT, useLang } from '@/lib/i18n'
+
+const APP_URL = 'https://app.momentu.me'
 
 export default function Hero() {
   const t = useT().hero
+  const lang = useLang()
   const [email, setEmail] = useState('')
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'already' | 'error'>('idle')
 
@@ -103,6 +106,31 @@ export default function Hero() {
             </div>
           ))}
         </div>
+
+        {/* CTA principal: abrir o app (já está no ar) */}
+        <a
+          href={APP_URL}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '10px',
+            padding: '16px 40px', borderRadius: '8px', textDecoration: 'none',
+            background: 'var(--accent)', color: '#f2e4cf',
+            fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 600,
+            boxShadow: '0 8px 30px rgba(212,103,58,0.25)',
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+          }}
+        >
+          {lang === 'pt' ? 'abrir o app' : 'open the app'} →
+        </a>
+
+        <p style={{
+          marginTop: '14px', marginBottom: '22px',
+          fontFamily: 'var(--font-mono)', fontSize: '11px',
+          color: 'var(--text-3)', letterSpacing: '0.03em',
+        }}>
+          {lang === 'pt'
+            ? 'grátis · entre com o GitHub · ou receba novidades por email'
+            : 'free · sign in with GitHub · or get updates by email'}
+        </p>
 
         {state === 'done' ? (
           <div style={{
