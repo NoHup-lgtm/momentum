@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { useLangStore } from '../lib/i18n';
 import InstallPrompt from '../components/InstallPrompt';
+import { registerServiceWorker } from '../lib/push';
 
 // Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
 // p/ /auth?code=..., esta chamada detecta os params, devolve o code pra janela
@@ -38,6 +39,11 @@ function RootNavigator() {
   // Carrega a preferência de idioma salva (sobrepõe a detecção do device).
   useEffect(() => {
     useLangStore.getState().loadLang();
+  }, []);
+
+  // Registra o service worker no web (necessário p/ receber push).
+  useEffect(() => {
+    registerServiceWorker();
   }, []);
 
   if (!fontsLoaded) return null;

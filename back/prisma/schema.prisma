@@ -306,8 +306,24 @@ model User {
   feedEvents          FeedEvent[]
   friendshipsSent     Friendship[]        @relation("FriendshipsSent")
   friendshipsReceived Friendship[]        @relation("FriendshipsReceived")
+  pushSubscriptions   PushSubscription[]
 
   @@map("users")
+}
+
+// Inscrição de Web Push (PWA). Um device/navegador = uma subscription.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique // URL do push service (FCM/Apple/Mozilla)
+  p256dh    String           // chave pública do cliente (cifragem)
+  auth      String           // segredo de autenticação do cliente
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 // ── Dispositivos do usuário (push notifications) ──────────────────────────────
