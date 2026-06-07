@@ -2,8 +2,13 @@
 // stack: NestJS + Prisma 7 + Neon (PostgreSQL)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  // Fixos p/ não variar conforme a versão do Node (local Node 25 gerava .js,
+  // Render Node 20 gerava .ts → ERR_MODULE_NOT_FOUND no runtime). Com isso o
+  // client sempre importa .js, que o tsc compila e o Node resolve em qualquer host.
+  moduleFormat        = "esm"
+  importFileExtension = "js"
 }
 
 datasource db {
