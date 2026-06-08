@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FeedService } from '../feed/feed.service.js';
+import { PushService } from '../push/push.service.js';
 
 // ── Liga: competição individual por XP ganho em sprints de 2 semanas ───────────
 // Regras (Arthur): ciclo de 14 dias começando no DOMINGO. Cada user está num
@@ -60,7 +61,66 @@ export class LigaService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly feed: FeedService,
+    private readonly push: PushService,
   ) {}
+
+  // Lembrete de fim de sprint: roda diário (18h UTC). No último dia do sprint
+  // (termina domingo 00h UTC → janela ≤24h cai no sábado), avisa cada
+  // participante com push inscrito da sua posição e da zona (promoção/rebaixe).
+  @Cron(CronExpression.EVERY_DAY_AT_6PM)
+  async sprintEndingReminders(): Promise<void> {
+    const now = new Date();
+    const windowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const seasons = await this.prisma.ligaSeason.findMany({
+      where: { isActive: true, endsAt: { gt: now, lte: windowEnd } },
+      include: { participants: { select: { userId: true } } },
+    });
+
+    for (const season of seasons) {
+      const ids = season.participants.map((p) => p.userId);
+      if (ids.length === 0) continue;
+
+      const subbed = new Set(
+        (
+          await this.prisma.pushSubscription.findMany({
+            where: { userId: { in: ids } },
+            distinct: ['userId'],
+            select: { userId: true },
+          })
+        ).map((s) => s.userId),
+      );
+      if (subbed.size === 0) continue;
+
+      const xpMap = await this.xpEarnedMap(ids, season.startsAt, season.endsAt);
+      const ranked = ids
+        .map((userId) => ({ userId, xp: xpMap.get(userId) ?? 0 }))
+        .sort((a, b) => b.xp - a.xp);
+      const n = ranked.length;
+      const canRelegate = n > PROMOTE_COUNT + RELEGATE_COUNT;
+
+      for (let i = 0; i < n; i++) {
+        const uid = ranked[i].userId;
+        if (!subbed.has(uid)) continue;
+        const pos = i + 1;
+        const promoting = pos <= PROMOTE_COUNT && season.tier < MAX_TIER;
+        const relegating = canRelegate && pos > n - RELEGATE_COUNT && season.tier > 1;
+
+        const body = promoting
+          ? `você tá em ${pos}º — zona de promoção! segura a posição até hoje à noite.`
+          : relegating
+            ? `você tá em ${pos}º — zona de rebaixamento. commite pra escapar!`
+            : `você tá em ${pos}º de ${n}. um empurrão final pode te promover.`;
+
+        await this.push.sendToUser(uid, {
+          title: '⏳ último dia do sprint da liga',
+          body,
+          url: '/liga',
+          tag: 'liga-sprint-end',
+        });
+      }
+    }
+  }
 
   // Liquidação PROATIVA: roda de hora em hora e liquida as seasons já encerradas
   // que ainda não foram liquidadas. Assim o trabalho não cai no primeiro usuário
