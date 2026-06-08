@@ -117,7 +117,7 @@ export class LigaService {
           body,
           url: '/liga',
           tag: 'liga-sprint-end',
-        });
+        }, 'liga');
       }
     }
   }

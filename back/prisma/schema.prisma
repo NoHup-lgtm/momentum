@@ -279,6 +279,12 @@ model User {
   notifyRankUp         Boolean @default(false)  // Alguém subiu de rank na squad
   notifyWeeklyRecap    Boolean @default(true)   // Resumo semanal no domingo
 
+  // Preferências de Web Push (PWA) — por categoria
+  pushStreak Boolean @default(true)   // lembrete de ofensiva (20h) + marcos
+  pushWins   Boolean @default(true)   // suas vitórias: conquista/nível/rank/baú
+  pushLiga   Boolean @default(true)   // promoção + lembrete de fim de sprint
+  pushSocial Boolean @default(true)   // sua rede (amigos/squad) fez algo
+
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 

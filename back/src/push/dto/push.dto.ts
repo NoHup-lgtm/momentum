@@ -1,4 +1,4 @@
-import { IsString, MaxLength, ValidateNested } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class PushKeysDto {
@@ -25,4 +25,11 @@ export class PushUnsubscribeDto {
   @IsString()
   @MaxLength(1024)
   endpoint!: string;
+}
+
+export class PushPrefsDto {
+  @IsOptional() @IsBoolean() pushStreak?: boolean;
+  @IsOptional() @IsBoolean() pushWins?: boolean;
+  @IsOptional() @IsBoolean() pushLiga?: boolean;
+  @IsOptional() @IsBoolean() pushSocial?: boolean;
 }

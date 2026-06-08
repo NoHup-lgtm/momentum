@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { useTheme, type ThemeColors, type ThemeMode } from '../contexts/ThemeContext';
 import { useT, useLang, useSetLang } from '../lib/i18n';
-import { logout } from '../lib/session';
+import { logout, getPushPrefs, setPushPrefs, type PushPrefs } from '../lib/session';
 import { useAppStore } from '../store/app';
 import { isPushSupported, pushState, enablePush, type PushState } from '../lib/push';
 
@@ -21,6 +21,11 @@ export default function SettingsScreen() {
   const pt = lang === 'pt';
   const [push, setPush] = useState<PushState>(() => pushState());
   const [pushBusy, setPushBusy] = useState(false);
+  const [prefs, setPrefs] = useState<PushPrefs | null>(null);
+
+  useEffect(() => {
+    if (push === 'granted') getPushPrefs().then(setPrefs);
+  }, [push]);
 
   async function handleEnablePush() {
     setPushBusy(true);
@@ -31,6 +36,22 @@ export default function SettingsScreen() {
       setPushBusy(false);
     }
   }
+
+  function togglePref(key: keyof PushPrefs) {
+    setPrefs((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, [key]: !prev[key] };
+      setPushPrefs({ [key]: next[key] });
+      return next;
+    });
+  }
+
+  const prefRows: { key: keyof PushPrefs; label: string }[] = [
+    { key: 'pushStreak', label: pt ? 'ofensiva (lembrete 20h)' : 'streak (8pm reminder)' },
+    { key: 'pushWins', label: pt ? 'suas conquistas' : 'your wins' },
+    { key: 'pushLiga', label: pt ? 'liga (promoção, fim de sprint)' : 'liga (promotion, sprint end)' },
+    { key: 'pushSocial', label: pt ? 'social (amigos / squad)' : 'social (friends / squad)' },
+  ];
 
   async function handleLogout() {
     await logout();
@@ -103,8 +124,22 @@ export default function SettingsScreen() {
                   : "we ping you at 8pm if you haven't committed, and on squad/liga events."}
               </Text>
               {push === 'granted' ? (
-                <View style={[s.pushBtn, s.pushOn]}>
-                  <Text style={s.pushOnTxt}>{pt ? '✓ ativadas' : '✓ enabled'}</Text>
+                <View style={{ marginTop: 12, gap: 2 }}>
+                  {prefs ? (
+                    prefRows.map((row, i) => (
+                      <View key={row.key} style={[s.prefRow, i > 0 && s.prefRowBorder]}>
+                        <Text style={s.prefLabel}>{row.label}</Text>
+                        <Switch
+                          value={prefs[row.key]}
+                          onValueChange={() => togglePref(row.key)}
+                          trackColor={{ false: c.surface2, true: c.accent }}
+                          thumbColor="#f2e4cf"
+                        />
+                      </View>
+                    ))
+                  ) : (
+                    <ActivityIndicator size="small" color={c.accent} />
+                  )}
                 </View>
               ) : push === 'denied' ? (
                 <Text style={s.pushDenied}>
@@ -173,6 +208,9 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   pushOn: { backgroundColor: c.success + '20', borderWidth: 1, borderColor: c.success + '50' },
   pushOnTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.success },
   pushDenied: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3, marginTop: 12 },
+  prefRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 9 },
+  prefRowBorder: { borderTopWidth: 1, borderTopColor: c.surface2 },
+  prefLabel: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text, flex: 1 },
   logoutBtn: {
     alignItems: 'center', paddingVertical: 14, borderRadius: 10,
     borderWidth: 1, borderColor: c.danger + '55', backgroundColor: c.danger + '12',
