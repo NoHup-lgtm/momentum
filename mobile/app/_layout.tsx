@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { useLangStore } from '../lib/i18n';
 import InstallPrompt from '../components/InstallPrompt';
+import NotifyPrompt from '../components/NotifyPrompt';
 import { registerServiceWorker, syncPushSubscription } from '../lib/push';
 
 // Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
@@ -88,6 +89,9 @@ function RootNavigator() {
 
         {/* Banner "instalar como app" — só no web/PWA, dispensável */}
         <InstallPrompt />
+
+        {/* Destaque "ativar notificações" — pós-login, web, dispensável */}
+        <NotifyPrompt />
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
