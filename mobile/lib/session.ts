@@ -626,6 +626,27 @@ export async function getFeed(): Promise<FeedItem[]> {
   }
 }
 
+// ── Preferências de push (por categoria) ───────────────────────────────────────
+export interface PushPrefs {
+  pushStreak: boolean;
+  pushWins: boolean;
+  pushLiga: boolean;
+  pushSocial: boolean;
+}
+
+export async function getPushPrefs(): Promise<PushPrefs | null> {
+  try {
+    const res = await apiFetch('/me/push/prefs', { method: 'GET' });
+    return res.ok ? ((await res.json()) as PushPrefs) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setPushPrefs(prefs: Partial<PushPrefs>): Promise<void> {
+  await apiFetch('/me/push/prefs', { method: 'PATCH', body: JSON.stringify(prefs) }).catch(() => {});
+}
+
 // ── Public profile (outro usuário) ─────────────────────────────────────────────
 export type FriendshipState = 'self' | 'friends' | 'incoming' | 'outgoing' | 'none';
 

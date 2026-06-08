@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
-import { PushService, type PushPayload } from '../push/push.service.js';
+import { PushService, type PushPayload, type PushCategory } from '../push/push.service.js';
 
 type FeedType =
   | 'STREAK_MILESTONE' | 'LEVEL_UP' | 'RANK_UP' | 'ACHIEVEMENT'
@@ -35,6 +35,15 @@ function pushFor(type: FeedType, payload: Record<string, unknown>): PushPayload 
 // Tipos que viram push SOCIAL (avisa a rede: amigos + colegas de squad). Só os
 // raros/impressionantes — pra não spammar.
 const SOCIAL_TYPES = new Set<FeedType>(['LIGA_PROMOTED', 'RANK_UP', 'STREAK_MILESTONE']);
+
+// Categoria de preferência por tipo de evento (push pro próprio ator).
+function categoryFor(type: FeedType): PushCategory {
+  switch (type) {
+    case 'STREAK_MILESTONE': return 'streak';
+    case 'LIGA_PROMOTED': return 'liga';
+    default: return 'wins'; // ACHIEVEMENT, LEVEL_UP, RANK_UP, CHEST_LEGENDARY
+  }
+}
 
 function socialPushFor(type: FeedType, name: string, payload: Record<string, unknown>): PushPayload | null {
   switch (type) {
@@ -94,7 +103,7 @@ export class FeedService {
 
     // notificação push do evento (best-effort, não bloqueia)
     const p = pushFor(type, payload);
-    if (p) this.push.sendToUser(userId, p).catch(() => {});
+    if (p) this.push.sendToUser(userId, p, categoryFor(type)).catch(() => {});
 
     // push social: avisa amigos + squad dos eventos impressionantes
     if (SOCIAL_TYPES.has(type)) this.sendSocialPush(userId, type, payload).catch(() => {});
@@ -115,7 +124,7 @@ export class FeedService {
     if (!sp) return;
 
     const audience = (await this.audience(actorId)).filter((id) => id !== actorId);
-    await Promise.all(audience.map((uid) => this.push.sendToUser(uid, sp)));
+    await Promise.all(audience.map((uid) => this.push.sendToUser(uid, sp, 'social')));
   }
 
   // Audiência do feed: eu + amigos aceitos + colegas de squad.

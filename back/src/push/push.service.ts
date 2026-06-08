@@ -10,6 +10,18 @@ export interface PushPayload {
   tag?: string; // agrupa/substitui notificações do mesmo tipo
 }
 
+// Categoria da notificação → casa com a preferência do usuário.
+export type PushCategory = 'streak' | 'wins' | 'liga' | 'social';
+
+export interface PushPrefs {
+  pushStreak: boolean;
+  pushWins: boolean;
+  pushLiga: boolean;
+  pushSocial: boolean;
+}
+
+const PREF_SELECT = { pushStreak: true, pushWins: true, pushLiga: true, pushSocial: true } as const;
+
 interface SubInput {
   endpoint: string;
   keys: { p256dh: string; auth: string };
@@ -49,7 +61,7 @@ export class PushService implements OnModuleInit {
     if (subs.length === 0) return;
 
     const users = await this.prisma.user.findMany({
-      where: { id: { in: subs.map((s) => s.userId) } },
+      where: { id: { in: subs.map((s) => s.userId) }, pushStreak: true },
       select: { id: true, timezone: true, currentStreak: true },
     });
 
@@ -95,9 +107,29 @@ export class PushService implements OnModuleInit {
     return { ok: true };
   }
 
+  async getPrefs(userId: string): Promise<PushPrefs> {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: PREF_SELECT });
+    return u ?? { pushStreak: true, pushWins: true, pushLiga: true, pushSocial: true };
+  }
+
+  async setPrefs(userId: string, prefs: Partial<PushPrefs>): Promise<PushPrefs> {
+    await this.prisma.user.update({ where: { id: userId }, data: prefs });
+    return this.getPrefs(userId);
+  }
+
+  private async categoryAllowed(userId: string, category: PushCategory): Promise<boolean> {
+    const p = await this.getPrefs(userId);
+    return category === 'streak' ? p.pushStreak
+      : category === 'wins' ? p.pushWins
+      : category === 'liga' ? p.pushLiga
+      : p.pushSocial;
+  }
+
   // Envia pra todas as inscrições do user (best-effort). Remove as mortas (404/410).
-  async sendToUser(userId: string, payload: PushPayload): Promise<void> {
+  // `category` (opcional) respeita a preferência do usuário pra aquele tipo.
+  async sendToUser(userId: string, payload: PushPayload, category?: PushCategory): Promise<void> {
     if (!this.enabled) return;
+    if (category && !(await this.categoryAllowed(userId, category))) return;
     const subs = await this.prisma.pushSubscription.findMany({ where: { userId } });
     if (subs.length === 0) return;
 

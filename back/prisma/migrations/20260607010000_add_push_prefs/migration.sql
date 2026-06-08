@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN     "pushLiga" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "pushSocial" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "pushStreak" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "pushWins" BOOLEAN NOT NULL DEFAULT true;
