@@ -32,6 +32,25 @@ function pushFor(type: FeedType, payload: Record<string, unknown>): PushPayload 
   }
 }
 
+// Tipos que viram push SOCIAL (avisa a rede: amigos + colegas de squad). Só os
+// raros/impressionantes — pra não spammar.
+const SOCIAL_TYPES = new Set<FeedType>(['LIGA_PROMOTED', 'RANK_UP', 'STREAK_MILESTONE']);
+
+function socialPushFor(type: FeedType, name: string, payload: Record<string, unknown>): PushPayload | null {
+  switch (type) {
+    case 'LIGA_PROMOTED':
+      return { title: '🏆 sua rede tá subindo', body: `${name} subiu de divisão na liga 👀`, url: '/liga', tag: 'social-liga' };
+    case 'RANK_UP':
+      return { title: '⬆️ alguém evoluiu', body: `${name} subiu de rank no momentum`, url: '/feed', tag: 'social-rank' };
+    case 'STREAK_MILESTONE': {
+      const s = Number(payload.streak ?? 0);
+      return { title: '🔥 ofensiva monstra', body: s > 0 ? `${name} chegou a ${s} dias de streak` : `${name} bateu um marco de ofensiva`, url: '/feed', tag: 'social-streak' };
+    }
+    default:
+      return null;
+  }
+}
+
 export interface FeedItem {
   id: string;
   type: string;
@@ -76,6 +95,27 @@ export class FeedService {
     // notificação push do evento (best-effort, não bloqueia)
     const p = pushFor(type, payload);
     if (p) this.push.sendToUser(userId, p).catch(() => {});
+
+    // push social: avisa amigos + squad dos eventos impressionantes
+    if (SOCIAL_TYPES.has(type)) this.sendSocialPush(userId, type, payload).catch(() => {});
+  }
+
+  // Notifica a rede do ator (amigos aceitos + colegas de squad, menos ele mesmo).
+  private async sendSocialPush(
+    actorId: string,
+    type: FeedType,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const actor = await this.prisma.user.findUnique({
+      where: { id: actorId },
+      select: { displayName: true, githubLogin: true },
+    });
+    const name = actor?.displayName || actor?.githubLogin || 'alguém';
+    const sp = socialPushFor(type, name, payload);
+    if (!sp) return;
+
+    const audience = (await this.audience(actorId)).filter((id) => id !== actorId);
+    await Promise.all(audience.map((uid) => this.push.sendToUser(uid, sp)));
   }
 
   // Audiência do feed: eu + amigos aceitos + colegas de squad.
