@@ -12,6 +12,7 @@ import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { useLangStore } from '../lib/i18n';
 import InstallPrompt from '../components/InstallPrompt';
 import NotifyPrompt from '../components/NotifyPrompt';
+import WebAnalytics from '../components/WebAnalytics';
 import { registerServiceWorker, syncPushSubscription } from '../lib/push';
 
 // Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
@@ -92,6 +93,9 @@ function RootNavigator() {
 
         {/* Destaque "ativar notificações" — pós-login, web, dispensável */}
         <NotifyPrompt />
+
+        {/* Vercel Web Analytics — no-op no nativo, ativo no web */}
+        <WebAnalytics />
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
