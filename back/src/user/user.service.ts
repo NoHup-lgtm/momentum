@@ -67,14 +67,30 @@ export class UserService {
 
     const { subscriptionPlan, timezone, displayName, ...rest } = user;
 
+    const [committedToday, weekXp] = await Promise.all([
+      this.hasCommittedToday(userId, timezone),
+      this.weekXp(userId),
+    ]);
+
     return {
       ...rest,
       // level + progresso derivados do totalXp (fonte única em leveling.ts)
       ...levelProgress(user.totalXp),
       displayName: displayName ?? user.githubLogin,
       isPro: subscriptionPlan != null,
-      committedToday: await this.hasCommittedToday(userId, timezone),
+      committedToday,
+      weekXp,
     };
+  }
+
+  // XP líquido ganho nos últimos 7 dias (janela móvel) — "XP esta semana".
+  private async weekXp(userId: string): Promise<number> {
+    const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+    const agg = await this.prisma.xpTransaction.aggregate({
+      where: { userId, createdAt: { gte: weekAgo } },
+      _sum: { amount: true },
+    });
+    return agg._sum.amount ?? 0;
   }
 
   // Perfil público de qualquer usuário, visto por `viewerId`. Alimenta a tela
