@@ -102,6 +102,7 @@ export const strings = {
       inviteHint: 'Digite o @usuário do GitHub. Se a pessoa já te convidou, a amizade é confirmada na hora.',
       feedTitle: 'feed',
       feedEmpty: 'Sem novidades ainda. Conquiste algo ou adicione amigos!',
+      feedScopes: { friends: 'amigos', global: 'global', liga: 'liga' },
       you: 'você',
       ev: {
         achievement: 'desbloqueou {x}',
@@ -290,6 +291,7 @@ export const strings = {
       inviteHint: 'Enter a GitHub @username. If they already invited you, you become friends instantly.',
       feedTitle: 'feed',
       feedEmpty: 'Nothing here yet. Achieve something or add friends!',
+      feedScopes: { friends: 'friends', global: 'global', liga: 'liga' },
       you: 'you',
       ev: {
         achievement: 'unlocked {x}',

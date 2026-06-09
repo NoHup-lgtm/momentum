@@ -7,6 +7,9 @@ type FeedType =
   | 'STREAK_MILESTONE' | 'LEVEL_UP' | 'RANK_UP' | 'ACHIEVEMENT'
   | 'CHEST_LEGENDARY' | 'SQUAD_JOIN' | 'LIGA_PROMOTED' | 'CHALLENGE_COMPLETED';
 
+// Escopo do feed: rede do usuário, global (todos) ou colegas da liga atual.
+export type FeedScope = 'friends' | 'global' | 'liga';
+
 // Push por tipo de evento (só os celebratórios/assíncronos). CHALLENGE_COMPLETED
 // e SQUAD_JOIN vêm de ação na hora (usuário no app) → sem push (redundante).
 function pushFor(type: FeedType, payload: Record<string, unknown>): PushPayload | null {
@@ -155,10 +158,34 @@ export class FeedService {
     return [...set];
   }
 
-  async getFeed(userId: string, limit = 50): Promise<FeedItem[]> {
-    const ids = await this.audience(userId);
+  // Audiência "liga": participantes da minha season ATIVA atual (mesma "leva").
+  // Query leve e desacoplada (não cria participação — diferente do liga.service).
+  private async ligaAudience(userId: string): Promise<string[]> {
+    const mine = await this.prisma.ligaParticipant.findFirst({
+      where: { userId, season: { isActive: true } },
+      select: { seasonId: true },
+    });
+    if (!mine) return [userId];
+    const parts = await this.prisma.ligaParticipant.findMany({
+      where: { seasonId: mine.seasonId },
+      select: { userId: true },
+    });
+    return parts.map((p) => p.userId);
+  }
+
+  async getFeed(
+    userId: string,
+    scope: FeedScope = 'friends',
+    limit = 50,
+  ): Promise<FeedItem[]> {
+    // global = todo mundo (só eventos públicos) · liga = minha season · friends = eu+amigos+squad
+    const where =
+      scope === 'global'
+        ? { visibility: 'GLOBAL' as const }
+        : { userId: { in: scope === 'liga' ? await this.ligaAudience(userId) : await this.audience(userId) } };
+
     const events = await this.prisma.feedEvent.findMany({
-      where: { userId: { in: ids } },
+      where,
       orderBy: { createdAt: 'desc' },
       take: limit,
       include: {
