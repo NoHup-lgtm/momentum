@@ -8,6 +8,7 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
+import { ProfileSkeleton } from '../components/Skeleton';
 import RankEmblem from '../components/rank/RankEmblem';
 import { useT } from '../lib/i18n';
 import {
@@ -132,7 +133,7 @@ export default function UserProfileScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <ProfileSkeleton />
       ) : !profile ? (
         <View style={s.center}><Text style={s.empty}>{tp.notFound}</Text></View>
       ) : (

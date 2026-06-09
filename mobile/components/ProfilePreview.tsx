@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from './ui';
+import { ProfileSkeleton } from './Skeleton';
 import RankEmblem from './rank/RankEmblem';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
@@ -107,9 +108,7 @@ export default function ProfilePreview() {
           <View style={s.handle} />
 
           {loading || !profile ? (
-            <View style={s.loadingBox}>
-              <ActivityIndicator color={c.accent} />
-            </View>
+            <ProfileSkeleton compact />
           ) : (
             <>
               <View style={s.hero}>
