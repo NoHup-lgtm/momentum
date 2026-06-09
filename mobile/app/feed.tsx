@@ -10,9 +10,10 @@ import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
-import { getFeed, type FeedItem } from '../lib/session';
+import { getFeed, type FeedItem, type FeedScope } from '../lib/session';
 
 const rid = (r: string) => r.toLowerCase() as RankId;
+const SCOPES: FeedScope[] = ['friends', 'global', 'liga'];
 
 const TYPE_COLOR: Record<string, string> = {
   ACHIEVEMENT: '#8b5cf6', CHALLENGE_COMPLETED: '#d4673a', LIGA_PROMOTED: '#c08a00',
@@ -32,10 +33,13 @@ export default function FeedScreen() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [scope, setScope] = useState<FeedScope>('friends');
 
-  const load = async () => setItems(await getFeed());
-  useFocusEffect(useCallback(() => { (async () => { await load(); setLoading(false); })(); }, []));
-  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+  const load = async (sc: FeedScope) => setItems(await getFeed(sc));
+  // Recarrega ao focar e sempre que o escopo muda (callback recriado → re-roda).
+  useFocusEffect(useCallback(() => { (async () => { await load(scope); setLoading(false); })(); }, [scope]));
+  const onRefresh = async () => { setRefreshing(true); await load(scope); setRefreshing(false); };
+  const changeScope = (sc: FeedScope) => { if (sc !== scope) { setLoading(true); setScope(sc); } };
 
   // Texto localizado do evento a partir do type + payload.
   const eventText = (it: FeedItem): string => {
@@ -74,6 +78,15 @@ export default function FeedScreen() {
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}><Text style={s.backText}>←</Text></TouchableOpacity>
         <Text style={s.title}>{t.feedTitle}</Text>
+      </View>
+
+      {/* Filtros: amigos / global / liga */}
+      <View style={s.tabs}>
+        {SCOPES.map((sc) => (
+          <TouchableOpacity key={sc} style={[s.tab, scope === sc && s.tabOn]} onPress={() => changeScope(sc)} activeOpacity={0.8}>
+            <Text style={[s.tabTxt, scope === sc && s.tabTxtOn]}>{t.feedScopes[sc]}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {loading ? (
@@ -131,6 +144,11 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   backBtn: { padding: 4, marginRight: 8 },
   backText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 20, color: c.text2 },
   title: { fontFamily: 'Lora_400Regular', fontSize: 20, color: c.text },
+  tabs: { flexDirection: 'row', gap: 8, paddingHorizontal: 18, paddingBottom: 12 },
+  tab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, borderWidth: 1, borderColor: c.surface2 },
+  tabOn: { backgroundColor: c.accent, borderColor: c.accent },
+  tabTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3 },
+  tabTxtOn: { color: '#f2e4cf' },
   empty: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.text3, textAlign: 'center', marginTop: 48, paddingHorizontal: 24, lineHeight: 18 },
   card: {
     flexDirection: 'row', alignItems: 'center',

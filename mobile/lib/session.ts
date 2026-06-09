@@ -623,9 +623,11 @@ export interface FeedItem {
   };
 }
 
-export async function getFeed(): Promise<FeedItem[]> {
+export type FeedScope = 'friends' | 'global' | 'liga';
+
+export async function getFeed(scope: FeedScope = 'friends'): Promise<FeedItem[]> {
   try {
-    const res = await apiFetch('/feed', { method: 'GET' });
+    const res = await apiFetch(`/feed?scope=${scope}`, { method: 'GET' });
     if (!res.ok) return [];
     return (await res.json()) as FeedItem[];
   } catch {
