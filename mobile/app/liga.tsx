@@ -10,6 +10,7 @@ import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { XPIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
+import { useAppStore } from '../store/app';
 import { getMyLiga, type Liga } from '../lib/session';
 
 const rid = (r: string) => r.toLowerCase() as RankId;
@@ -22,6 +23,7 @@ const TIER_COLOR: Record<number, string> = {
 export default function LigaScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().liga;
+  const openPreview = useAppStore((st) => st.openProfilePreview);
   const { colors: c } = useTheme();
   const s = makeStyles(c);
 
@@ -106,8 +108,11 @@ export default function LigaScreen() {
               const releg = inRelegate(e.position);
               const edge = promo ? c.success : releg ? c.danger : 'transparent';
               return (
-                <View
+                <TouchableOpacity
                   key={e.userId}
+                  activeOpacity={0.7}
+                  onPress={() => !e.isMe && openPreview(e.userId)}
+                  disabled={e.isMe}
                   style={[
                     s.row,
                     { borderLeftColor: edge, borderLeftWidth: 3 },
@@ -128,7 +133,7 @@ export default function LigaScreen() {
                     <XPIcon size={13} />
                     <Text style={s.xp}>{e.xpEarned.toLocaleString()}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}

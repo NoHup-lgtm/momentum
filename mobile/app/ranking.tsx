@@ -23,6 +23,7 @@ export default function RankingScreen() {
   const insets = useSafeAreaInsets();
   const t = useT().ranking;
   const myLogin = useAppStore((s) => s.user?.githubLogin);
+  const openPreview = useAppStore((s) => s.openProfilePreview);
   const { colors: c } = useTheme();
   const s = makeStyles(c);
 
@@ -50,7 +51,12 @@ export default function RankingScreen() {
     const rank = getRank(rid(u.rank));
     const mine = u.githubLogin === myLogin;
     return (
-      <View style={[s.row, mine && s.rowMine]}>
+      <TouchableOpacity
+        style={[s.row, mine && s.rowMine]}
+        activeOpacity={0.7}
+        onPress={() => !mine && openPreview(u.id)}
+        disabled={mine}
+      >
         <Text style={[s.pos, { color: posColor(u.position) }]}>#{u.position}</Text>
         <AvatarRing size={36} variant={u.avatarVariant} rankId={rid(u.rank)} equipped={u.equipped} />
         <View style={{ flex: 1, marginLeft: 12 }}>
@@ -63,7 +69,7 @@ export default function RankingScreen() {
           <XPIcon size={13} />
           <Text style={s.xp}>{u.totalXp.toLocaleString()}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

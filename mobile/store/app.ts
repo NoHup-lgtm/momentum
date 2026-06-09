@@ -34,18 +34,25 @@ interface AppState {
   user: User | null;
   equipped: EquippedMap | null;
   isLoading: boolean;
+  // Preview de perfil: userId aberto no bottom-sheet (null = fechado).
+  previewUserId: string | null;
   setUser: (user: User) => void;
   setEquipped: (equipped: EquippedMap | null) => void;
   setLoading: (v: boolean) => void;
   clearUser: () => void;
+  openProfilePreview: (userId: string) => void;
+  closeProfilePreview: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
   equipped: null,
   isLoading: true,
+  previewUserId: null,
   setUser: (user) => set({ user }),
   setEquipped: (equipped) => set({ equipped }),
   setLoading: (isLoading) => set({ isLoading }),
   clearUser: () => set({ user: null, equipped: null }),
+  openProfilePreview: (userId) => set({ previewUserId: userId }),
+  closeProfilePreview: () => set({ previewUserId: null }),
 }));

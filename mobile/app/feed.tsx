@@ -9,6 +9,7 @@ import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
 import { useT } from '../lib/i18n';
+import { useAppStore } from '../store/app';
 import { getFeed, type FeedItem } from '../lib/session';
 
 const rid = (r: string) => r.toLowerCase() as RankId;
@@ -24,6 +25,7 @@ export default function FeedScreen() {
   const t = useT().social;
   const ta = useT().achievements;
   const tl = useT().liga;
+  const openPreview = useAppStore((st) => st.openProfilePreview);
   const { colors: c } = useTheme();
   const s = makeStyles(c);
 
@@ -94,13 +96,7 @@ export default function FeedScreen() {
                 <TouchableOpacity
                   activeOpacity={it.user.isMe ? 1 : 0.7}
                   disabled={it.user.isMe}
-                  onPress={() => router.push({
-                    pathname: '/user-profile',
-                    params: {
-                      userId: it.user.id, name: it.user.displayName || it.user.githubLogin,
-                      username: it.user.githubLogin, variant: String(it.user.avatarVariant), rank: it.user.rank,
-                    },
-                  })}
+                  onPress={() => openPreview(it.user.id)}
                 >
                   <AvatarRing size={40} variant={it.user.avatarVariant} rankId={rid(it.user.rank)} equipped={it.user.equipped} />
                 </TouchableOpacity>

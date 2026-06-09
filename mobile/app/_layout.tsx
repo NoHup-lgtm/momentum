@@ -13,6 +13,7 @@ import { useLangStore } from '../lib/i18n';
 import InstallPrompt from '../components/InstallPrompt';
 import NotifyPrompt from '../components/NotifyPrompt';
 import WebAnalytics from '../components/WebAnalytics';
+import ProfilePreview from '../components/ProfilePreview';
 import { registerServiceWorker, syncPushSubscription } from '../lib/push';
 
 // Completa o fluxo de OAuth no WEB: quando o GitHub redireciona o popup de volta
@@ -96,6 +97,9 @@ function RootNavigator() {
 
         {/* Vercel Web Analytics — no-op no nativo, ativo no web */}
         <WebAnalytics />
+
+        {/* Preview de perfil (bottom-sheet) — acionado de qualquer tela */}
+        <ProfilePreview />
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
