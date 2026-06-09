@@ -9,6 +9,7 @@ import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { XPIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
+import { ListSkeleton } from '../components/Skeleton';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
 import { getTopUsers, getTopSquads, type RankUser, type RankSquad } from '../lib/session';
@@ -109,7 +110,7 @@ export default function RankingScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <ListSkeleton />
       ) : (
         <FlatList
           data={(tab === 'users' ? users : squads) as (RankUser | RankSquad)[]}

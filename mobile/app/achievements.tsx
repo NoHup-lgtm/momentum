@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { FlameIcon, StarburstIcon, ProcessorIcon } from '../components/icons';
 import { useT } from '../lib/i18n';
+import { GridSkeleton } from '../components/Skeleton';
 import { getAchievements, type AchievementItem } from '../lib/session';
 
 const RARITY_COLOR: Record<string, string> = {
@@ -82,7 +83,7 @@ export default function AchievementsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <GridSkeleton />
       ) : (
         <ScrollView
           contentContainerStyle={s.content}

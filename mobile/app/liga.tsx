@@ -9,6 +9,7 @@ import { type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { XPIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
+import { ListSkeleton } from '../components/Skeleton';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
 import { getMyLiga, type Liga } from '../lib/session';
@@ -62,7 +63,7 @@ export default function LigaScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <ListSkeleton />
       ) : !liga ? (
         <View style={s.center}><Text style={s.empty}>{t.empty}</Text></View>
       ) : (
