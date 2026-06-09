@@ -145,11 +145,10 @@ export default function ProfileScreen() {
     router.replace("/(auth)");
   }
 
-  // Heatmap + totalCommits + weekXP vêm do GitHub (13 semanas).
+  // Heatmap + totalCommits vêm do GitHub (13 semanas). weekXp vem do /me (store).
   const ta = useT().achievements;
   const [heatmap, setHeatmap] = useState<number[]>(HEATMAP);
   const [ghCommits, setGhCommits] = useState(0);
-  const [weekXP, setWeekXP] = useState(0);
   const [achs, setAchs] = useState<AchievementItem[]>([]);
   const [friends, setFriends] = useState<FriendRow[]>([]);
 
@@ -170,8 +169,6 @@ export default function ProfileScreen() {
       if (days.length > 0) {
         setHeatmap(days.map((d) => toIntensity(d.count)));
         setGhCommits(days.reduce((sum, d) => sum + d.count, 0));
-        const activeLast7 = days.slice(-7).filter((d) => d.count > 0).length;
-        setWeekXP(activeLast7 * 50);
       }
       setAchs(achievements);
     })();
@@ -203,7 +200,7 @@ export default function ProfileScreen() {
     gems: su?.gems || 0,
     avatarVariant: su?.avatarVariant || 0,
     totalCommits: ghCommits,
-    weekXP: weekXP,
+    weekXP: su?.weekXp ?? 0,
   };
 
   const rank = getRank(displayUser.rankId);

@@ -12,6 +12,7 @@ export interface User {
   totalXp: number;
   xpIntoLevel: number;
   xpToNextLevel: number;
+  weekXp: number;
   currentStreak: number;
   maxStreak: number;
   coins: number;

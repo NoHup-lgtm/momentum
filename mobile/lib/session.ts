@@ -32,6 +32,7 @@ export interface MeUser {
   totalXp: number;
   xpIntoLevel: number;
   xpToNextLevel: number;
+  weekXp: number;
   currentStreak: number;
   maxStreak: number;
   streakFreezes: number;
@@ -737,6 +738,7 @@ export function authToStoreUser(auth: AuthUser): User {
     totalXp: 0,
     xpIntoLevel: 0,
     xpToNextLevel: 100,
+    weekXp: 0,
     currentStreak: 0,
     maxStreak: 0,
     streakFreezes: 0,
@@ -760,6 +762,7 @@ export function meToStoreUser(me: MeUser): User {
     totalXp: me.totalXp,
     xpIntoLevel: me.xpIntoLevel,
     xpToNextLevel: me.xpToNextLevel,
+    weekXp: me.weekXp,
     currentStreak: me.currentStreak,
     maxStreak: me.maxStreak,
     streakFreezes: me.streakFreezes,
