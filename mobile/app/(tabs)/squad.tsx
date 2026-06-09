@@ -9,6 +9,7 @@ import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { XPIcon, SpiralIcon } from '../../components/icons';
 import { AvatarRing } from '../../components/ui';
 import { useT } from '../../lib/i18n';
+import { useAppStore } from '../../store/app';
 import {
   getMySquad, getSquadLeaderboard, createSquad, joinSquad, createSquadInvite, leaveSquad,
   type Squad, type SquadMember,
@@ -18,6 +19,8 @@ const rid = (r: string) => r.toLowerCase() as RankId;
 
 export default function SquadScreen() {
   const insets = useSafeAreaInsets();
+  const openPreview = useAppStore((st) => st.openProfilePreview);
+  const myId = useAppStore((st) => st.user?.id);
   const { colors: c } = useTheme();
   const s = makeStyles(c);
   const t = useT().squad;
@@ -150,8 +153,15 @@ export default function SquadScreen() {
 
             {board.map((m, i) => {
               const rank = getRank(rid(m.rank));
+              const mine = m.userId === myId;
               return (
-                <View key={m.userId} style={s.memberRow}>
+                <TouchableOpacity
+                  key={m.userId}
+                  style={s.memberRow}
+                  activeOpacity={0.7}
+                  onPress={() => !mine && openPreview(m.userId)}
+                  disabled={mine}
+                >
                   <Text style={[s.pos, { color: i < 3 ? c.accent : c.text3 }]}>#{i + 1}</Text>
                   <AvatarRing size={38} variant={m.avatarVariant} rankId={rid(m.rank)} equipped={m.equipped} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
@@ -165,7 +175,7 @@ export default function SquadScreen() {
                     <XPIcon size={13} />
                     <Text style={s.xpTxt}>{m.weeklyXp ?? 0}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })}
 
