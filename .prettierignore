@@ -1,0 +1,15 @@
+# Dependências e builds
+node_modules
+**/node_modules
+**/dist
+**/build
+**/.next
+**/.expo
+mobile/dist
+
+# Código gerado (não formatar)
+back/src/generated
+
+# Artefatos
+*.tsbuildinfo
+*.log
