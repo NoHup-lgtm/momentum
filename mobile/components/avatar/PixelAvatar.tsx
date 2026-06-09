@@ -23,6 +23,8 @@ const COSMETIC_COLOR: Record<string, string> = {
   g13:'#3a82f7', g14:'#8b5cf6',
   t1:'#d03030', t2:'#2c2c34', t3:'#d03030', t4:'#16a34a', t5:'#d03030', t6:'#16a34a',
   t7:'#16a34a', t8:'#ff2d95',
+  // Desbloqueáveis (conquistas/desafios) — todos ACCESSORY.
+  ch1:'#9a876c', ch2:'#3a82f7', ch3:'#c08a00', ch4:'#8b5cf6', ch5:'#30d0d0', ch6:'#ff2d95',
 };
 
 // Legado: chaves antigas de camisa (mantidas por compat).
@@ -69,11 +71,16 @@ const HAT_OVERLAY: Px[] = [
   [1,4,1],[1,5,1],[1,6,1],[1,7,1],[1,8,1],[1,9,1],[1,10,1],[1,11,1],
   [2,2,2],[2,3,2],[2,4,2],[2,5,2],[2,6,2],[2,7,2],[2,8,2],[2,9,2],[2,10,2],[2,11,2],
 ];
+// GLASSES: faixa larga sobre os olhos (cols 4–10) — visível como óculos.
 const GLASSES_OVERLAY: Px[] = [
-  [4,5,1],[4,6,2],[4,7,1],[4,8,2],[4,9,1],
+  [4,4,2],[4,5,1],[4,6,2],[4,7,1],[4,8,2],[4,9,1],[4,10,2],
 ];
+// ACCESSORY: emblema/medalha no centro do peito — claramente visível
+// (antes eram 4 pixels na lateral, quase imperceptíveis).
 const ACCESSORY_OVERLAY: Px[] = [
-  [8,12,1],[9,12,2],[9,13,1],[10,13,2],
+  [8,6,2],[8,9,2],          // alças sobre os ombros
+  [9,7,1],[9,8,1],          // medalha (cor viva)
+  [10,7,2],[10,8,2],        // base da medalha (escura)
 ];
 
 const OVERLAYS: Record<string, Px[]> = {
@@ -144,7 +151,7 @@ function PixelAvatar({
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
-        {bgColor && <Rect x={0} y={0} width={size} height={size} fill={bgColor} opacity={0.22} />}
+        {bgColor && <Rect x={0} y={0} width={size} height={size} fill={bgColor} opacity={0.32} />}
         {pixels}
       </Svg>
     </View>
