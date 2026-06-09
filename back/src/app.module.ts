@@ -17,6 +17,7 @@ import { LigaModule } from './liga/liga.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FriendModule } from './friend/friend.module.js';
 import { PushModule } from './push/push.module.js';
+import { ModerationModule } from './moderation/moderation.module.js';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { PushModule } from './push/push.module.js';
     // proxy, habilitar trust proxy p/ o IP real.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     ScheduleModule.forRoot(),
-    PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule, PushModule,
+    PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule, PushModule, ModerationModule,
   ],
   controllers: [AppController],
   providers: [

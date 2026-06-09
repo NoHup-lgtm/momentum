@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
+import { ModerationService } from '../moderation/moderation.service.js';
 
 // Guardrail: nunca carrega mais que isso de amigos aceitos numa request.
 // Evita carga ilimitada se uma conta acumular milhares de amizades. (Quando
@@ -41,6 +42,7 @@ export class FriendService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shop: ShopService,
+    private readonly moderation: ModerationService,
   ) {}
 
   async getFriends(userId: string, limit = FRIENDS_PAGE): Promise<FriendsView> {
@@ -103,6 +105,9 @@ export class FriendService {
     });
     if (!target) throw new NotFoundException('Usuário não encontrado');
     if (target.id === userId) throw new BadRequestException('Você não pode se adicionar');
+    if (await this.moderation.isBlockedEitherWay(userId, target.id)) {
+      throw new BadRequestException('Não é possível adicionar este usuário');
+    }
 
     const existing = await this.prisma.friendship.findFirst({
       where: {

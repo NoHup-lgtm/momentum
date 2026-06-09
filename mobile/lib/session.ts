@@ -605,6 +605,23 @@ export async function removeFriend(id: string): Promise<FriendsView> {
   return (await res.json()) as FriendsView;
 }
 
+// ── Moderação (bloquear / denunciar) ─────────────────────────────────────────
+export async function blockUser(userId: string): Promise<boolean> {
+  const res = await apiFetch(`/users/${userId}/block`, { method: 'POST' });
+  return res.ok;
+}
+export async function unblockUser(userId: string): Promise<boolean> {
+  const res = await apiFetch(`/users/${userId}/block`, { method: 'DELETE' });
+  return res.ok;
+}
+export async function reportUser(userId: string, reason: string): Promise<boolean> {
+  const res = await apiFetch(`/users/${userId}/report`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+  return res.ok;
+}
+
 // ── Feed ──────────────────────────────────────────────────────────────────────
 export interface FeedItem {
   id: string;
@@ -673,6 +690,7 @@ export interface PublicProfile {
   totalCommits: number;
   equipped: EquippedMap;
   friendship: { state: FriendshipState; friendshipId: string | null };
+  iBlocked: boolean;
   heatmap: number[]; // 91 dias, intensidade 0..5 (antigo → hoje)
   recentActivity: { type: string; payload: Record<string, any>; createdAt: string }[];
 }
