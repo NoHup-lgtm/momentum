@@ -73,6 +73,29 @@ export function GridSkeleton({ count = 6 }: { count?: number }) {
   );
 }
 
+// Perfil (user-profile / preview): hero centralizado + linha de stats + heatmap.
+export function ProfileSkeleton({ compact = false }: { compact?: boolean }) {
+  const { colors: c } = useTheme();
+  const s = makeStyles(c);
+  return (
+    <View style={s.profile}>
+      <Skeleton width={64} height={64} radius={32} />
+      <Skeleton width={140} height={16} />
+      <Skeleton width={90} height={10} />
+      <Skeleton width={120} height={22} radius={12} />
+      <View style={s.statsCard}>
+        {[0, 1, 2].map((i) => (
+          <View key={i} style={s.statCol}>
+            <Skeleton width={36} height={18} />
+            <Skeleton width={48} height={9} />
+          </View>
+        ))}
+      </View>
+      {!compact && <Skeleton width="100%" height={92} radius={10} />}
+    </View>
+  );
+}
+
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
     wrap: { paddingHorizontal: 18, paddingTop: 8, gap: 14 },
@@ -83,4 +106,10 @@ const makeStyles = (c: ThemeColors) =>
       width: '47%', backgroundColor: c.surface, borderRadius: 12,
       borderWidth: 1, borderColor: c.surface2, padding: 12, gap: 8, alignItems: 'center',
     },
+    profile: { paddingHorizontal: 18, paddingTop: 20, alignItems: 'center', gap: 12 },
+    statsCard: {
+      flexDirection: 'row', width: '100%', backgroundColor: c.surface,
+      borderRadius: 12, borderWidth: 1, borderColor: c.surface2, paddingVertical: 16, marginTop: 4,
+    },
+    statCol: { flex: 1, alignItems: 'center', gap: 6 },
   });
