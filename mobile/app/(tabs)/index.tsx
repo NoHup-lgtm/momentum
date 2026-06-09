@@ -29,31 +29,43 @@ const prettyRank = (r: string) =>
 
 const { width: W } = Dimensions.get('window');
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const MOCK_USER = {
-  name: 'Arthur',
-  username: 'araujo',
-  streak: 14,
-  longestStreak: 31,
-  xp: 2340,
-  xpToNext: 3000,
-  level: 7,
-  coins: 480,
-  rankId: 'build' as RankId,
-  avatarVariant: 0,
-  freezesLeft: 2,
-  committedToday: true,
+// ── Tipos + estado-zero ───────────────────────────────────────────────────────
+type HomeUser = {
+  name: string;
+  username: string;
+  streak: number;
+  longestStreak: number;
+  xp: number;
+  xpToNext: number;
+  level: number;
+  coins: number;
+  rankId: RankId;
+  avatarVariant: number;
+  freezesLeft: number;
+  committedToday: boolean;
 };
 
+// Fallback enquanto o /me não chegou: tudo zerado, nível 1, rank inicial — sem
+// números falsos. Some assim que o store é populado pelo backend.
+const ZERO_USER: HomeUser = {
+  name: '',
+  username: '',
+  streak: 0,
+  longestStreak: 0,
+  xp: 0,
+  xpToNext: 100,
+  level: 1,
+  coins: 0,
+  rankId: 'init',
+  avatarVariant: 0,
+  freezesLeft: 0,
+  committedToday: false,
+};
 
-const MOCK_CHALLENGES: {
+type ChallengeCardData = {
   id: string; label: string; desc: string;
   xp: number; coins: number; done: boolean; claimed: boolean;
-}[] = [
-  { id: 'c1', label: 'Commit do dia', desc: 'Faça pelo menos 1 commit hoje', xp: 50,  coins: 10, done: true,  claimed: false },
-  { id: 'c2', label: 'Streak de fogo', desc: 'Mantenha 7 dias seguidos',      xp: 120, coins: 25, done: false, claimed: false },
-  { id: 'c3', label: 'PR aberto',      desc: 'Abra um Pull Request hoje',     xp: 80,  coins: 15, done: true,  claimed: false },
-];
+};
 
 // ── Streak Card ───────────────────────────────────────────────────────────────
 function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: {
@@ -114,7 +126,7 @@ function StreakCard({ streak, longest, freezes, commitedToday, onFreezePress }: 
 }
 
 // ── XP Card ───────────────────────────────────────────────────────────────────
-function XPCard({ user }: { user: typeof MOCK_USER }) {
+function XPCard({ user }: { user: HomeUser }) {
   const { colors: c } = useTheme();
   const s = makeStyles(c);
   const rank = getRank(user.rankId);
@@ -184,7 +196,7 @@ function DailyChallengeCard({
   challenge,
   onClaim,
 }: {
-  challenge: typeof MOCK_CHALLENGES[0];
+  challenge: ChallengeCardData;
   onClaim: (id: string) => void;
 }) {
   const { colors: c } = useTheme();
@@ -276,7 +288,7 @@ export default function HomeScreen() {
         freezesLeft: storeUser.streakFreezes,
         committedToday: storeUser.committedToday,
       }
-    : MOCK_USER;
+    : ZERO_USER;
 
   const setUser = useAppStore((s) => s.setUser);
   const setEquipped = useAppStore((s) => s.setEquipped);
