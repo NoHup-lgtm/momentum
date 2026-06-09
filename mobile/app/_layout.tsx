@@ -75,6 +75,7 @@ function RootNavigator() {
           <Stack.Screen name="friend-invite" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="user-profile" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="feed"         options={{ animation: 'slide_from_right' }} />
+          <Stack.Screen name="notifications" options={{ animation: 'slide_from_right' }} />
           <Stack.Screen name="subscription" options={{ animation: 'slide_from_bottom' }} />
           <Stack.Screen name="settings"     options={{ animation: 'slide_from_right' }} />
         </Stack>
