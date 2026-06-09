@@ -320,27 +320,40 @@ export default function HomeScreen() {
     if (up != null) setLevelUpTo(up);
   }, [setUser]);
 
-  // Sincroniza a atividade do GitHub ao abrir a Home → atualiza store + lista + desafios.
+  // Abre a Home: PINTA JÁ com /me + leituras leves em paralelo (dados reais na
+  // hora) e só depois revalida com o sync pesado do GitHub em segundo plano.
+  // Antes a tela esperava o sync inteiro terminar pra mostrar qualquer coisa.
   React.useEffect(() => {
     (async () => {
-      // sync pesado primeiro (challenges dependem dos commits de hoje)…
-      await applyMe(await syncGithub());
-      // …depois as leituras independentes em paralelo
-      const [today, challenges, squad, chests, eq] = await Promise.all([
-        getGithubToday(), getChallenges(), getMySquad(), getChests(), getEquipped(),
+      const [me, today, challenges, squad, chests, eq] = await Promise.all([
+        fetchMe(), getGithubToday(), getChallenges(), getMySquad(), getChests(), getEquipped(),
       ]);
+      await applyMe(me);
       setTodayCommits(today);
       setRawChallenges(challenges);
       setHomeSquad(squad);
       setHomeChests(chests);
       setEquipped(eq);
+
+      // revalida: sync pesado atualiza nível/XP e desafios quando terminar
+      const synced = await syncGithub();
+      if (synced) {
+        await applyMe(synced);
+        setRawChallenges(await getChallenges());
+      }
     })();
   }, []);
 
-  // Ao voltar o foco pra Home (ex: depois de abrir baú / comprar / coletar),
-  // atualiza os dados leves sem refazer o sync pesado do GitHub.
+  // Ao VOLTAR o foco pra Home (ex: depois de abrir baú / comprar / coletar),
+  // atualiza os dados leves. Pula o 1º foco — o mount acima já carregou tudo,
+  // senão a primeira abertura dispararia tudo em dobro.
+  const firstFocus = React.useRef(true);
   useFocusEffect(
     React.useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
       (async () => {
         const [me, chests, challenges, squad, eq] = await Promise.all([
           fetchMe(), getChests(), getChallenges(), getMySquad(), getEquipped(),

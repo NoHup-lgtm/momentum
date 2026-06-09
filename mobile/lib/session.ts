@@ -91,6 +91,12 @@ export async function clearTokens() {
   await deleteStoredItem(CELEBRATED_LEVEL_KEY);
 }
 
+// Existe um token salvo? (leitura local, instantânea — usada no boot pra evitar
+// um round-trip de rede quando o usuário não está logado.)
+export async function hasStoredSession(): Promise<boolean> {
+  return (await getAccessToken()) != null;
+}
+
 // ── Detecção de level-up ──────────────────────────────────────────────────────
 // Guarda o último nível "comemorado" para disparar a animação só uma vez por
 // nível, sobrevivendo a reloads. Na 1ª vez (sem valor salvo) calibra no nível
