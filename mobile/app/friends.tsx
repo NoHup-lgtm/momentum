@@ -9,6 +9,7 @@ import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { FlameIcon } from '../components/icons';
 import { AvatarRing } from '../components/ui';
+import { ListSkeleton } from '../components/Skeleton';
 import { useT } from '../lib/i18n';
 import {
   getFriends, acceptFriend, removeFriend,
@@ -96,7 +97,7 @@ export default function FriendsScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <ListSkeleton />
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}

@@ -8,6 +8,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { getRank, type RankId } from '../constants/design';
 import { useTheme, type ThemeColors } from '../contexts/ThemeContext';
 import { AvatarRing } from '../components/ui';
+import { ListSkeleton } from '../components/Skeleton';
 import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
 import { getFeed, type FeedItem, type FeedScope } from '../lib/session';
@@ -90,7 +91,7 @@ export default function FeedScreen() {
       </View>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={c.accent} /></View>
+        <ListSkeleton />
       ) : (
         <FlatList
           data={items}

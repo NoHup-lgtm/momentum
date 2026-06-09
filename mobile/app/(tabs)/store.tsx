@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
 import { CoinIcon, GemIcon } from '../../components/icons';
 import { PixelItem } from '../../components/store/PixelItem';
+import { GridSkeleton } from '../../components/Skeleton';
 import { useT } from '../../lib/i18n';
 import { useAppStore } from '../../store/app';
 import {
@@ -87,7 +88,12 @@ export default function StoreScreen() {
   };
 
   if (loading) {
-    return <View style={[s.screen, s.center, { paddingTop: insets.top }]}><ActivityIndicator color={c.accent} /></View>;
+    return (
+      <View style={[s.screen, { paddingTop: insets.top }]}>
+        <View style={s.header}><Text style={s.h1}>{t.title}</Text></View>
+        <GridSkeleton />
+      </View>
+    );
   }
 
   const items = (shop?.items ?? []).filter((i) => cat === 'all' || i.category === cat);
