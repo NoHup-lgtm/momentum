@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
+import { ModerationService } from '../moderation/moderation.service.js';
 import { levelProgress } from '../common/leveling.js';
 
 export type FriendshipState =
@@ -24,6 +25,7 @@ export interface PublicProfile {
   totalCommits: number;
   equipped: Record<string, string>;
   friendship: { state: FriendshipState; friendshipId: string | null };
+  iBlocked: boolean; // o viewer bloqueou este usuário?
   heatmap: number[]; // 91 dias (13 semanas), intensidade 0..5, do mais antigo ao hoje
   recentActivity: { type: string; payload: Record<string, unknown>; createdAt: string }[];
 }
@@ -35,6 +37,7 @@ export class UserService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shop: ShopService,
+    private readonly moderation: ModerationService,
   ) {}
 
   // Usuário logado com os campos de gamificação reais. Alimenta o store do
@@ -112,13 +115,14 @@ export class UserService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const [commits, heatmap, friendship, equippedMap, recentActivity] =
+    const [commits, heatmap, friendship, equippedMap, recentActivity, iBlocked] =
       await Promise.all([
         this.totalCommits(targetId),
         this.commitHeatmap(targetId),
         this.friendshipState(viewerId, targetId),
         this.shop.equippedFor([targetId]),
         this.recentActivity(targetId),
+        this.moderation.iBlocked(viewerId, targetId),
       ]);
 
     const { totalXp } = user;
@@ -129,6 +133,7 @@ export class UserService {
       totalCommits: commits,
       equipped: equippedMap[targetId] ?? {},
       friendship,
+      iBlocked,
       heatmap,
       recentActivity,
     };

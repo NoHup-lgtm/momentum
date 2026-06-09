@@ -1,5 +1,7 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../core/guards/auth.guard.js';
+import { AuthUser } from '../core/decorators/auth-user.decorator.js';
+import type { AuthUserDto } from '../core/dto/auth-user.dto.js';
 import { LeaderboardService } from './leaderboard.service.js';
 
 @Controller('leaderboard')
@@ -8,8 +10,8 @@ export class LeaderboardController {
   constructor(private readonly leaderboard: LeaderboardService) {}
 
   @Get('users')
-  users() {
-    return this.leaderboard.topUsers(50);
+  users(@AuthUser() user: AuthUserDto) {
+    return this.leaderboard.topUsers(user.id, 50);
   }
 
   @Get('squads')

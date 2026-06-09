@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
+import { ModerationService } from '../moderation/moderation.service.js';
 
 export interface UserRankRow {
   position: number;
@@ -29,10 +30,12 @@ export class LeaderboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly shop: ShopService,
+    private readonly moderation: ModerationService,
   ) {}
 
   // Top usuários por XP total (global).
-  async topUsers(limit = 50): Promise<UserRankRow[]> {
+  async topUsers(viewerId: string, limit = 50): Promise<UserRankRow[]> {
+    const blocked = new Set(await this.moderation.blockedPairIds(viewerId));
     const users = await this.prisma.user.findMany({
       orderBy: { totalXp: 'desc' },
       take: limit,
@@ -47,8 +50,12 @@ export class LeaderboardService {
         totalXp: true,
       },
     });
-    const equipped = await this.shop.equippedFor(users.map((u) => u.id));
-    return users.map((u, i) => ({ position: i + 1, ...u, equipped: equipped[u.id] ?? {} }));
+    // posição = rank global (índice); bloqueados são removidos da exibição.
+    const visible = users
+      .map((u, i) => ({ position: i + 1, ...u }))
+      .filter((u) => !blocked.has(u.id));
+    const equipped = await this.shop.equippedFor(visible.map((u) => u.id));
+    return visible.map((u) => ({ ...u, equipped: equipped[u.id] ?? {} }));
   }
 
   // Top squads por XP somado dos membros ativos (global).

@@ -12,10 +12,12 @@ import { useT } from '../lib/i18n';
 import { useAppStore } from '../store/app';
 import {
   getUserProfile, addFriend, acceptFriend, removeFriend,
+  blockUser, unblockUser, reportUser,
   type PublicProfile, type FriendshipState,
 } from '../lib/session';
 
 const rid = (r: string) => r.toLowerCase() as RankId;
+const REPORT_REASONS = ['spam', 'abuse', 'inappropriate', 'fake', 'other'] as const;
 
 // Bottom-sheet de preview de um usuário. Acionado por openProfilePreview(userId)
 // de qualquer tela (ranking, liga, squad, feed, amigos). Mostra nível/infos +
@@ -30,12 +32,16 @@ export default function ProfilePreview() {
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [menu, setMenu] = useState<'none' | 'actions' | 'report'>('none');
+  const [doneMsg, setDoneMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let alive = true;
     setLoading(true);
     setProfile(null);
+    setMenu('none');
+    setDoneMsg(null);
     (async () => {
       const p = await getUserProfile(userId);
       if (alive) {
@@ -77,6 +83,38 @@ export default function ProfilePreview() {
 
   const patch = (state: FriendshipState, friendshipId: string | null) =>
     setProfile((p) => (p ? { ...p, friendship: { state, friendshipId } } : p));
+
+  const iBlocked = profile?.iBlocked ?? false;
+  const tm = tp.mod;
+
+  const doRemove = async () => {
+    if (busy || !fid) return;
+    setBusy(true);
+    try { await removeFriend(fid); patch('none', null); } catch {}
+    finally { setBusy(false); setMenu('none'); }
+  };
+
+  const doBlockToggle = async () => {
+    if (busy || !profile) return;
+    setBusy(true);
+    try {
+      if (iBlocked) {
+        await unblockUser(profile.id);
+        setProfile((p) => (p ? { ...p, iBlocked: false } : p));
+        setMenu('none');
+      } else {
+        await blockUser(profile.id);
+        close(); // bloqueado some das listas — fecha o preview
+      }
+    } catch {} finally { setBusy(false); }
+  };
+
+  const doReport = async (reason: string) => {
+    if (busy || !profile) return;
+    setBusy(true);
+    try { await reportUser(profile.id, reason); setDoneMsg(tm.reportDone); setMenu('none'); }
+    catch {} finally { setBusy(false); }
+  };
 
   const openFull = () => {
     if (!profile) return;
@@ -136,7 +174,7 @@ export default function ProfilePreview() {
                 ))}
               </View>
 
-              {fstate !== 'self' && (
+              {fstate !== 'self' && !iBlocked && menu === 'none' && (
                 <TouchableOpacity
                   style={[s.friendBtn, friendBtn.active && s.friendBtnActive, friendBtn.disabled && s.friendBtnDisabled]}
                   onPress={onFriendAction}
@@ -153,9 +191,62 @@ export default function ProfilePreview() {
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity style={s.fullBtn} onPress={openFull} activeOpacity={0.8}>
-                <Text style={s.fullBtnText}>{tp.seeFull}</Text>
-              </TouchableOpacity>
+              {iBlocked && menu === 'none' && (
+                <TouchableOpacity style={[s.friendBtn, s.friendBtnDisabled]} onPress={doBlockToggle} disabled={busy} activeOpacity={0.8}>
+                  <Text style={[s.friendBtnText, { color: c.text3 }]}>{busy ? '...' : `${tm.blocked} · ${tm.unblock}`}</Text>
+                </TouchableOpacity>
+              )}
+
+              {doneMsg && <Text style={s.doneMsg}>{doneMsg}</Text>}
+
+              {/* Linha inferior: ver completo + menu (...) */}
+              {menu === 'none' && (
+                <View style={s.bottomRow}>
+                  <TouchableOpacity style={s.fullBtn} onPress={openFull} activeOpacity={0.8}>
+                    <Text style={s.fullBtnText}>{tp.seeFull}</Text>
+                  </TouchableOpacity>
+                  {fstate !== 'self' && (
+                    <TouchableOpacity style={s.moreBtn} onPress={() => setMenu('actions')} activeOpacity={0.7}>
+                      <Text style={s.moreTxt}>⋯</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              {/* Menu de ações */}
+              {menu === 'actions' && (
+                <View style={s.menu}>
+                  {fstate === 'friends' && (
+                    <TouchableOpacity style={s.menuItem} onPress={doRemove} disabled={busy}>
+                      <Text style={s.menuTxt}>{tm.remove}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity style={s.menuItem} onPress={doBlockToggle} disabled={busy}>
+                    <Text style={s.menuTxt}>{iBlocked ? tm.unblock : tm.block}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={s.menuItem} onPress={() => setMenu('report')} disabled={busy}>
+                    <Text style={[s.menuTxt, { color: c.danger }]}>{tm.report}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={s.menuItem} onPress={() => setMenu('none')}>
+                    <Text style={[s.menuTxt, { color: c.text3 }]}>{tm.cancel}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Painel de denúncia */}
+              {menu === 'report' && (
+                <View style={s.menu}>
+                  <Text style={s.menuTitle}>{tm.reportTitle}</Text>
+                  {REPORT_REASONS.map((r) => (
+                    <TouchableOpacity key={r} style={s.menuItem} onPress={() => doReport(r)} disabled={busy}>
+                      <Text style={s.menuTxt}>{tm.reasons[r]}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity style={s.menuItem} onPress={() => setMenu('actions')}>
+                    <Text style={[s.menuTxt, { color: c.text3 }]}>{tm.back}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           )}
         </Pressable>
@@ -198,6 +289,18 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
   friendBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: '#f2e4cf' },
   friendBtnTextActive: { color: c.success },
 
-  fullBtn: { alignItems: 'center', justifyContent: 'center', paddingVertical: 12, marginTop: 8 },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8 },
+  fullBtn: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   fullBtnText: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.accent },
+  moreBtn: {
+    width: 44, height: 44, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: c.surface2,
+  },
+  moreTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 18, color: c.text2, marginTop: -6 },
+  doneMsg: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.success, textAlign: 'center', marginTop: 12 },
+
+  menu: { marginTop: 12, backgroundColor: c.surface, borderRadius: 10, borderWidth: 1, borderColor: c.surface2, overflow: 'hidden' },
+  menuTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, textTransform: 'lowercase', padding: 12, paddingBottom: 4 },
+  menuItem: { paddingVertical: 13, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: c.surface2 },
+  menuTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 13, color: c.text },
 });

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
 import { PushService, type PushPayload, type PushCategory } from '../push/push.service.js';
+import { ModerationService } from '../moderation/moderation.service.js';
 
 type FeedType =
   | 'STREAK_MILESTONE' | 'LEVEL_UP' | 'RANK_UP' | 'ACHIEVEMENT'
@@ -86,6 +87,7 @@ export class FeedService {
     private readonly prisma: PrismaService,
     private readonly shop: ShopService,
     private readonly push: PushService,
+    private readonly moderation: ModerationService,
   ) {}
 
   // Cria um evento de feed. Chamado pelos serviços quando algo notável acontece.
@@ -178,11 +180,20 @@ export class FeedService {
     scope: FeedScope = 'friends',
     limit = 50,
   ): Promise<FeedItem[]> {
+    // bloqueados somem do feed (eu bloqueei OU me bloquearam)
+    const blocked = await this.moderation.blockedPairIds(userId);
+
     // global = todo mundo (só eventos públicos) · liga = minha season · friends = eu+amigos+squad
     const where =
       scope === 'global'
-        ? { visibility: 'GLOBAL' as const }
-        : { userId: { in: scope === 'liga' ? await this.ligaAudience(userId) : await this.audience(userId) } };
+        ? { visibility: 'GLOBAL' as const, ...(blocked.length ? { userId: { notIn: blocked } } : {}) }
+        : {
+            userId: {
+              in: (scope === 'liga' ? await this.ligaAudience(userId) : await this.audience(userId)).filter(
+                (id) => !blocked.includes(id),
+              ),
+            },
+          };
 
     const events = await this.prisma.feedEvent.findMany({
       where,
