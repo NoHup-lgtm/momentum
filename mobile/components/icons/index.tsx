@@ -202,6 +202,20 @@ export function LockIcon({ size = 20, color = '#7a6a52' }: { size?: number; colo
   );
 }
 
+// ── Bell (notificações) ───────────────────────────────────────────────────────
+export function BellIcon({ size = 20, color = '#7a6a52' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 20 20" fill="none">
+      <Path
+        d="M10 3a4.6 4.6 0 00-4.6 4.6c0 3-1 4.5-1.5 5.2-.2.3 0 .8.4.8h11.4c.4 0 .6-.5.4-.8-.5-.7-1.5-2.2-1.5-5.2A4.6 4.6 0 0010 3z"
+        fill={color}
+        opacity={0.9}
+      />
+      <Path d="M8.2 16.2a1.9 1.9 0 003.6 0" stroke={color} strokeWidth="1.6" strokeLinecap="round" fill="none" />
+    </Svg>
+  );
+}
+
 // ── Gift Pixel (replaces 🎁) ──────────────────────────────────────────────────
 export function GiftIcon({ size = 20, color = '#d4a017' }: { size?: number; color?: string }) {
   return (

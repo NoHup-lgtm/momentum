@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { RANKS, getRank, type RankId } from '../../constants/design';
 import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
-import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon } from '../../components/icons';
+import { FlameIcon, XPIcon, CoinIcon, SpiralIcon, IceIcon, BellIcon } from '../../components/icons';
 import { AvatarRing, XPBar } from '../../components/ui';
 import StreakMilestone from '../../components/home/StreakMilestone';
 import TodayCard from '../../components/home/TodayCard';
@@ -18,7 +18,7 @@ import PendingChestsCard from '../../components/home/PendingChestsCard';
 import { useAppStore } from '../../store/app';
 import {
   syncGithub, getGithubToday, meToStoreUser, fetchMe, checkLevelUp,
-  getChallenges, claimChallenge, getMySquad, getChests, getEquipped,
+  getChallenges, claimChallenge, getMySquad, getChests, getEquipped, getFriends,
   type RepoCommits, type DailyChallenge, type Squad, type PendingChest, type MeUser, type EquippedMap,
 } from '../../lib/session';
 import { useT } from '../../lib/i18n';
@@ -301,6 +301,7 @@ export default function HomeScreen() {
   const [levelUpTo, setLevelUpTo]         = useState<number | null>(null);
   const [showFreeze, setShowFreeze]       = useState(false);
   const [freezesLeft, setFreezesLeft]     = useState(user.freezesLeft);
+  const [notifCount, setNotifCount]       = useState(0); // pedidos de amizade pendentes
 
   // Desafios reais → formato do card (localizado pela chave).
   const challenges = rawChallenges.map((c) => {
@@ -325,8 +326,8 @@ export default function HomeScreen() {
   // Antes a tela esperava o sync inteiro terminar pra mostrar qualquer coisa.
   React.useEffect(() => {
     (async () => {
-      const [me, today, challenges, squad, chests, eq] = await Promise.all([
-        fetchMe(), getGithubToday(), getChallenges(), getMySquad(), getChests(), getEquipped(),
+      const [me, today, challenges, squad, chests, eq, friends] = await Promise.all([
+        fetchMe(), getGithubToday(), getChallenges(), getMySquad(), getChests(), getEquipped(), getFriends(),
       ]);
       await applyMe(me);
       setTodayCommits(today);
@@ -334,6 +335,7 @@ export default function HomeScreen() {
       setHomeSquad(squad);
       setHomeChests(chests);
       setEquipped(eq);
+      setNotifCount(friends.incoming.length);
 
       // revalida: sync pesado atualiza nível/XP e desafios quando terminar
       const synced = await syncGithub();
@@ -355,14 +357,15 @@ export default function HomeScreen() {
         return;
       }
       (async () => {
-        const [me, chests, challenges, squad, eq] = await Promise.all([
-          fetchMe(), getChests(), getChallenges(), getMySquad(), getEquipped(),
+        const [me, chests, challenges, squad, eq, friends] = await Promise.all([
+          fetchMe(), getChests(), getChallenges(), getMySquad(), getEquipped(), getFriends(),
         ]);
         await applyMe(me);
         setHomeChests(chests);
         setRawChallenges(challenges);
         setHomeSquad(squad);
         setEquipped(eq);
+        setNotifCount(friends.incoming.length);
       })();
     }, [applyMe]),
   );
@@ -423,11 +426,23 @@ export default function HomeScreen() {
             <Text style={s.greeting}>bom dia, {user.name.toLowerCase()}.</Text>
             <Text style={s.date}>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'short' })}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/feed')}>
-            <View style={s.feedBtn}>
-              <SpiralIcon size={20} color={c.text2} />
-            </View>
-          </TouchableOpacity>
+          <View style={s.headerActions}>
+            <TouchableOpacity onPress={() => router.push('/notifications')}>
+              <View style={s.feedBtn}>
+                <BellIcon size={20} color={c.text2} />
+                {notifCount > 0 && (
+                  <View style={s.badge}>
+                    <Text style={s.badgeTxt}>{notifCount > 9 ? '9+' : notifCount}</Text>
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/feed')}>
+              <View style={s.feedBtn}>
+                <SpiralIcon size={20} color={c.text2} />
+              </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Streak */}
@@ -562,11 +577,18 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
     fontFamily: 'JetBrainsMono_400Regular', fontSize: 10,
     color: c.text3, marginTop: 3, textTransform: 'lowercase',
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   feedBtn: {
     width: 38, height: 38, borderRadius: 19,
     backgroundColor: c.surface, borderWidth: 1, borderColor: c.surface2,
     alignItems: 'center', justifyContent: 'center',
   },
+  badge: {
+    position: 'absolute', top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9,
+    backgroundColor: c.danger, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 4, borderWidth: 1.5, borderColor: c.bg,
+  },
+  badgeTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 9, color: '#fff', fontWeight: '700' },
 
   // Streak
   streakCard: {
