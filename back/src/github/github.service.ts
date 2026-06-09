@@ -72,12 +72,18 @@ export class GithubService {
   }
 
   // ── Calendário de contribuições (heatmap + streak) ────────────────────────────
+  // `since` (opcional): início exato da janela. O GitHub respeita a HORA do
+  // `from`, então passar o timestamp do cadastro faz o dia do cadastro contar
+  // só as contribuições FEITAS APÓS o usuário entrar (não o dia inteiro).
   private async fetchCalendar(
     login: string,
     token: string,
+    since?: Date,
   ): Promise<ContributionDay[]> {
     const to = new Date();
-    const from = new Date(Date.now() - HEATMAP_DAYS * 86_400_000);
+    const window = new Date(Date.now() - HEATMAP_DAYS * 86_400_000);
+    // usa o cadastro quando ele é mais recente que a janela de 91 dias
+    const from = since && since > window ? since : window;
 
     const query = `
       query($login:String!, $from:DateTime!, $to:DateTime!) {
@@ -176,12 +182,15 @@ export class GithubService {
     const user = await this.getUserWithToken(userId);
 
     // "Começa do zero": a jornada do momentum (XP, coins, streak, conquistas)
-    // só conta atividade do GitHub A PARTIR do cadastro — não credita os 91 dias
-    // de histórico. Quem entra começa no nível 1, streak 0, e constrói daqui.
-    const signupDay = user.createdAt.toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
-    const days = (
-      await this.fetchCalendar(user.githubLogin, user.accessToken)
-    ).filter((d) => d.date >= signupDay);
+    // só conta atividade do GitHub A PARTIR do cadastro — não credita histórico.
+    // Passamos o TIMESTAMP exato do cadastro como início: o GitHub respeita a
+    // hora, então até os commits feitos mais cedo NO DIA do cadastro (antes de
+    // entrar) ficam de fora. Quem entra começa no nível 1, streak 0.
+    const days = await this.fetchCalendar(
+      user.githubLogin,
+      user.accessToken,
+      user.createdAt,
+    );
     const activeDays = days.filter((d) => d.count > 0);
 
     // Dedup: só credita XP/coins para dias ainda não registrados.
