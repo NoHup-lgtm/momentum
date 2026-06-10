@@ -15,17 +15,21 @@ export default function SpiralIcon({ size = 80, color = 'var(--accent)', classNa
   const maxSW = 0.085 * size
   const SEGS = 150
 
+  // Precisão fixa: server e client serializam floats diferente (hydration
+  // mismatch no console). 3 casas é invisível a olho e idêntico nos dois lados.
+  const fix = (n: number) => Number(n.toFixed(3))
+
   const pts: [number, number][] = []
   for (let i = 0; i <= SEGS; i++) {
     const t = i / SEGS
     const a = -Math.PI / 2 + t * 1.75 * 2 * Math.PI
     const r = minR + (maxR - minR) * t
-    pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)])
+    pts.push([fix(cx + r * Math.cos(a)), fix(cy + r * Math.sin(a))])
   }
 
   const lines = pts.slice(0, -1).map((p, i) => ({
     x1: p[0], y1: p[1], x2: pts[i + 1][0], y2: pts[i + 1][1],
-    sw: minSW + (maxSW - minSW) * (i / (SEGS - 1)),
+    sw: fix(minSW + (maxSW - minSW) * (i / (SEGS - 1))),
   }))
 
   return (
