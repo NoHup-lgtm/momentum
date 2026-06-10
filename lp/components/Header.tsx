@@ -41,7 +41,7 @@ export default function Header() {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <SpiralIcon size={26} />
-        <span style={{
+        <span className="hide-mobile" style={{
           fontFamily: 'var(--font-serif)', fontSize: '17px', fontWeight: '400',
           color: 'var(--text)', letterSpacing: '0.02em',
         }}>momentum</span>
@@ -94,7 +94,7 @@ export default function Header() {
             transition: 'opacity 0.18s ease', whiteSpace: 'nowrap',
           }}
         >
-          {lang === 'pt' ? 'abrir app' : 'open app'}
+          {lang === 'pt' ? 'começar agora' : 'get started'}
         </a>
       </div>
     </nav>

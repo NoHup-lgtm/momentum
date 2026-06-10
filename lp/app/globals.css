@@ -66,3 +66,9 @@ button:active:not(:disabled) { opacity: 0.58; }
   [data-demo-grid] { grid-template-columns: 1fr !important; }
   [data-demo-grid] > *:first-child { border-right: none !important; border-bottom: 1px solid var(--surface-2); }
 }
+
+/* Header e hero no mobile: esconde o wordmark e a quebra manual da headline */
+@media (max-width: 560px) {
+  .hide-mobile { display: none !important; }
+  .desktop-br { display: none; }
+}

@@ -1,32 +1,14 @@
 'use client'
 
-import { useState } from 'react'
 import FadeIn from '../FadeIn'
-import SpiralIcon from '../SpiralIcon'
-import { useT, useLang } from '@/lib/i18n'
+import PixelDev from '../PixelDev'
+import { useT } from '@/lib/i18n'
 
 const APP_URL = 'https://app.momentu.me'
 
+// Fechamento no estilo Duolingo: a frase-assinatura da marca + UMA ação.
 export default function FinalCTASection() {
   const t = useT().finalCta
-  const lang = useLang()
-  const [email, setEmail] = useState('')
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-
-  const submit = async () => {
-    if (!email.includes('@')) return
-    setState('loading')
-    try {
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, source: 'finalcta' }),
-      })
-      setState(res.ok ? 'done' : 'error')
-    } catch {
-      setState('error')
-    }
-  }
 
   return (
     <section style={{
@@ -36,12 +18,14 @@ export default function FinalCTASection() {
     }}>
       <div style={{ maxWidth: '560px', margin: '0 auto', textAlign: 'center' }}>
         <FadeIn>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
-            <SpiralIcon size={40} />
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', alignItems: 'flex-end', marginBottom: '28px' }}>
+            <PixelDev size={40} variant={1} />
+            <PixelDev size={54} variant={0} />
+            <PixelDev size={40} variant={2} />
           </div>
           <h2 style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(28px, 3.8vw, 46px)',
+            fontSize: 'clamp(30px, 4vw, 48px)',
             fontWeight: '400', color: 'var(--text)',
             margin: '0 0 16px', lineHeight: '1.18',
           }}>{t.titleLine1}<br />{t.titleLine2}</h2>
@@ -52,76 +36,19 @@ export default function FinalCTASection() {
             {t.sub}
           </p>
 
-          {/* CTA principal: abrir o app */}
-          <div style={{ marginBottom: '28px' }}>
-            <a
-              href={APP_URL}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '10px',
-                padding: '15px 38px', borderRadius: '8px', textDecoration: 'none',
-                background: 'var(--accent)', color: '#f2e4cf',
-                fontFamily: 'var(--font-sans)', fontSize: '16px', fontWeight: 600,
-                boxShadow: '0 8px 30px rgba(212,103,58,0.25)',
-              }}
-            >
-              {lang === 'pt' ? 'abrir o app' : 'open the app'} →
-            </a>
-            <p style={{
-              marginTop: '12px', fontFamily: 'var(--font-mono)', fontSize: '11px',
-              color: 'var(--text-3)', letterSpacing: '0.03em',
-            }}>
-              {lang === 'pt' ? 'ou receba novidades por email' : 'or get updates by email'}
-            </p>
-          </div>
-
-          {state === 'done' ? (
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: '10px',
-              padding: '14px 28px', borderRadius: '6px',
-              background: 'rgba(90,122,80,0.12)', border: '1px solid rgba(90,122,80,0.3)',
-            }}>
-              <span style={{ color: 'var(--success)' }}>✓</span>
-              <span style={{ fontSize: '15px', color: 'var(--text-2)' }}>{t.done}</span>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && submit()}
-                placeholder={t.emailPlaceholder}
-                style={{
-                  flex: 1, minWidth: '200px', maxWidth: '280px',
-                  background: 'var(--surface)', border: '1px solid var(--surface-2)',
-                  borderRadius: '6px', padding: '13px 18px',
-                  color: 'var(--text)', fontFamily: 'var(--font-sans)',
-                  fontSize: '15px', outline: 'none',
-                  transition: 'border-color 0.2s',
-                }}
-                onFocus={e => (e.target.style.borderColor = 'var(--accent)')}
-                onBlur={e => (e.target.style.borderColor = 'var(--surface-2)')}
-              />
-              <button
-                onClick={submit}
-                disabled={state === 'loading' || !email.includes('@')}
-                style={{
-                  padding: '13px 28px', borderRadius: '6px', border: 'none',
-                  background: 'var(--accent)', color: '#f2e4cf',
-                  fontFamily: 'var(--font-sans)', fontSize: '15px', fontWeight: '450',
-                  cursor: 'pointer', whiteSpace: 'nowrap',
-                  opacity: !email.includes('@') ? 0.5 : 1,
-                  transition: 'opacity 0.18s',
-                }}
-              >{state === 'loading' ? t.ctaLoading : t.cta}</button>
-            </div>
-          )}
-          {state === 'error' && (
-            <p style={{
-              marginTop: '14px', fontFamily: 'var(--font-mono)', fontSize: '11px',
-              color: 'var(--danger)',
-            }}>{t.error}</p>
-          )}
+          <a
+            href={APP_URL}
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 'min(340px, 100%)', padding: '17px 0',
+              borderRadius: '10px', textDecoration: 'none',
+              background: 'var(--accent)', color: '#f2e4cf',
+              fontFamily: 'var(--font-sans)', fontSize: '17px', fontWeight: 700,
+              boxShadow: '0 8px 30px rgba(212,103,58,0.3)',
+            }}
+          >
+            {t.cta}
+          </a>
         </FadeIn>
 
         <FadeIn delay={200} style={{ marginTop: '72px' }}>
