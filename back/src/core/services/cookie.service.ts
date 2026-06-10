@@ -28,8 +28,16 @@ export class CookieService {
   }
 
   clearAuthCookies(res: Response) {
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    // mesmas options da emissão — com domain/secure divergentes o browser não
+    // casa o cookie e o "logout" deixaria o token vivo.
+    const options = {
+      httpOnly: true,
+      sameSite: 'lax' as const,
+      secure: process.env.NODE_ENV === 'production',
+      domain: process.env.COOKIE_DOMAIN || undefined,
+    };
+    res.clearCookie('access_token', options);
+    res.clearCookie('refresh_token', options);
   }
 
   private parseDurationToMs(duration: string) {

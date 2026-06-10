@@ -7,9 +7,14 @@ import { randomUUID } from 'node:crypto'
 export async function POST(req: NextRequest) {
   const { email, source } = await req.json().catch(() => ({}))
 
-  if (!email || typeof email !== 'string' || !email.includes('@')) {
+  // RFC 5321: 254 chars máx. Regex simples só pra barrar lixo óbvio.
+  if (
+    !email || typeof email !== 'string' || email.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  ) {
     return NextResponse.json({ error: 'Email inválido.' }, { status: 400 })
   }
+  const safeSource = typeof source === 'string' ? source.slice(0, 40) : null
 
   const dbUrl = process.env.DATABASE_URL
   if (!dbUrl) {
@@ -23,7 +28,7 @@ export async function POST(req: NextRequest) {
     const sql = neon(dbUrl)
     const rows = await sql`
       INSERT INTO waitlist (id, email, source)
-      VALUES (${randomUUID()}, ${normalized}, ${source ?? null})
+      VALUES (${randomUUID()}, ${normalized}, ${safeSource})
       ON CONFLICT (email) DO NOTHING
       RETURNING id
     `

@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -93,7 +93,31 @@ export class PushService implements OnModuleInit {
     }
   }
 
+  // O endpoint vem do navegador, mas é input do cliente: sem validação o
+  // servidor faria POST pra QUALQUER URL (SSRF/relay). Exige https e barra
+  // hosts internos/IP literais — push services reais são sempre públicos.
+  private assertValidEndpoint(endpoint: string): void {
+    let url: URL;
+    try {
+      url = new URL(endpoint);
+    } catch {
+      throw new BadRequestException('Endpoint inválido');
+    }
+    const host = url.hostname.toLowerCase();
+    const isIpLiteral = /^[\d.]+$/.test(host) || host.includes(':');
+    if (
+      url.protocol !== 'https:' ||
+      isIpLiteral ||
+      host === 'localhost' ||
+      host.endsWith('.local') ||
+      host.endsWith('.internal')
+    ) {
+      throw new BadRequestException('Endpoint de push não permitido');
+    }
+  }
+
   async subscribe(userId: string, sub: SubInput) {
+    this.assertValidEndpoint(sub.endpoint);
     await this.prisma.pushSubscription.upsert({
       where: { endpoint: sub.endpoint },
       create: { userId, endpoint: sub.endpoint, p256dh: sub.keys.p256dh, auth: sub.keys.auth },
