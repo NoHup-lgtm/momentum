@@ -25,7 +25,10 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/';
+  // Defesa em profundidade: só navega dentro do próprio app (caminho relativo).
+  // Payloads vêm do nosso servidor, mas URL absoluto/externo nunca é válido aqui.
+  let url = (event.notification.data && event.notification.data.url) || '/';
+  if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) url = '/';
 
   event.waitUntil(
     self.clients

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { randomInt } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ShopService } from '../shop/shop.service.js';
 
@@ -20,11 +21,12 @@ function weekStart(): Date {
 }
 
 // Código de convite curto e legível (sem caracteres ambíguos).
+// randomInt (CSPRNG) — Math.random é previsível e tornaria códigos adivinháveis.
 function randomCode(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let out = '';
   for (let i = 0; i < 6; i++) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    out += alphabet[randomInt(alphabet.length)];
     if (i === 2) out += '-';
   }
   return out; // ex: ABC-DEF
