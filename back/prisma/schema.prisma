@@ -317,8 +317,28 @@ model User {
   blocksReceived      Block[]             @relation("BlocksReceived")
   reportsMade         Report[]            @relation("ReportsMade")
   reportsReceived     Report[]            @relation("ReportsReceived")
+  refreshTokens       RefreshToken[]
 
   @@map("users")
+}
+
+// ── Refresh token (rotação + revogação) ──────────────────────────────────────
+// Um registro por refresh token emitido. No refresh, o token antigo é revogado
+// e um novo é criado (rotação). Reuso de um token já revogado = roubo provável
+// → revoga toda a família do usuário. Logout revoga o token apresentado.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  jti       String    @unique // claim jti do JWT
+  userId    String
+  revokedAt DateTime?
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
 }
 
 // Inscrição de Web Push (PWA). Um device/navegador = uma subscription.

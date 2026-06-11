@@ -734,6 +734,16 @@ export async function openChest(id: string): Promise<{ rarity: string; rewards: 
 }
 
 export async function logout() {
+  // Revoga o refresh token no servidor (best-effort) antes de limpar local.
+  try {
+    const refreshToken = await getRefreshToken();
+    await apiFetch('/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ refreshToken: refreshToken ?? undefined }),
+    });
+  } catch {
+    // offline / falha de rede — limpa local de qualquer forma
+  }
   await clearTokens();
 }
 

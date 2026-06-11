@@ -41,7 +41,7 @@ export class AuthController {
       body.redirectUri,
       body.codeVerifier,
     );
-    const tokens = this.authService.issueAuthCookies(
+    const tokens = await this.authService.issueAuthCookies(
       res,
       user.id,
       user.githubId,
@@ -87,11 +87,27 @@ export class AuthController {
       throw new UnauthorizedException('User not found');
     }
 
-    const tokens = this.authService.issueAuthCookies(
+    const tokens = await this.authService.issueAuthCookies(
       res,
       user.id,
       user.githubId,
     );
     return { user, ...tokens };
+  }
+
+  // Logout: revoga o refresh token apresentado (server-side) e limpa cookies.
+  @Post('logout')
+  async logout(
+    @Body() body: RefreshTokenDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token =
+      (req.cookies?.refresh_token as string | undefined) ??
+      bearerToken(req) ??
+      body?.refreshToken;
+    await this.authService.logout(token);
+    this.authService.clearAuthCookies(res);
+    return { ok: true };
   }
 }
