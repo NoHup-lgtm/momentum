@@ -45,23 +45,41 @@ estar certas** — o código sozinho não garante:
 
 ## 📋 Planos pendentes (risco aceito até execução)
 
-### M4 — auth web por cookie httpOnly (bloqueado por domínio cross-site)
+### M4 — auth web por cookie httpOnly (em andamento, faseado)
 Hoje o web (`app.momentu.me`, Vercel) fala com a API no Render
 (`*.onrender.com`) — **domínios registráveis diferentes = cross-site**. Cookies
-`SameSite=Lax` não são enviados cross-site, e `SameSite=None` depende de
-third-party cookies (bloqueados no Safari/ITP). Por isso o web usa Bearer +
-`localStorage` hoje.
+`SameSite=Lax` não vão cross-site, e `SameSite=None` depende de third-party
+cookies (bloqueados no Safari/ITP). Por isso o web usa Bearer + `localStorage`.
 
-**Plano para habilitar cookies httpOnly no web (mata o risco de XSS ler o token):**
-1. Apontar a API para um subdomínio do mesmo site: `api.momentu.me` → Render
-   (custom domain + DNS CNAME).
-2. No Render, setar `COOKIE_DOMAIN=.momentu.me`.
-3. Apontar `EXPO_PUBLIC_API_URL=https://api.momentu.me` no projeto web da Vercel.
-4. No `mobile/lib/session.ts`, no web: parar de salvar tokens no `localStorage`
-   e enviar `credentials: 'include'` no `apiFetch`/login/refresh (o backend já
-   emite os cookies). Manter Bearer/SecureStore no nativo.
+A migração é feita em 3 fases **encadeadas e reversíveis** — sem janela onde o
+login quebra (o backend aceita cookie OU Bearer o tempo todo):
 
-Com a API same-site, `SameSite=Lax` passa a valer e o token some do JS.
+**✅ Fase A (código — feito):** todas as requisições web mandam
+`credentials: 'include'` (`WEB_CREDENTIALS` em `mobile/lib/session.ts`). Hoje é
+inócuo (cross-site → cookie não é enviado, Bearer manda). É o canal pronto pra C.
+
+**⏳ Fase B (infra — você, nos painéis):**
+1. **Render → custom domain:** adicione `api.momentu.me` no serviço da API.
+   O Render mostra um alvo de CNAME (ex.: `momentum-api-xxxx.onrender.com`).
+2. **DNS (GoDaddy):** crie um registro **CNAME** `api` → o alvo do Render.
+   Aguarde propagar + o Render emitir o cert TLS (alguns minutos).
+3. **Render → Environment:** `COOKIE_DOMAIN=.momentu.me` (com o ponto inicial —
+   compartilha o cookie entre `app.` e `api.`). Confirme `CORS_ORIGIN` =
+   `https://app.momentu.me,https://momentu.me`.
+4. **Vercel (projeto web/app):** `EXPO_PUBLIC_API_URL=https://api.momentu.me`
+   e redeploy.
+5. **Verificar:** abra `app.momentu.me`, faça login, DevTools → Application →
+   Cookies → `api.momentu.me`: devem existir `access_token`/`refresh_token` com
+   **HttpOnly ✓, Secure ✓, Domain=.momentu.me**. Login e navegação normais.
+   (Nesta fase o web ainda usa Bearer; o cookie está só "ativado em paralelo".)
+
+**⏳ Fase C (código — depois de B confirmada):** no web, parar de salvar o token
+no `localStorage` (confiar só no cookie httpOnly) e tornar o "está logado?"
+server-driven. Aí o token **some do alcance do JS** — XSS não rouba mais. Se
+algo falhar, basta reverter a C (o Bearer no backend continua existindo).
+
+Quando `api.momentu.me` responder e o passo 5 estiver ✓, sinalize que eu aplico
+a Fase C.
 
 ### M5 — role Postgres INSERT-only para a LP
 A LP só **insere** na `waitlist`, mas usa a `DATABASE_URL` com privilégio total.
