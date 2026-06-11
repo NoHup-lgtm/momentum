@@ -58,28 +58,24 @@ login quebra (o backend aceita cookie OU Bearer o tempo todo):
 `credentials: 'include'` (`WEB_CREDENTIALS` em `mobile/lib/session.ts`). Hoje é
 inócuo (cross-site → cookie não é enviado, Bearer manda). É o canal pronto pra C.
 
-**⏳ Fase B (infra — você, nos painéis):**
-1. **Render → custom domain:** adicione `api.momentu.me` no serviço da API.
-   O Render mostra um alvo de CNAME (ex.: `momentum-api-xxxx.onrender.com`).
-2. **DNS (GoDaddy):** crie um registro **CNAME** `api` → o alvo do Render.
-   Aguarde propagar + o Render emitir o cert TLS (alguns minutos).
-3. **Render → Environment:** `COOKIE_DOMAIN=.momentu.me` (com o ponto inicial —
-   compartilha o cookie entre `app.` e `api.`). Confirme `CORS_ORIGIN` =
-   `https://app.momentu.me,https://momentu.me`.
-4. **Vercel (projeto web/app):** `EXPO_PUBLIC_API_URL=https://api.momentu.me`
-   e redeploy.
-5. **Verificar:** abra `app.momentu.me`, faça login, DevTools → Application →
-   Cookies → `api.momentu.me`: devem existir `access_token`/`refresh_token` com
-   **HttpOnly ✓, Secure ✓, Domain=.momentu.me**. Login e navegação normais.
-   (Nesta fase o web ainda usa Bearer; o cookie está só "ativado em paralelo".)
+**✅ Fase B (infra — feito):** `api.momentu.me` no Render (CNAME na GoDaddy +
+TLS), `COOKIE_DOMAIN=.momentu.me`, `EXPO_PUBLIC_API_URL=https://api.momentu.me`
+na Vercel. Verificado no DevTools: `access_token`/`refresh_token` em
+`api.momentu.me` com **HttpOnly ✓, Secure ✓, Domain=.momentu.me**, login OK.
 
-**⏳ Fase C (código — depois de B confirmada):** no web, parar de salvar o token
-no `localStorage` (confiar só no cookie httpOnly) e tornar o "está logado?"
-server-driven. Aí o token **some do alcance do JS** — XSS não rouba mais. Se
-algo falhar, basta reverter a C (o Bearer no backend continua existindo).
+**✅ Fase C (código — feito, commit `960e6f8` na branch `sec/m4-phase-c`):** no
+web o token de auth vive **só no cookie httpOnly** — o JS nunca o toca, então um
+XSS não consegue mais roubá-lo. Em `mobile/lib/session.ts`: o web não grava JWT
+no `localStorage` (guarda só uma "dica" de sessão não-sensível pra evitar
+round-trip no boot); `getAccessToken`/`getRefreshToken` retornam null no web; o
+refresh vai pelo cookie (body vazio); uma migração trata token legado como dica
+pra não deslogar quem já estava logado desde a Fase B. **Reversível:** o backend
+aceita cookie OU Bearer, então reverter a C restaura o Bearer no web sem mexer no
+backend.
 
-Quando `api.momentu.me` responder e o passo 5 estiver ✓, sinalize que eu aplico
-a Fase C.
+Pós-merge (validar em `app.momentu.me`): login do zero, reload (sessão
+persiste), e confirmar no DevTools que **não há mais** `access_token`/
+`refresh_token` em *Local Storage* (só nos Cookies). Logout limpa a dica.
 
 ### M5 — role Postgres INSERT-only para a LP
 A LP só **insere** na `waitlist`, mas usa a `DATABASE_URL` com privilégio total.
