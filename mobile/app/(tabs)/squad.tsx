@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Share, RefreshControl,
+  TextInput, ActivityIndicator, Share, RefreshControl, Platform,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getRank, type RankId } from '../../constants/design';
 import { useTheme, type ThemeColors } from '../../contexts/ThemeContext';
@@ -33,6 +34,8 @@ export default function SquadScreen() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [invite, setInvite] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     const sq = await getMySquad();
@@ -63,10 +66,26 @@ export default function SquadScreen() {
   }
 
   async function handleInvite() {
+    setErr(null);
     try {
       const c = await createSquadInvite();
-      await Share.share({ message: `momentum · ${c}` });
+      setInvite(c);
+      setCopied(false);
+      // Nativo: abre o share sheet por cima (best-effort). No web `Share.share`
+      // depende de navigator.share (ausente em muitos browsers) — por isso o
+      // código fica visível pra copiar de qualquer jeito.
+      if (Platform.OS !== 'web') {
+        Share.share({ message: `momentum · ${c}` }).catch(() => {});
+      }
     } catch (e) { setErr(e instanceof Error ? e.message : 'erro'); }
+  }
+
+  async function copyInvite() {
+    if (!invite) return;
+    try {
+      await Clipboard.setStringAsync(invite);
+      setCopied(true);
+    } catch {}
   }
 
   async function handleLeave() {
@@ -145,6 +164,16 @@ export default function SquadScreen() {
                 </TouchableOpacity>
               )}
             </View>
+
+            {invite && (
+              <TouchableOpacity style={s.inviteCard} onPress={copyInvite} activeOpacity={0.8}>
+                <Text style={s.inviteCardTitle}>{t.inviteTitle}</Text>
+                <Text style={s.inviteCode}>{invite}</Text>
+                <Text style={[s.inviteCardHint, copied && { color: c.success }]}>
+                  {copied ? t.copied : t.inviteHint}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <Text style={s.section}>{t.weekRanking}</Text>
             {board.every((m) => (m.weeklyXp ?? 0) === 0) && (
@@ -230,6 +259,13 @@ const makeStyles = (c: ThemeColors) => StyleSheet.create({
     borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9,
   },
   inviteTxt: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 12, color: c.accent },
+  inviteCard: {
+    backgroundColor: c.surface, borderRadius: 12, borderWidth: 1, borderColor: c.accent + '40',
+    padding: 16, alignItems: 'center', gap: 4, marginTop: 8,
+  },
+  inviteCardTitle: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 10, color: c.text3, textTransform: 'lowercase' },
+  inviteCode: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 26, color: c.accent, letterSpacing: 3 },
+  inviteCardHint: { fontFamily: 'JetBrainsMono_400Regular', fontSize: 11, color: c.text3, textAlign: 'center' },
 
   memberRow: {
     flexDirection: 'row', alignItems: 'center',
