@@ -78,22 +78,48 @@ persiste), e confirmar no DevTools que **não há mais** `access_token`/
 `refresh_token` em *Local Storage* (só nos Cookies). Logout limpa a dica.
 
 ### M5 — role Postgres INSERT-only para a LP
-A LP só **insere** na `waitlist`, mas usa a `DATABASE_URL` com privilégio total.
-Crie um role restrito no Neon e use a connection string dele na Vercel:
+A LP só **insere** na `waitlist`, mas hoje usa a `DATABASE_URL` do **owner**
+(privilégio total). Se essa string vazar (env da Vercel, log, etc.), o atacante
+lê/apaga o banco inteiro. Mitigação: um role que **só insere** na `waitlist`.
 
+**1. No Neon (SQL Editor, conectado como owner)** — troque a senha:
 ```sql
-CREATE ROLE waitlist_writer LOGIN PASSWORD '<senha-forte>';
-GRANT INSERT ON TABLE waitlist TO waitlist_writer;
--- precisa ler o id na cláusula RETURNING:
-GRANT SELECT (id) ON TABLE waitlist TO waitlist_writer;
+CREATE ROLE waitlist_writer WITH LOGIN PASSWORD '<SENHA_FORTE>';
+GRANT CONNECT ON DATABASE neondb           TO waitlist_writer;  -- ajuste o nome do db
+GRANT USAGE   ON SCHEMA   public           TO waitlist_writer;
+GRANT INSERT  ON TABLE    waitlist         TO waitlist_writer;
+GRANT SELECT (id) ON TABLE waitlist        TO waitlist_writer;  -- pro RETURNING id
 ```
 
+**2. Monte a connection string** (mesmo host do owner, use o endpoint `-pooler`):
+```
+postgresql://waitlist_writer:<SENHA>@<HOST-pooler>.neon.tech/neondb?sslmode=require
+```
+
+**3. Vercel (projeto LP)** → troque `DATABASE_URL` por essa string → **Redeploy**.
+
+**4. Verifique** que o waitlist ainda grava (envie um email de teste) e que o role
+é mesmo restrito — conectado COMO `waitlist_writer`, isto deve **falhar** com
+`permission denied`:
+```sql
+SELECT email FROM waitlist LIMIT 1;   -- ❌ negado (só tem SELECT da coluna id)
+SELECT * FROM users LIMIT 1;          -- ❌ negado
+DELETE FROM waitlist;                 -- ❌ negado
+```
+> Dica: dá pra criar o role pela aba **Roles** do Neon (gera a senha) e rodar só
+> os `GRANT`. Guarde a senha — o owner antigo continua válido como fallback.
+
 ### Outros (Low) — monitorar
-- Migrar a LP para Next 15 quando viável (zera os avisos remanescentes do 14.x;
-  todos dependem de features que não usamos — image-optimizer self-hosted, etc).
-- `npm audit`: 16 moderates no mobile (árvore do Expo) e 3 no prisma (dev) —
-  acompanhar upstream.
-- WAF/rate-limit gerenciado da Vercel na frente da LP.
+- **LP / Next.js** (em `14.2.35`): `npm audit` aponta 1 high + 1 moderate cujo
+  único fix é `next@16` (breaking). O risco real é baixo no nosso setup: a LP roda
+  **na Vercel** (que mitiga na borda os GHSAs de image-optimizer/middleware/cache)
+  e o `postcss` (moderate) é build-time com **CSS nosso/confiável**. Plano: subir
+  pra Next 15 (→ React 19) numa branch, testar a LP redesenhada (hydration +
+  animações) e só então 16. Não é urgente.
+- `npm audit`: **16 moderates no mobile** = árvore transitiva do **Expo** (sem fix
+  sem quebrar o SDK). **3 moderates no back** = `prisma` (**devDependency**, não vai
+  pra produção). Ambos: acompanhar upstream, nada a fazer agora.
+- WAF/rate-limit gerenciado da Vercel na frente da LP (config no painel).
 
 ## Como rodar o pentest dinâmico local (não-destrutivo)
 
