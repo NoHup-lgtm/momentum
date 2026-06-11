@@ -29,6 +29,12 @@ COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./
 COPY --from=build /app/package*.json ./
 
+# Roda como usuário sem privilégios (defesa em profundidade — um eventual RCE
+# não cai como root). O `node` já existe na imagem oficial; precisa ser dono
+# de /app para o npx/prisma escreverem cache.
+RUN chown -R node:node /app
+USER node
+
 EXPOSE 3000
 # Aplica migrations pendentes e sobe a API. migrate deploy é idempotente
 # (no-op quando nada pendente) e usa advisory lock (seguro com N instâncias).

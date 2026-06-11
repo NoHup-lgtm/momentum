@@ -2,9 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { neon } from '@neondatabase/serverless'
 import { randomUUID } from 'node:crypto'
 
+// Rate limit best-effort por IP (memória da instância). Serverless é efêmero,
+// então não é à prova de tudo — a proteção forte é o WAF da Vercel —, mas corta
+// burst de um mesmo cliente quente. 10 req / 10 min.
+const hits = new Map<string, number[]>()
+const WINDOW = 10 * 60_000
+const MAX = 10
+function rateLimited(ip: string): boolean {
+  const now = Date.now()
+  const arr = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW)
+  arr.push(now)
+  hits.set(ip, arr)
+  if (hits.size > 5000) hits.clear() // evita crescer sem limite
+  return arr.length > MAX
+}
+
 // Persiste na tabela `waitlist` do Neon (mesma do app). Requer DATABASE_URL
 // configurada nas env vars do projeto lp na Vercel.
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (rateLimited(ip)) {
+    return NextResponse.json({ error: 'Muitas tentativas. Tente mais tarde.' }, { status: 429 })
+  }
+
   const { email, source } = await req.json().catch(() => ({}))
 
   // RFC 5321: 254 chars máx. Regex simples só pra barrar lixo óbvio.
@@ -37,17 +57,5 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error('[waitlist] insert failed:', e)
     return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
-  }
-}
-
-export async function GET() {
-  const dbUrl = process.env.DATABASE_URL
-  if (!dbUrl) return NextResponse.json({ count: 0 })
-  try {
-    const sql = neon(dbUrl)
-    const rows = await sql`SELECT count(*)::int AS count FROM waitlist`
-    return NextResponse.json({ count: rows[0]?.count ?? 0 })
-  } catch {
-    return NextResponse.json({ count: 0 })
   }
 }
