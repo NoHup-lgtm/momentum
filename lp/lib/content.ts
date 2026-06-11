@@ -8,7 +8,6 @@ export const content = {
       squad: 'Squad',
       roadmap: 'Roadmap',
       pricing: 'Preços',
-      waitlist: 'Lista de espera',
     },
     hero: {
       badge: 'grátis · já está no ar',
@@ -179,7 +178,6 @@ export const content = {
       squad: 'Squad',
       roadmap: 'Roadmap',
       pricing: 'Pricing',
-      waitlist: 'Waitlist',
     },
     hero: {
       badge: 'free · live now',

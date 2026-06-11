@@ -22,7 +22,8 @@ estar certas** — o código sozinho não garante:
 - [ ] **Remover `ANTHROPIC_API_KEY`** se existir — a rota que a usava foi deletada;
       se a chave já esteve lá, **revogue no console da Anthropic** (pode ter vazado
       via o endpoint público antigo).
-- [ ] `DATABASE_URL` — idealmente o **role INSERT-only** (ver M5 abaixo), não o owner.
+- [ ] **Remover `DATABASE_URL`** do projeto LP — a LP não acessa mais o banco
+      (waitlist removida, ver M5 abaixo). Sem credencial de banco = sem vazamento.
 
 **GitHub OAuth App**
 - [ ] Callback URLs restritas a `app.momentu.me` (+ esquema mobile `momentum://`).
@@ -77,37 +78,25 @@ Pós-merge (validar em `app.momentu.me`): login do zero, reload (sessão
 persiste), e confirmar no DevTools que **não há mais** `access_token`/
 `refresh_token` em *Local Storage* (só nos Cookies). Logout limpa a dica.
 
-### M5 — role Postgres INSERT-only para a LP
-A LP só **insere** na `waitlist`, mas hoje usa a `DATABASE_URL` do **owner**
-(privilégio total). Se essa string vazar (env da Vercel, log, etc.), o atacante
-lê/apaga o banco inteiro. Mitigação: um role que **só insere** na `waitlist`.
+### M5 — ✅ resolvido: a LP não acessa mais o banco
+**Contexto:** a redesign Duolingo trocou o funil da LP de "captura de email
+(waitlist)" por CTAs diretos → login no GitHub. Com isso a rota `/api/waitlist`
+virou **código morto** e a `DATABASE_URL` na LP só servia pra ela.
 
-**1. No Neon (SQL Editor, conectado como owner)** — troque a senha:
-```sql
-CREATE ROLE waitlist_writer WITH LOGIN PASSWORD '<SENHA_FORTE>';
-GRANT CONNECT ON DATABASE neondb           TO waitlist_writer;  -- ajuste o nome do db
-GRANT USAGE   ON SCHEMA   public           TO waitlist_writer;
-GRANT INSERT  ON TABLE    waitlist         TO waitlist_writer;
-GRANT SELECT (id) ON TABLE waitlist        TO waitlist_writer;  -- pro RETURNING id
-```
+Em vez de um role restrito (M5 original), tomamos a opção **mais segura**: a LP
+deixa de tocar o banco por completo.
+- **Código** (`chore/lp-remove-waitlist`): removidos `app/api/waitlist/route.ts`,
+  a dep `@neondatabase/serverless` e as strings `waitlist` mortas do `content.ts`.
+  Build + tsc limpos.
+- **Ação no painel (Arthur):** **remover a env `DATABASE_URL` do projeto LP na
+  Vercel** → a LP fica com **zero credencial de banco**. Sem superfície pra vazar.
 
-**2. Monte a connection string** (mesmo host do owner, use o endpoint `-pooler`):
-```
-postgresql://waitlist_writer:<SENHA>@<HOST-pooler>.neon.tech/neondb?sslmode=require
-```
+**Role `waitlist_writer`** (criado no Neon durante o M5 original) ficou **ocioso**
+— não há nada o alimentando. Pode **dropar** (`DROP ROLE waitlist_writer;` via
+DataGrip como owner) ou guardar de reserva caso a captura de email volte.
 
-**3. Vercel (projeto LP)** → troque `DATABASE_URL` por essa string → **Redeploy**.
-
-**4. Verifique** que o waitlist ainda grava (envie um email de teste) e que o role
-é mesmo restrito — conectado COMO `waitlist_writer`, isto deve **falhar** com
-`permission denied`:
-```sql
-SELECT email FROM waitlist LIMIT 1;   -- ❌ negado (só tem SELECT da coluna id)
-SELECT * FROM users LIMIT 1;          -- ❌ negado
-DELETE FROM waitlist;                 -- ❌ negado
-```
-> Dica: dá pra criar o role pela aba **Roles** do Neon (gera a senha) e rodar só
-> os `GRANT`. Guarde a senha — o owner antigo continua válido como fallback.
+> ⚠️ A `DATABASE_URL` do **owner** foi exposta em texto puro durante o setup —
+> vale **rotacionar a senha do owner** com o Moyza no Neon quando der (higiene).
 
 ### Outros (Low) — monitorar
 - **LP / Next.js** (em `14.2.35`): `npm audit` aponta 1 high + 1 moderate cujo
