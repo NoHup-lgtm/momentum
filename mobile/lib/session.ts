@@ -2,12 +2,24 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { API_URL } from './config';
 
-// M4: no web, envia os cookies httpOnly junto das requisições. Hoje (API
-// cross-site) o browser nem manda o cookie — o Bearer continua mandando —, mas
-// quando a API for same-site (api.momentu.me) este é o canal de auth do web.
-// No nativo é ignorado (usa Bearer via SecureStore).
-const WEB_CREDENTIALS: RequestCredentials | undefined =
-  Platform.OS === 'web' ? 'include' : undefined;
+const IS_WEB = Platform.OS === 'web';
+
+// M4 (Fase C): no web, o token de auth vive APENAS no cookie httpOnly (setado
+// pelo servidor, em api.momentu.me, same-site). O JS nunca toca no token —
+// então um XSS não consegue roubá-lo. As requisições mandam o cookie via
+// `credentials: 'include'`. No nativo nada disso vale: usa Bearer via SecureStore.
+const WEB_CREDENTIALS: RequestCredentials | undefined = IS_WEB ? 'include' : undefined;
+
+// Como o cookie é httpOnly, o JS não consegue lê-lo pra saber "estou logado?".
+// Guardamos só esta DICA não-sensível (não é o token) pra evitar um round-trip
+// no boot. Se a dica mentir, o checkSession via cookie corrige.
+const WEB_SESSION_HINT = 'momentum.web_session';
+
+function setWebHint(on: boolean) {
+  if (!IS_WEB || typeof localStorage === 'undefined') return;
+  if (on) localStorage.setItem(WEB_SESSION_HINT, '1');
+  else localStorage.removeItem(WEB_SESSION_HINT);
+}
 import type { User } from '../store/app';
 import type { RankId } from '../constants/design';
 
@@ -80,27 +92,51 @@ async function deleteStoredItem(key: string) {
 }
 
 async function saveTokens(accessToken: string, refreshToken: string) {
+  if (IS_WEB) {
+    // O servidor já setou os tokens como cookie httpOnly; NÃO tocamos no
+    // localStorage (token fora do alcance do JS). Só marcamos a dica de sessão.
+    setWebHint(true);
+    return;
+  }
   await setStoredItem(ACCESS_KEY, accessToken);
   await setStoredItem(REFRESH_KEY, refreshToken);
 }
 
+// Bearer pro header Authorization. No web é sempre null — a auth vai no cookie.
 async function getAccessToken() {
+  if (IS_WEB) return null;
   return getStoredItem(ACCESS_KEY);
 }
 
 async function getRefreshToken() {
+  if (IS_WEB) return null;
   return getStoredItem(REFRESH_KEY);
 }
 
 export async function clearTokens() {
+  await deleteStoredItem(CELEBRATED_LEVEL_KEY);
+  if (IS_WEB) {
+    setWebHint(false);
+    // Migração Fase C: limpa tokens legados que ficaram no localStorage de
+    // sessões antigas (antes do cookie httpOnly).
+    await deleteStoredItem(ACCESS_KEY);
+    await deleteStoredItem(REFRESH_KEY);
+    return;
+  }
   await deleteStoredItem(ACCESS_KEY);
   await deleteStoredItem(REFRESH_KEY);
-  await deleteStoredItem(CELEBRATED_LEVEL_KEY);
 }
 
-// Existe um token salvo? (leitura local, instantânea — usada no boot pra evitar
-// um round-trip de rede quando o usuário não está logado.)
+// Existe uma sessão? (leitura local, instantânea — usada no boot pra evitar um
+// round-trip quando o usuário não está logado.) No web olha a dica; se ela
+// faltar mas houver token legado no localStorage, trata como dica (o
+// checkSession via cookie confirma e, se falhar, cai no login).
 export async function hasStoredSession(): Promise<boolean> {
+  if (IS_WEB) {
+    if (typeof localStorage === 'undefined') return false;
+    if (localStorage.getItem(WEB_SESSION_HINT) === '1') return true;
+    return localStorage.getItem(ACCESS_KEY) != null;
+  }
   return (await getAccessToken()) != null;
 }
 
@@ -162,12 +198,13 @@ function tryRefresh(): Promise<boolean> {
 
 async function doRefresh(): Promise<boolean> {
   const refreshToken = await getRefreshToken();
-  if (!refreshToken) return false;
+  // Nativo precisa do token salvo; web manda o cookie httpOnly (refreshToken null).
+  if (!IS_WEB && !refreshToken) return false;
 
   const res = await fetch(`${API_URL}/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    body: JSON.stringify(refreshToken ? { refreshToken } : {}),
     credentials: WEB_CREDENTIALS,
   });
 
@@ -205,8 +242,7 @@ export async function loginWithGithubCode(
 
 // Reidrata a sessão no boot do app. Retorna o usuário ou null se não logado.
 export async function checkSession(): Promise<AuthUser | null> {
-  const token = await getAccessToken();
-  if (!token) return null;
+  if (!(await hasStoredSession())) return null;
 
   const res = await apiFetch('/auth/check', { method: 'GET' });
   if (!res.ok) return null;
@@ -215,8 +251,7 @@ export async function checkSession(): Promise<AuthUser | null> {
 
 // Busca o usuário logado com os dados de gamificação. null = não autenticado.
 export async function fetchMe(): Promise<MeUser | null> {
-  const token = await getAccessToken();
-  if (!token) return null;
+  if (!(await hasStoredSession())) return null;
   try {
     const res = await apiFetch('/me', { method: 'GET' });
     if (!res.ok) return null;
