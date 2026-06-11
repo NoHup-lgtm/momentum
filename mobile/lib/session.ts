@@ -1,6 +1,13 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { API_URL } from './config';
+
+// M4: no web, envia os cookies httpOnly junto das requisições. Hoje (API
+// cross-site) o browser nem manda o cookie — o Bearer continua mandando —, mas
+// quando a API for same-site (api.momentu.me) este é o canal de auth do web.
+// No nativo é ignorado (usa Bearer via SecureStore).
+const WEB_CREDENTIALS: RequestCredentials | undefined =
+  Platform.OS === 'web' ? 'include' : undefined;
 import type { User } from '../store/app';
 import type { RankId } from '../constants/design';
 
@@ -131,7 +138,7 @@ export async function apiFetch(
   }
   if (token) headers.set('Authorization', `Bearer ${token}`);
 
-  const res = await fetch(`${API_URL}${path}`, { ...init, headers });
+  const res = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: WEB_CREDENTIALS });
 
   if (res.status === 401 && retry) {
     const refreshed = await tryRefresh();
@@ -161,6 +168,7 @@ async function doRefresh(): Promise<boolean> {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
+    credentials: WEB_CREDENTIALS,
   });
 
   if (!res.ok) {
@@ -183,6 +191,7 @@ export async function loginWithGithubCode(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ code, redirectUri, codeVerifier }),
+    credentials: WEB_CREDENTIALS,
   });
 
   if (!res.ok) {
