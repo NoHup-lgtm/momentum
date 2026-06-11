@@ -25,7 +25,9 @@ import { ModerationModule } from './moderation/moderation.module.js';
     // dispara ~5 no load — mas corta brute-force/spam/abuso). Em prod atrás de
     // proxy, habilitar trust proxy p/ o IP real.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
-    ScheduleModule.forRoot(),
+    // DISABLE_CRON=1 desliga os jobs agendados (liga/streak/push) — útil para
+    // rodar uma instância de teste/efêmera sem disparar escritas em segundo plano.
+    ...(process.env.DISABLE_CRON === '1' ? [] : [ScheduleModule.forRoot()]),
     PrismaModule, AuthModule, UserModule, GithubModule, SquadModule, ChallengeModule, LeaderboardModule, AchievementModule, ShopModule, LigaModule, FeedModule, FriendModule, PushModule, ModerationModule,
   ],
   controllers: [AppController],

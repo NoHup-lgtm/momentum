@@ -1,5 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { JwtService } from '@nestjs/jwt';
+import { randomUUID } from 'node:crypto';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CookieService } from '../core/services/cookie.service.js';
@@ -87,6 +89,33 @@ export class AuthService {
 
   async refreshTokens(refreshToken: string): Promise<SessionUser | null> {
     const payload = await this.verifyToken(refreshToken, 'refresh');
+
+    // Rotação: tokens novos carregam `jti` rastreado no banco. Tokens legados
+    // (emitidos antes deste recurso) não têm jti — aceita uma vez e a emissão
+    // seguinte já os substitui por um rastreado. Em ~30d todos expiram.
+    if (payload.jti) {
+      const rec = await this.prisma.refreshToken.findUnique({
+        where: { jti: payload.jti },
+      });
+      if (!rec || rec.expiresAt < new Date()) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      if (rec.revokedAt) {
+        // Reuso de um token já rotacionado = roubo provável → mata a família
+        // inteira do usuário, forçando novo login em todos os dispositivos.
+        await this.prisma.refreshToken.updateMany({
+          where: { userId: rec.userId, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        throw new UnauthorizedException('Token reuse detected');
+      }
+      // revoga o token atual; issueAuthCookies emite um novo (rotação)
+      await this.prisma.refreshToken.update({
+        where: { jti: payload.jti },
+        data: { revokedAt: new Date() },
+      });
+    }
+
     return await this.prisma.user.findUnique({
       where: { id: payload.sub },
       select: {
@@ -99,10 +128,40 @@ export class AuthService {
     });
   }
 
+  // Revoga o refresh token apresentado (logout). Best-effort: token inválido
+  // ou já expirado simplesmente não tem nada a revogar.
+  async logout(refreshToken?: string): Promise<void> {
+    if (!refreshToken) return;
+    try {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(refreshToken);
+      if (payload?.jti) {
+        await this.prisma.refreshToken.updateMany({
+          where: { jti: payload.jti, revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+      }
+    } catch {
+      // token inválido — nada a fazer
+    }
+  }
+
+  // Limpa tokens expirados/revogados há mais de 1 dia (higiene da tabela).
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async pruneRefreshTokens(): Promise<void> {
+    const cutoff = new Date(Date.now() - 86_400_000);
+    await this.prisma.refreshToken
+      .deleteMany({
+        where: {
+          OR: [{ expiresAt: { lt: new Date() } }, { revokedAt: { lt: cutoff } }],
+        },
+      })
+      .catch(() => {});
+  }
+
   // Gera os tokens e os entrega nos cookies httpOnly (web) E os retorna no
   // corpo (mobile — React Native não persiste cookies automaticamente, então
   // o app guarda os tokens no SecureStore e envia via Authorization: Bearer).
-  issueAuthCookies(res: Response, userId: string, githubId: string) {
+  async issueAuthCookies(res: Response, userId: string, githubId: string) {
     const accessTtl = process.env.JWT_EXPIRES_IN ?? DEFAULT_ACCESS_TTL;
     const refreshTtl =
       process.env.JWT_REFRESH_EXPIRES_IN ?? DEFAULT_REFRESH_TTL;
@@ -113,12 +172,22 @@ export class AuthService {
     const refreshTtlSeconds =
       this.parseDurationToSeconds(refreshTtl) ?? fallbackRefreshSeconds;
 
+    // jti rastreado: cada refresh emitido vira um registro revogável.
+    const jti = randomUUID();
+    await this.prisma.refreshToken.create({
+      data: {
+        jti,
+        userId,
+        expiresAt: new Date(Date.now() + refreshTtlSeconds * 1000),
+      },
+    });
+
     const accessToken = this.jwtService.sign(
       { sub: userId, githubId, tokenType: 'access' } satisfies JwtPayload,
       { expiresIn: accessTtlSeconds },
     );
     const refreshToken = this.jwtService.sign(
-      { sub: userId, githubId, tokenType: 'refresh' } satisfies JwtPayload,
+      { sub: userId, githubId, tokenType: 'refresh', jti } satisfies JwtPayload,
       { expiresIn: refreshTtlSeconds },
     );
 
