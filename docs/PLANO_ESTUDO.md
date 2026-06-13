@@ -1,154 +1,201 @@
 # Plano Estudo — "roadmap.sh encontra Duolingo"
 
-Modo Estudo do momentum: trilhas de aprendizado interativas (inspiração
-[roadmap.sh](https://roadmap.sh)) com lições curtas e exercícios estilo
-Duolingo, plugadas no motor de jogo existente (XP/coins/streak/liga/conquistas).
+Modo Estudo do momentum: o usuário **monta seu perfil de aprendizado** escolhendo
+trilhas e linguagens (catálogo inspirado em [roadmap.sh](https://roadmap.sh)) e
+estuda com lições curtas e exercícios estilo Duolingo, tudo plugado no motor de
+jogo que já existe (XP/coins/streak/liga/conquistas).
+
+## Modelo central (estilo Duolingo de idiomas)
+
+No Duolingo você adiciona vários **idiomas** ao perfil e cada um tem sua árvore e
+progresso. Aqui é igual, com **dois tipos de curso** (as duas famílias do
+roadmap.sh):
+
+- **Trilhas (role-based):** Frontend, Backend, Full Stack, DevOps, Android, iOS,
+  Data Analyst, AI Engineer, Game Dev, QA, Cyber Security… — jornadas completas
+  de uma função.
+- **Linguagens/Skills (skill-based):** JavaScript, TypeScript, Python, React,
+  Node.js, SQL, Docker, Go, Rust, System Design, DSA (LeetCode)… — focos
+  específicos.
+
+O usuário **matricula em quantas quiser** (trilha E/OU linguagem), e o **perfil
+mostra** as que ele está estudando (tipo as bandeirinhas do Duolingo), cada uma
+com seu anel de progresso. Trocar entre elas é instantâneo.
 
 ## Decisões de produto (Arthur, 2026-06-11)
 
 | Decisão | Escolha |
 |---|---|
+| Catálogo | Espelha roadmap.sh: **role-based** (trilhas) + **skill-based** (linguagens). Um só model `Track` com `kind: ROLE \| SKILL` |
+| Matrícula | **Múltipla** — adiciona N trilhas/linguagens ao perfil, cada uma com progresso. Exibidas no **perfil** (estilo Duolingo) |
 | Streak | **Unificada**: dia com commit OU lição completa mantém a ofensiva |
-| Navegação | **Nova tab "aprender"** na tab bar |
-| Erros/vidas | **Sem punição no MVP** (errou → explicação → segue; score no final). Corações ficam pra depois como mecânica Pro (vidas ilimitadas = monetização clássica) |
-| Trilhas | Frontend e Backend **completas no mapa** (espelhando roadmap.sh/frontend e /backend). Fullstack = **curadoria** de unidades das outras duas (reuso, zero conteúdo novo) |
-| Free vs Pro | Free = frontend + backend + fullstack. Pro = DevOps, Mobile, IA/Dados, LeetCode, System Design… (aparecem com cadeado "Pro · em breve" desde o MVP → funil de validação) |
+| Navegação | **Nova tab "aprender"** + as trilhas do user aparecem no **perfil** |
+| Erros/vidas | **Sem punição no MVP** (errou → explicação → segue). Corações = mecânica Pro futura (vidas ilimitadas) |
+| Free vs Pro | **Free** = Frontend + Backend + Full Stack (role). **Pro** = todas as outras trilhas (DevOps, Android, iOS, AI/Dados, Game…) + **todas as linguagens skill-based** + System Design + DSA/LeetCode + AI Tutor. No MVP aparecem com cadeado "Pro · em breve" → funil de validação pré-Stripe |
+| Fullstack | **Curadoria**: reusa unidades de front+back numa sequência própria (zero conteúdo novo) |
 
 ## Arquitetura de conteúdo
 
 ```
-Trilha (frontend │ backend │ fullstack │ pro: devops, mobile, leetcode…)
- └─ Unidade (tópico: "HTML", "APIs REST"…) — REUTILIZÁVEL entre trilhas
-     └─ Lição (5–8 exercícios, 3–5 min)
-         └─ Exercício (6 tipos no MVP)
+Track (kind: ROLE|SKILL · isPro)         ex.: frontend, backend, javascript
+ └─ TrackUnit (N:N, ordem por track)     ← reuso entre tracks (fullstack, skills)
+     └─ Unit (tópico)                     ex.: "Internet", "HTML", "APIs REST"
+         └─ Lesson (5–8 exercícios, 3–5 min)
+             └─ Exercise (6 tipos no MVP)
 ```
+
+**Reuso é o coração do modelo.** Unidades como *Internet*, *Git & GitHub*,
+*Web Security*, *Authentication*, *Testing*, *GraphQL* aparecem em frontend E
+backend — escrevemos **uma vez**, referenciamos em várias trilhas via `TrackUnit`.
+Uma linguagem skill-based (ex. "JavaScript") reusa as unidades de JS do frontend.
 
 **Tipos de exercício (MVP — sem execução de código):**
 1. Múltipla escolha · 2. Completar o código (lacuna) · 3. Prever o output ·
 4. Verdadeiro/falso · 5. Ordenar linhas · 6. Parear conceitos
 
 **Execução real de código ("ambientes controlados") — em fases:**
-- MVP: nenhuma (tipos estáticos acima)
+- MVP: nenhuma (tipos estáticos)
 - Fase 2: **JS no browser** (sandbox em web worker — zero infra)
-- Fase 3 (Pro/LeetCode): execução server-side (Piston/Judge0 self-hosted) com
-  test cases — infra + custo, só depois de validar engajamento
+- Fase 3 (Pro/LeetCode): execução server-side (Piston/Judge0 self-hosted) + test
+  cases — infra + custo, só depois de validar engajamento
 
-## Mapa de conteúdo (unidades por trilha)
+## Mapa de conteúdo — fiel ao roadmap.sh
 
-**Frontend** (espelha roadmap.sh/frontend):
-1. Como a web funciona (Internet, HTTP, DNS, browsers)
-2. HTML (estrutura, semântica, formulários)
-3. CSS (seletores, box model, flexbox/grid, responsivo)
-4. JavaScript básico (sintaxe, tipos, funções, arrays/objetos)
-5. JavaScript no browser (DOM, eventos, fetch, storage)
-6. JavaScript moderno (ES6+, promises/async)
-7. Git & GitHub *(compartilhada com backend)*
-8. Pacotes & build (npm, bundlers, Vite)
-9. React (componentes, props/state, hooks)
-10. TypeScript básico
-11. Testes no frontend
-12. Performance & Web Vitals
-13. Segurança no front (XSS, CORS, CSP)
-14. Acessibilidade
+### Trilha FRONTEND (unidades, na ordem do roadmap)
+1. **Internet** (como funciona, HTTP, DNS, hosting, browsers)
+2. **HTML** (basics, semântica, forms & validação, acessibilidade, SEO)
+3. **CSS** (basics, layouts, responsivo)
+4. **JavaScript** (basics, DOM, fetch/Ajax) *(reusada pela skill JavaScript)*
+5. **Git & Controle de versão** + hosting (GitHub/GitLab) *(compartilhada c/ backend)*
+6. **Package Managers** (npm/pnpm/yarn)
+7. **Frameworks** (React/Vue/Angular/Svelte/Solid/Qwik — escolher 1)
+8. **Escrevendo CSS** (Tailwind, BEM, arquitetura, Sass/PostCSS)
+9. **Build Tools** (linters/formatters: Prettier/ESLint; bundlers: Vite/Webpack/Rollup/Parcel)
+10. **Testing** (Vitest/Jest/Playwright/Cypress) *(compartilhada)*
+11. **Segurança web** (CORS, HTTPS, CSP, OWASP) + **Auth** (JWT/OAuth/SSO) *(compartilhada)*
+12. **TypeScript** *(reusada pela skill TypeScript)*
+13. **Web Components** (templates, custom elements, shadow DOM)
+14. **SSR** (Next.js/Astro; Nuxt; Svelte Kit)
+15. **GraphQL** (Apollo/Relay) *(compartilhada)*
+16. **PWA & Performance** (PRPL, RAIL, Lighthouse, métricas)
+17. **Static Site Generators** (Next/Astro/Eleventy)
+18. **Mobile** (React Native/Flutter/Ionic) · **Desktop** (Electron/Tauri)
+19. **Browser APIs** (storage, websockets, SSE, service workers, notifications…)
 
-**Backend** (espelha roadmap.sh/backend):
-1. Como a internet funciona *(compartilhada)*
-2. Node.js & a linguagem do servidor
-3. Git & GitHub *(compartilhada)*
-4. Terminal & Linux básico
-5. Bancos relacionais (SQL, modelagem, índices)
-6. NoSQL (noções, quando usar)
-7. APIs (REST, verbos, status codes, JSON)
-8. Autenticação & autorização (sessions, JWT, OAuth)
-9. Caching (HTTP cache, Redis)
-10. Segurança (OWASP, hashing, injection)
-11. Testes no backend
-12. Docker & deploy
-13. Arquitetura (MVC, monolito vs micro, filas)
+### Trilha BACKEND (unidades, na ordem do roadmap)
+1. **Internet** *(compartilhada c/ frontend)*
+2. **Linguagem** (escolher: JavaScript/Go/Python/Ruby/Java/C#/PHP/Rust)
+3. **Git & Controle de versão** + hosting *(compartilhada)*
+4. **Bancos relacionais** (PostgreSQL/MySQL/MariaDB/SQLite…)
+5. **APIs** (REST, JSON, SOAP, gRPC, GraphQL, HATEOAS, OpenAPI)
+6. **Authentication** (JWT, OAuth, Basic, Token, Cookie, OpenID, SAML) *(compartilhada)*
+7. **Caching** (Redis/Memcached; server/CDN/client)
+8. **Web Security** (hashing bcrypt/scrypt; HTTPS, OWASP, CORS, TLS) *(compartilhada)*
+9. **Testing** (integração, unit, funcional) *(compartilhada)*
+10. **CI/CD**
+11. **Mais sobre bancos** (ORMs, ACID, transações, N+1, normalização, migrations)
+12. **Escalando bancos** (índices, replicação, sharding, CAP)
+13. **Design & Arquitetura** (monolito/micro/SOA/serverless/12-factor; GOF/DDD/TDD/CQRS)
+14. **Containers** (Docker, Kubernetes, vs virtualização)
+15. **Web Servers** (Nginx/Apache/Caddy)
+16. **Search Engines** (Elasticsearch/Solr) · **Message Brokers** (RabbitMQ/Kafka)
+17. **Real-Time** (SSE, WebSockets, polling)
+18. **NoSQL** (document/key-value/time-series/column/graph)
+19. **Building for Scale** (degradação graciosa, throttling, circuit breaker) + **Observabilidade**
 
-**Fullstack** (curadoria, mesmas unidades): Como a web funciona → HTML → CSS →
-JS básico → Git → APIs → Bancos → Auth → React → Docker & deploy.
+### FULLSTACK (curadoria — reusa as unidades acima)
+Internet → HTML → CSS → JS → Git → Frameworks → APIs → Bancos relacionais →
+Auth → Web Security → Testing → Docker & deploy.
 
-> O mapa COMPLETO fica visível no app desde o dia 1 (aspiracional, estilo
-> Duolingo). Unidades ainda sem conteúdo aparecem bloqueadas ("em breve").
-> Conteúdo é escrito progressivamente.
+> O mapa **completo** de cada trilha fica visível desde o dia 1 (aspiracional,
+> estilo Duolingo). Unidades sem conteúdo ainda aparecem bloqueadas ("em breve").
 
 ## Schema (Prisma — novos models)
 
 ```
-Track      { key @unique, isPro, order }
-Unit       { key @unique }
-TrackUnit  { trackId, unitId, order }      ← N:N com ordem por trilha (fullstack!)
-Lesson     { key @unique, unitId, order, xpReward, coinReward }
-Exercise   { lessonId, order, type, data Json, answer Json }
+enum TrackKind     { ROLE, SKILL }
+enum ExerciseType  { MULTIPLE_CHOICE, FILL_CODE, PREDICT_OUTPUT, TRUE_FALSE,
+                     ORDER_LINES, MATCH_PAIRS }
+
+Track   { key @unique, kind TrackKind, isPro, icon, order }
+Unit    { key @unique }                                  ← reutilizável
+TrackUnit { trackId, unitId, order }  @@unique([trackId, unitId])
+Lesson  { key @unique, unitId, order, xpReward, coinReward }
+Exercise{ lessonId, order, type ExerciseType, data Json, answer Json }
+
+UserTrack { userId, trackId, addedAt, isActive }  @@unique([userId, trackId])
+          ← as matrículas do user (Duolingo-style), exibidas no perfil
 UserLessonProgress { userId, lessonId, score, completedAt }
-           @@unique([userId, lessonId])    ← crédito idempotente, 1x por lição
-enum ExerciseType { MULTIPLE_CHOICE, FILL_CODE, PREDICT_OUTPUT, TRUE_FALSE,
-                    ORDER_LINES, MATCH_PAIRS }
+          @@unique([userId, lessonId])  ← crédito idempotente, 1x por lição
 ```
 
 - Conteúdo **seedado por key via JSON no repo** (`back/content/*.json`) — mesmo
-  padrão de challenges/cosméticos. Versionado, revisável em PR. CMS só se doer.
+  padrão de challenges/cosméticos. Versionado, revisável em PR.
 - i18n NO CONTEÚDO: `data` carrega `{ pt, en }` por campo (prompt, opções,
   explicação). O mobile escolhe pela lang ativa.
 
 ## Anti-cheat & economia
 
-- O GET da lição **nunca envia `answer`**. O cliente manda as respostas, o
-  **servidor corrige** e credita — consistente com o resto do app (nada
-  client-trusted).
-- **XP: lição = 20 XP + 5 coins** (commit do dia = 50 — o commit continua rei).
-  Crédito **1x por lição pra sempre** (unique constraint) → impossível farmar
-  XP/liga repetindo lição. XP de lição entra no ledger → **conta na liga
-  automaticamente** (a janela soma XpTransaction).
-- Novos enums: `XpSource.LESSON`, `CoinSource.LESSON`,
-  `ActivityType.LESSON` (streak).
+- O GET da lição **nunca envia `answer`**. Cliente manda respostas → **servidor
+  corrige** → credita. Consistente com o resto (nada client-trusted).
+- **Lição = 20 XP + 5 coins**, creditado **1x pra sempre** (unique) → impossível
+  farmar repetindo. Commit do dia segue valendo mais (50 XP).
+- XP de lição entra no ledger → **conta na liga automaticamente**.
+- Novos enums: `XpSource.LESSON`, `CoinSource.LESSON`, `ActivityType.LESSON`.
 
 ## Integração com o motor existente (zero refactor)
 
 | Sistema | Gancho |
 |---|---|
-| **Streak** | lição completa grava `DailyActivity(LESSON)`; cálculo da ofensiva passa a unir dias de GitHub + dias de lição. Lembrete das 20h vira "commit **ou** lição" |
+| **Streak** | lição grava `DailyActivity(LESSON)`; a ofensiva une dias de GitHub + lição. Lembrete 20h vira "commit **ou** lição" |
 | **Liga** | automático (XP no ledger) |
-| **Conquistas** | novas: 1ª lição, 10/50 lições, 1ª unidade, trilha completa — auto-unlock já existe |
+| **Conquistas** | novas: 1ª lição, 10/50 lições, 1ª unidade, trilha completa (auto-unlock já existe) |
 | **Desafio diário** | novo no catálogo: "complete 1 lição" |
-| **Feed/push** | `UNIT_COMPLETED`/`TRACK_COMPLETED` + push categoria "wins" |
-| **Baús** | baú ao completar unidade (raridade por tamanho) |
+| **Feed/push** | `UNIT_COMPLETED`/`TRACK_COMPLETED` + push "wins" |
+| **Baús** | baú ao completar unidade |
+| **Perfil** | nova seção: trilhas/linguagens matriculadas + progresso |
 
-## Endpoints (novos, módulo `learn`)
+## Endpoints (módulo `learn`)
 
 ```
-GET  /learn/tracks                  → trilhas + progresso resumido (+ cadeado pro)
+GET  /learn/catalog                 → todas as tracks (role+skill) + isPro + se matriculado
+GET  /learn/me                      → minhas matrículas (UserTrack) + progresso de cada
+POST /learn/tracks/:key/enroll      → matricula (bloqueia se isPro e user não-Pro)
+DELETE /learn/tracks/:key/enroll    → desmatricula
 GET  /learn/tracks/:key             → mapa: unidades→lições com estado (feita/atual/bloqueada)
 GET  /learn/lessons/:id             → exercícios SEM answers
-POST /learn/lessons/:id/complete    → body: respostas → score + recompensas (idempotente)
+POST /learn/lessons/:id/complete    → respostas → score + recompensas (idempotente)
 ```
 
-## Telas mobile (módulo novo, bilíngue desde o nascimento)
+## Telas mobile (módulo novo, bilíngue)
 
-1. **aprender** (tab nova) — hub: trilhas com anel de progresso, pro com cadeado
-2. **trilha** — o mapa/caminho visual estilo Duolingo (unidades como "capítulos",
-   lições como nós no caminho; feita ✓ / atual ⭐ / bloqueada 🔒)
-3. **lição** — player: 1 exercício por vez, barra de progresso, feedback
-   imediato (acertou/errou + explicação), sem punição
-4. **resultado** — XP/coins ganhos, streak mantida, score, CTA próxima lição
+1. **aprender** (tab nova) — minhas trilhas/linguagens (anel de progresso) + botão
+   **"+ adicionar"**
+2. **catálogo** — browse das tracks (2 seções: trilhas / linguagens), Pro com
+   cadeado; matricular daqui
+3. **trilha** — o mapa/caminho visual estilo Duolingo (unidades = capítulos,
+   lições = nós: feita ✓ / atual ⭐ / bloqueada 🔒)
+4. **lição** — player: 1 exercício por vez, barra de progresso, feedback imediato
+   (acertou/errou + explicação), sem punição
+5. **resultado** — XP/coins, streak mantida, score, CTA próxima lição
+6. **perfil** (editar a tela existente) — seção das trilhas matriculadas
 
 ## Fases de implementação
 
-| Fase | Entrega | Observação |
-|---|---|---|
-| **F1** | Backend: schema + migration + seed pipeline + 4 endpoints + scoring + crédito + streak | migration aditiva (segura no deploy) |
-| **F2** | Mobile: tab aprender + 4 telas + player com os 6 tipos | padrões existentes (i18n/skeleton/tema) |
-| **F3** | Gamificação: conquistas, desafio diário, feed, push, lembrete 20h "ou lição" | |
-| **F4** | Conteúdo inicial: frontend un. 1–4 + backend un. 1–3 (~25–30 lições) — resto do mapa visível bloqueado | **gargalo real**; Claude rascunha, Arthur/Moyza revisam |
-| **F5** | Pro: cadeados ativos, épico Stripe, execução JS no browser, LeetCode (Piston) | depois de validar |
+| Fase | Entrega |
+|---|---|
+| **F1** | Backend: schema + migration aditiva + seed pipeline + endpoints (catálogo/matrícula/mapa/correção) + scoring + crédito + streak |
+| **F2** | Mobile: tab aprender + catálogo + matrícula + perfil; depois mapa + player (6 tipos) + resultado |
+| **F3** | Ganchos: conquistas, desafio diário, feed, push, lembrete 20h "ou lição" |
+| **F4** | Conteúdo: frontend un. 1–4 + backend un. 1–3 (~25–30 lições); resto do mapa visível bloqueado. **Gargalo real** — Claude rascunha JSON, Arthur/Moyza revisam |
+| **F5** | Pro: cadeados ativos, épico Stripe, execução JS no browser, DSA/LeetCode (Piston), AI Tutor |
 
-## Riscos / pontos de atenção
-
-- **Conteúdo é o gargalo** — código são ~2-3 sessões; lições boas (PT+EN) são o
-  trabalho contínuo. Pipeline: Claude gera JSON → revisão em PR.
+## Riscos / atenção
+- **Conteúdo é o gargalo** — código são ~3 sessões; lições boas (PT+EN) são o
+  trabalho contínuo.
 - **Streak unificada** muda o texto do lembrete 20h e o `committedToday` da Home
   (vira "fez atividade hoje": commit ou lição).
-- **Tab bar**: entra 6º item ou o feed sai do botão central pra dar o centro ao
-  "aprender" — decidir na F2 com o layout na mão.
-- Migrations: aplicadas no deploy do Render (aditivas, sem risco aos dados).
+- **Tab bar**: entra 6º item ou rearranjo do botão central — decidir na F2.
+- **Catálogo grande** (~50 tracks): a maioria nasce "em breve"/Pro; só front/back/
+  fullstack têm conteúdo no início. Isso é intencional (aspiracional + funil Pro).
+- Migrations aditivas, aplicadas no deploy do Render (sem risco aos dados).
