@@ -5,6 +5,24 @@ trilhas e linguagens (catálogo inspirado em [roadmap.sh](https://roadmap.sh)) e
 estuda com lições curtas e exercícios estilo Duolingo, tudo plugado no motor de
 jogo que já existe (XP/coins/streak/liga/conquistas).
 
+## ⚠️ Identidade & feel — é o MESMO jogo (não um app de curso)
+**Princípio inegociável (Arthur, 2026-06-11):** estudar **não** é uma tela de
+catálogo/curso colada por cima. É o momentum que já existe — pixel-art, ofensiva,
+ranks, baús, liga, squad — agora também alimentado por aprender. Nada de cara de
+roadmap.sh (listas, barrinhas clínicas); o roadmap.sh é só a **fonte do conteúdo**.
+
+Os 4 pilares que dão a vibe (todos escolhidos pelo Arthur):
+1. **Lição mantém a ofensiva 🔥** — dia sem commit? uma lição segura o fogo. O
+   estudo entra na MESMA streak → é o gancho de retenção diária.
+2. **Baús + cosméticos pixel exclusivos de estudo** — terminar unidade solta baú
+   e itens pro avatar que só quem estuda ganha (liga ao colecionável que já amam).
+3. **PixelDev (o mascote da LP) como tutor** — reage a acerto/erro, comemora,
+   provoca quando some. Dá voz e alma.
+4. **Mapa pixel-art, não lista** — a trilha é um mundinho pixel pra percorrer (na
+   arte do app), lições como nós no caminho, baú no fim da unidade.
+
+Tudo no espresso + terracota, Lora/JetBrains, com a espiral e o boneco pixel.
+
 ## Modelo central (estilo Duolingo de idiomas)
 
 No Duolingo você adiciona vários **idiomas** ao perfil e cada um tem sua árvore e
